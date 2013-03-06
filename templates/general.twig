@@ -1,0 +1,65 @@
+{{ include 'templates/header.twig' }}
+{* nnames, nservers, ncountries, nmods, nonline, nmonths *}
+
+{$navigation}
+
+
+<div id="content" class="span10">
+    <div>
+        <ul class="breadcrumb">
+            <li>
+                <h3>General statistics</h3>
+            </li>
+        </ul>
+    </div>
+
+    <div class="row">
+        <div class="box span4">
+            <div class="box-header well" data-original-title="">
+                <h2><i class="icon-edit"></i> Keeping track of</h2>
+            </div>
+            <div class="box-content">
+
+                <ul class="dashboard-list">
+                    <li>
+                        <a href="#" style="text-decoration:none;">
+                            <span class="green">{$nnames}</span>
+                            tee names
+                        </a>
+                    </li>
+                    <li>
+                        <a href="#" style="text-decoration:none;">
+                            <span class="red">{$nservers}</span>
+                            servers
+                        </a>
+                    </li>
+                    <li>
+                        <a href="#" style="text-decoration:none;">
+                            <span class="blue">{$ncountries}</span>
+                            countries
+                        </a>
+                    </li>
+                    <li>
+                        <a href="#" style="text-decoration:none;">
+                            <span class="yellow">{$nmods}</span>
+                            mods
+                        </a>
+                    </li>
+                    <li>
+                        <a href="#" style="text-decoration:none;">
+                            <span class="green">{$nonline}</span>
+                            online tees
+                        </a>
+                    </li>
+                </ul>
+
+            </div>
+        </div><!--/span-->
+        {$countries}
+        {$mods}
+    </div>
+
+</div>
+
+
+{{ include 'templates/footer.twig' }}

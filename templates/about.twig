@@ -1,0 +1,39 @@
+{{ include 'templates/header.twig' }}
+
+{$navigation}
+
+<div id="content" class="span10">
+    <div>
+        <ul class="breadcrumb">
+            <li>
+                <h3>Frequently Asked Questions</h3>
+            </li>
+        </ul>
+    </div>
+    <div class="well">
+        <h2>Why is my clan/server/tee missing ?</h2>
+        <p>It could be because your clan/server/tee
+        <div>
+            <ul>
+                <li>Has not yet been online more than 5 minutes</li>
+                <li>Was not reachable through the official master servers</li>
+                <li>Was misspelled</li>
+            </ul>
+        </div><br/>
+        In the latter case, try typing only part of the name and see the suggestions.<br/><br/>
+        <h2>Why is my nickname associated with another clan/country ?</h2>
+        <p>A second player is probably using the same nickname. As a result, both of your statistics were merged.<br/>
+        Try to use an original nickname to view accurate statistics.
+        </p><br/>
+        <h2>Where do these statistics come from ?</h2>
+        <p>Teeworlds servers are looked up every 5 minutes to gather data about players, clans, mods, etc...<br/>
+        Results are displayed on demand.
+        </p><br/>
+        <h2>Contact</h2>
+        <p>You can contact us at the following address : contact on teeworlds-stats dot info.
+        </p>
+    </div>
+</div>
+
+
+{{ include 'templates/footer.twig' }}
