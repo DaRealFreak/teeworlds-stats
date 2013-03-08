@@ -1,33 +1,27 @@
 {* players, title *}
-<div class="widget">
-	<div class="head"><h5 class="iImageList">{$title}</h5></div>
 
-	{{ for player in players }}
-	<div class="supTicket">
-		<div class="issueSummary">
-			<a class="floatleft" title="" href="tee?n={$player.name}"><img alt="" src="images/user.png"></a>
-			<div class="ticketInfo">
-				<ul>
-					<li><a href="tee?n={$player.name}">{$player.name}</a></li>
-					{{ if player.online }}
-						<li class="even">-</li>
-					{{ else }}
-						<li class="even">Last seen on</li>
-					{{ endif }}
-					<li>Status:
-					{{ if player.online }}
-						<strong class="green">Online</strong></li>
-						<li class="even"></li>
-					{{ else }}
-						<strong class="red">Offline</strong></li>
-						<li class="even">{$player.lastseen}</li>
-					{{ endif }}
-				</ul>
-				<div class="fix"></div>
-			</div>
-			<div class="fix"></div>
-		</div>
-	</div>
-	{{ endfor }}
+<div class="box span4">
+    <div class="box-header well" data-original-title="">
+        <h2><i class="icon-edit"></i> {$title}</h2>
+    </div>
+    <div class="box-content">
 
+        <ul class="dashboard-list">
+            {{ for player in players }}
+            <li>
+                <a href="tee?n={$player.name}">
+                    <img class="dashboard-avatar" alt="{$player.name}" src="images/user.png">
+                </a>
+                <a href="tee?n={$player.name}">{$player.name}</a><br>
+                {{ if player.online }}
+                <span class="label label-success">Online</span><br><br>
+                {{ else }}
+                <span class="label label-important">Offline</span><br>
+                 since {$player.lastseen}<br>
+                {{ endif }}
+            </li>
+            {{ endfor }}
+        </ul>
+    </div>
 </div>
+

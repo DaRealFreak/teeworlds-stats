@@ -33,20 +33,20 @@ if(!empty($player['country']))
 $items = array(
 			   array('text' => 'Game statistics',
 					 'url'=>myurl("general"),
-					 'class' => 'graphs'),
+					 'class' => 'icon-globe'),
 			   array('text' => 'Search',
 					 'url'=>myurl(""),
-					 'class' => 'gallery'),
+					 'class' => 'icon-search'),
 			   );
 
 if(!empty($player['clan']))
-	$items[] = array('text' => 'Clan : ' . $player['clan'],
+	$items[] = array('text' => $player['clan'],
 					 'url'=>myurl("clan",array("n" => $player['clan'])),
-					 'class' => 'contacts');
+					 'class' => 'icon-home');
 
 $items[] = array('text' => 'About',
 				 'url'=>myurl("about"),
-				 'class' => 'typo');
+				 'class' => 'icon-info-sign');
 
 $page['navigation'] = $twig->render("views/navigation.twig", array( "items" => $items));
 
