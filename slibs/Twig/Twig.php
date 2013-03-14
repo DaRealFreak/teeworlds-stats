@@ -7,7 +7,7 @@ Twig_Autoloader::register();
 $loader = new Twig_Loader_Filesystem(".");
 
 $twig = new Twig_Environment($loader, array(
-  /*'cache' => dirname(__FILE__) . '/cache',*/
+ // 'cache' => dirname(__FILE__) . '/cache',
   'charset' => 'ISO-8859-1',
   'autoescape' => false
 ));

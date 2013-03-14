@@ -8,10 +8,16 @@
     <div>
         <ul class="breadcrumb">
             <li>
-                <h3>General statistics</h3>
+                <h3>{$clan} clan page</h3>
             </li>
         </ul>
     </div>
+
+    {{ if clantxt }}
+    <div class="well">
+        {$clantxt}
+    </div>
+    {{ endif }}
 
     <div class="row">
 			{$players}

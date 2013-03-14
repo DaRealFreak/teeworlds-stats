@@ -113,13 +113,21 @@ function frmsave($frm) {
 		$_SESSION[frmname($frm)] = $form;
 }
 
-/**
- *	Returns a form saved in the session
- */
-function frmrestore($frm) {
-	$name = frmname($frm);
-	return isset($_SESSION[$name]) ? $_SESSION[$name] : array();
-}
+ /**
+  *	Returns a form saved in the session
+  */
+ function frmrestore($frm) {
+ 	$name = frmname($frm);
+ 	return isset($_SESSION[$name]) ? $_SESSION[$name] : array();
+ }
+
+ /**
+  *	Removes a form saved in the session
+  */
+ function frmremove($frm) {
+ 	$name = frmname($frm);
+ 	unset($_SESSION[$name]);
+ }
 
 /**
  *	Returns the submitted form

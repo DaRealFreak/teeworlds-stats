@@ -179,6 +179,12 @@ function getPlayer($name) {
 	return false;
 }
 
+function getTeeName($tee) {
+	$req = sqlquery("SELECT tee FROM tees WHERE tee=? LIMIT 1", array($tee));
+	$tmp = sqlfetch($req);
+	return $tmp ? $tmp['tee'] : false;
+}
+
 function getClanName($clan) {
 	$req = sqlquery("SELECT clan FROM tees WHERE clan=? LIMIT 1", array($clan));
 	$tmp = sqlfetch($req);
@@ -212,6 +218,7 @@ function generalCounts() {
 
 	return array_map("niceDigits",$res);
 }
+
 /*
 require("slibs/db/db.php");
 require("slibs/config_sql.php");

@@ -7,7 +7,7 @@
     <div>
         <ul class="breadcrumb">
             <li>
-                <h3>{$tee}'s statistics {{ if clan or country }}
+                <h3>{$tee}'s {{ if teetxt }} profile {{ else }} statistics {{ endif }} {{ if clan or country }}
                                                                 ( {$clan}{{ if clan and country }},
                     {{ endif }}{$country} ){{endif}}</h3>
             </li>
@@ -15,7 +15,13 @@
     </div>
 
 
+    {{ if teetxt }}
+    <div class="well">
+        {$teetxt}
+    </div>
+    {{ endif }}
     <div class="row">
+
 		{$mods}
 		{$maps}
 

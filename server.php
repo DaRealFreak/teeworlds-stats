@@ -15,6 +15,25 @@ if(!$name) {
 }
 $server = $name;
 
+
+$user = getFacebookID();
+
+if($user) {
+	$page['logged'] = true;
+
+	$account = getAccountDetails($user);
+	if(!empty($account["tee"]))
+		$items[] = array('text' => $account['tee'],
+						 'url'=>myurl("tee",array("n" => $account['tee'])),
+						 'class' => 'icon-user');
+	if(!empty($account["clan"]))
+		$items[] = array('text' => $account['clan'],
+						 'url'=>myurl("clan",array("n" => $account['clan'])),
+						 'class' => 'icon-home');
+
+	$items[] = array('text' => 'Account', 'url' => myurl("account"), 'class' => 'icon-pencil');
+}
+
 $hist_maps = gethisto("server",$server,"map");
 $hist_countries = gethisto("server",$server,"country");
 
