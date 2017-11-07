@@ -1,8 +1,8 @@
 <?php
 
-$sql_host = "localhost";
+$sql_host = "db";
 $sql_user = "root";
-$sql_pass = "";
+$sql_pass = "root";
 $sql_db = "teestats";
 
 try {
