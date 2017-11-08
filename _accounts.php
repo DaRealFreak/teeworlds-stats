@@ -2,27 +2,43 @@
 
 function getFacebookID($verify = false) {
 
-	global $facebook;
-	// See if there is a user from a cookie
-	$user = $facebook->getUser();
+    global $facebook;
+    # Facebook PHP SDK v5: Check Login Status Example
+    $helper = $facebook->getCanvasHelper();
 
-	if ($user && $verify) {
-	  try {
-		// Proceed knowing you have a logged in user who's authenticated.
-		$user_profile = $facebook->api('/me');
-	  } catch (FacebookApiException $e) {
-		$user = 0;
-	  }
-	}
+    // Grab the signed request entity
+    $sr = $helper->getSignedRequest();
 
-	$formDetails = array("tee", "teetxt", "teemods", "teemaps", "teehours", "teedays",
-						"clan", "clantxt", "clanmods", "clanmaps", "clancountries",
-						"clanhours", "clandays", "clanplayers");
+    // Get the user ID if signed request exists
+    $user = $sr ? $sr->getUserId() : null;
 
-	if(!$user)
-		frmremove($formDetails);
+    if ($user && $verify) {
+        try {
 
-	return $user;
+            // Get the access token
+            $accessToken = $helper->getAccessToken();
+
+            // Returns a `Facebook\FacebookResponse` object
+            $response = $facebook->get('/me?fields=id,name', $accessToken);
+            $user_profile = $response->getGraphUser();
+        } catch (Facebook\Exceptions\FacebookResponseException $e) {
+            // echo 'Graph returned an error: ' . $e->getMessage();
+            $user = 0;
+        } catch (Facebook\Exceptions\FacebookSDKException $e) {
+            // echo 'Facebook SDK returned an error: ' . $e->getMessage();
+            $user = 0;
+        }
+    }
+
+    $formDetails = array("tee", "teetxt", "teemods", "teemaps", "teehours", "teedays",
+        "clan", "clantxt", "clanmods", "clanmaps", "clancountries",
+        "clanhours", "clandays", "clanplayers");
+
+    if (!$user) {
+        frmremove($formDetails);
+    }
+
+    return $user;
 }
 
 function updateAccountDetails($fields, $facebookid) {
