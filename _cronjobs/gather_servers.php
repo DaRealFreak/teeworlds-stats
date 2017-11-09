@@ -16,7 +16,7 @@ include(dirname(__FILE__) . "/../slibs/config_sql.php");
 
 $db->query("TRUNCATE `servers`");
 
-$req = $db->prepare("INSERT INTO `servers` (`ip`, `port`, `version`) VALUES (?, ?, ?)");
+$req = $db->prepare("INSERT INTO `servers` (`address`, `port`, `version`) VALUES (?, ?, ?)");
 
 $count = 0;
 foreach ($servers as $server) {
