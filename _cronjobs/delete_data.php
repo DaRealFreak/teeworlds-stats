@@ -1,6 +1,6 @@
 <?php
 
-include(dirname(__FILE__) . "/../config_sql.php");
+include(dirname(__FILE__) . "./config_sql.php");
 
 $curdate = date('Y-m-d H:i:s');
 $maxdate = date("Y-m-d H:i:s", strtotime($curdate) - 4*24*3600);
