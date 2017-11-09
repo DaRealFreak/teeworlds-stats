@@ -15,7 +15,14 @@ class Application implements ApplicationInterface
      */
     public function __construct($classLoader)
     {
-        $database = GeneralUtility::makeInstance(Database::class);
+        /**
+         * initialize the database directly
+         */
+        $GLOBALS['DB'] = GeneralUtility::makeInstance(Database::class);
+        /**
+         * initialize the frontend handler
+         */
+        $GLOBALS['FE'] = GeneralUtility::makeInstance(Twig::class);
     }
 
     /**
