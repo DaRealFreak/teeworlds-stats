@@ -21,3 +21,6 @@ Thumbs.db
 
 # cache files
 /web/templates/cache
+
+# asset files from dependencies
+/web/assets/vendor/
