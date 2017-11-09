@@ -54,7 +54,7 @@ class GeneralUtility
         }
         if (!class_exists($className)) {
             throw new \InvalidArgumentException(
-                    '$className "' . $className . '" does not exist.'
+                '$className "' . $className . '" does not exist.'
             );
         }
 
@@ -124,5 +124,21 @@ class GeneralUtility
                 $instance = $class->newInstanceArgs($arguments);
         }
         return $instance;
+    }
+
+    /**
+     * @return string
+     */
+    public static function joinPaths()
+    {
+        $args = func_get_args();
+        $paths = array();
+        foreach ($args as $arg) {
+            $paths = array_merge($paths, (array)$arg);
+        }
+
+        $paths = array_map(create_function('$p', 'return trim($p, "' . DIRECTORY_SEPARATOR . '");'), $paths);
+        $paths = array_filter($paths);
+        return join(DIRECTORY_SEPARATOR, $paths);
     }
 }
