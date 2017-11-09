@@ -1,8 +1,7 @@
 <?php
-
 $timeA = time();
 
-ini_set("max_execution_time", 10*60);
+ini_set("max_execution_time", 10 * 60);
 $curdate = date('Y-m-d H:i:s');
 
 include(dirname(__FILE__) . "/TwRequest.php");
@@ -17,10 +16,8 @@ include(dirname(__FILE__) . "/../slibs/config_sql.php");
 
 $db->query("DELETE FROM servers");
 
-$req = $db->prepare("INSERT INTO servers VALUES (?,?)");
+$req = $db->prepare("INSERT INTO servers VALUES (NULL, ?, ?, ?)");
 
-foreach($servers as $server)
-	$req->execute(array($server[0],$server[1]));
-
-
-?>
+foreach ($servers as $server) {
+    $req->execute(array($server[0], $server[1], $server[2]));
+}
