@@ -21,6 +21,9 @@ class Twig implements SingletonInterface
 
     /**
      * Twig constructor.
+     *
+     * ToDo:
+     *  - extract/define the paths globally
      */
     public function __construct()
     {
@@ -35,6 +38,42 @@ class Twig implements SingletonInterface
     }
 
     /**
+     * render a template and pass the parameters
+     *
+     * @param string $templateFile
+     * @param array $params
+     */
+    public function renderTemplate($templateFile, $params = [])
+    {
+        $template = $this->twig->load($templateFile);
+        $params += $this->dependencies;
+        echo $template->render($params);
+    }
+
+    /**
+     * include basedir into parameters
+     *
+     * @return array
+     */
+    private function includeCharismaLibs()
+    {
+        $baseDir = dirname($_SERVER['PHP_SELF']);
+        if (strlen($baseDir) > 1) {
+            $baseDir = $baseDir . "/";
+        }
+
+        $res = ["basedir" => $baseDir];
+        $dir = GeneralUtility::joinPaths($baseDir, "clibs");
+        $res += $this->resolveCharismaLibs($dir);
+        return $res;
+    }
+
+    /**
+     * create a file list of the dependencies recursively
+     *
+     * ToDo:
+     *  - update charisma(current version is old) or remove it?
+     *
      * @param $dir
      * @return array
      */
@@ -70,32 +109,4 @@ class Twig implements SingletonInterface
         }
         return $res;
     }
-
-    /**
-     * @return array
-     */
-    private function includeCharismaLibs()
-    {
-        $baseDir = dirname($_SERVER['PHP_SELF']);
-        if (strlen($baseDir) > 1) {
-            $baseDir = $baseDir . "/";
-        }
-
-        $res = ["basedir" => $baseDir];
-        $dir = GeneralUtility::joinPaths($baseDir, "clibs");
-        $res += $this->resolveCharismaLibs($dir);
-        return $res;
-    }
-
-    /**
-     * @param string $templateFile
-     * @param array $params
-     */
-    public function renderTemplate($templateFile, $params = [])
-    {
-        $template = $this->twig->load($templateFile);
-        $params += $this->dependencies;
-        echo $template->render($params);
-    }
-
 }
