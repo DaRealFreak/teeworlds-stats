@@ -2,6 +2,9 @@
 
 namespace TwStats\Core\Frontend;
 
+use TwStats\Core\Backend\Database;
+use TwStats\Core\Backend\Utility\GeneralUtility;
+
 class Application implements ApplicationInterface
 {
 
@@ -12,7 +15,7 @@ class Application implements ApplicationInterface
      */
     public function __construct($classLoader)
     {
-
+        $database = GeneralUtility::makeInstance(Database::class);
     }
 
     /**
@@ -23,6 +26,6 @@ class Application implements ApplicationInterface
      */
     public function run(callable $execute = null)
     {
-        
+
     }
 }
