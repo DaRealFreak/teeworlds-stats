@@ -14,10 +14,15 @@ $servers = $twdata->getServers();
 
 include(dirname(__FILE__) . "/../slibs/config_sql.php");
 
-$db->query("TRUNCATE TABLE servers");
+$db->query("TRUNCATE `servers`");
 
 $req = $db->prepare("INSERT INTO `servers` (`ip`, `port`, `version`) VALUES (?, ?, ?)");
 
+$count = 0;
 foreach ($servers as $server) {
     $req->execute(array($server[0], $server[1], $server[2]));
+    ++$count;
 }
+
+echo sprintf("Fetched %d servers from the master servers", $count);
+
