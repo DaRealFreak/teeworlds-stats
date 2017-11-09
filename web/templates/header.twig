@@ -12,7 +12,7 @@
 		http://twitter.com/halalit_usman
 	-->
 	<meta charset="utf-8">
-    <title>{$title}</title>
+    <title>{{ title }}</title>
 
 	<meta name="viewport" content="width=device-width, initial-scale=1.0">
 	<meta name="author" content="Teectac">
@@ -32,15 +32,15 @@
 	  <script src="http://html5shim.googlecode.com/svn/trunk/html5.js"></script>
 	<![endif]-->
 
-	<base href="{{ if basedir }}{$basedir}{{ endif }}" />
+	<base href="{% if basedir %}{{ basedir }}{% endif %}" />
 
-	{{ for file in css }}
-		<link href="{$file}" rel="stylesheet" type="text/css" />
-	{{ endfor }}
+    {% for file in css %}
+		<link href="{{ file }}" rel="stylesheet" type="text/css" />
+    {% endfor %}
 
-    {{ for file in js }}
-   		<script type="text/javascript" src="{$file}"></script>
-   	{{ endfor }}
+    {% for file in js %}
+   		<script type="text/javascript" src="{{ file }}"></script>
+    {% endfor %}
 
     <!-- Facebook stuff -->
     <meta property="fb:admins" content="626235569" />
@@ -98,11 +98,11 @@ window.fbAsyncInit = function() {
                     <li><a href="#"><img src="images/teeworlds-stats.png" alt="Teeworlds statistics"/></a></li>
                 </ul>
             </div>
-            {{ if not logged }}
+            {% if not logged %}
             <div class="btn-group pull-right">
                 <fb:login-button></fb:login-button>
             </div>
-            {{ endif }}
+            {% endif %}
         </div>
     </div>
 </div>
