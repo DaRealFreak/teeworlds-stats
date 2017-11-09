@@ -9,6 +9,9 @@
 namespace TwStats\Core\Backend;
 
 
+use TwStats\Core\Backend\Utility\GeneralUtility;
+use TwStats\Core\Frontend\Twig;
+
 class Database implements SingletonInterface
 {
     /**
@@ -26,8 +29,9 @@ class Database implements SingletonInterface
             $pdo_options[\PDO::ATTR_ERRMODE] = \PDO::ERRMODE_EXCEPTION;
             $GLOBALS['DB'] = new \PDO("mysql:host=$sql_host;dbname=$sql_db", $sql_user, $sql_pass, $pdo_options);
         } catch (\PDOException $e) {
-            // ToDo: template paths and twig configuration
-            echo trender("templates/down.twig");
+            /** @var Twig $frontendHandler */
+            $frontendHandler = GeneralUtility::makeInstance(Twig::class);
+            $frontendHandler->renderTemplate("down.twig");
             exit(0);
         }
 
