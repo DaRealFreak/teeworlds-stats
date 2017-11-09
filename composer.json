@@ -13,9 +13,9 @@
     "ezyang/htmlpurifier": "^4.9"
   },
   "autoload": {
-    "psr-4": {
-      "Classes\\Weather\\": "Classes/CronJobs/Weather"
-    }
+      "psr-4": {
+        "TwStats\\Core\\": "web/core/"
+      }
   },
   "scripts": {
     "post-root-package-install": [

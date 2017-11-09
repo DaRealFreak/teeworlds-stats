@@ -23,6 +23,6 @@ class Application implements ApplicationInterface
      */
     public function run(callable $execute = null)
     {
-        // TODO: Implement run() method.
+        
     }
 }
