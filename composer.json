@@ -1,0 +1,27 @@
+{
+  "repositories": [
+  ],
+  "name": "tw-stats-composer-installation",
+  "description": "Tw-Stats Website in Composer",
+  "license": "MIT",
+  "config": {
+    "preferred-install": "dist"
+  },
+  "require": {
+    "facebook/graph-sdk": "~5.0",
+    "guzzlehttp/guzzle": "~5.0",
+    "ezyang/htmlpurifier": "^4.9"
+  },
+  "autoload": {
+    "psr-4": {
+      "Classes\\Weather\\": "Classes/CronJobs/Weather"
+    }
+  },
+  "scripts": {
+    "post-root-package-install": [
+      "php -r \"copy('.env.example', '.env');\""
+    ]
+  },
+  "minimum-stability": "dev",
+  "prefer-stable": true
+}
