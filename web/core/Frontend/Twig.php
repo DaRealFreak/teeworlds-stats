@@ -24,6 +24,7 @@ class Twig implements SingletonInterface
      *
      * ToDo:
      *  - extract/define the paths globally
+     *  - give option to disable/enable the cache
      */
     public function __construct()
     {
@@ -33,7 +34,7 @@ class Twig implements SingletonInterface
         $templateCacheDir = GeneralUtility::joinPaths($templateDir, "cache");
         $loader = new \Twig_Loader_Filesystem($templateDir);
         $this->twig = new \Twig_Environment($loader, array(
-            'cache' => $templateCacheDir,
+            //'cache' => $templateCacheDir,
         ));
     }
 
