@@ -9,8 +9,9 @@
 namespace TwStats\Core\Backend;
 
 
-use TwStats\Core\Backend\Utility\GeneralUtility;
 use TwStats\Core\Frontend\Twig;
+use TwStats\Core\Utility\GeneralUtility;
+use TwStats\Core\Utility\SingletonInterface;
 
 class Database implements SingletonInterface
 {

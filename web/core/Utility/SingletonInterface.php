@@ -1,5 +1,5 @@
 <?php
-namespace TwStats\Core\Backend;
+namespace TwStats\Core\Utility;
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -16,7 +16,7 @@ namespace TwStats\Core\Backend;
 
 /**
  * "empty" interface for singletons (marker interface pattern)
- * @see \TwStats\Core\Backend\GeneralUtility::makeInstance()
+ * @see \TwStats\Core\Utility\GeneralUtility::makeInstance()
  */
 interface SingletonInterface
 {

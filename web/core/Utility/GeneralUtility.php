@@ -10,7 +10,7 @@
  * LICENSE.txt file that is distributed with the TYPO3 CMS Code.
  */
 
-namespace TwStats\Core\Backend\Utility;
+namespace TwStats\Core\Utility;
 
 
 use TwStats\Core\Backend\SingletonInterface;

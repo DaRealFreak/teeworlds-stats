@@ -3,8 +3,8 @@
 namespace TwStats\Core\Frontend;
 
 
-use TwStats\Core\Backend\SingletonInterface;
-use TwStats\Core\Backend\Utility\GeneralUtility;
+use TwStats\Core\Utility\GeneralUtility;
+use TwStats\Core\Utility\SingletonInterface;
 
 class Twig implements SingletonInterface
 {
@@ -21,20 +21,14 @@ class Twig implements SingletonInterface
 
     /**
      * Twig constructor.
-     *
-     * ToDo:
-     *  - extract/define the paths globally
-     *  - give option to disable/enable the cache
      */
     public function __construct()
     {
         $this->dependencies = $this->includeCharismaLibs();
-        $baseDir = dirname($_SERVER['PHP_SELF']);
-        $templateDir = GeneralUtility::joinPaths($baseDir, "templates");
-        $templateCacheDir = GeneralUtility::joinPaths($templateDir, "cache");
-        $loader = new \Twig_Loader_Filesystem($templateDir);
+
+        $loader = new \Twig_Loader_Filesystem(TwStats_templates);
         $this->twig = new \Twig_Environment($loader, array(
-            //'cache' => $templateCacheDir,
+            'cache' => TwStats_template_cache,
         ));
     }
 
@@ -43,9 +37,15 @@ class Twig implements SingletonInterface
      *
      * @param string $templateFile
      * @param array $params
+     * @param bool $cache
      */
-    public function renderTemplate($templateFile, $params = [])
+    public function renderTemplate($templateFile, $params = [], $cache = True)
     {
+        if ($cache && !$this->twig->getCache()) {
+            $this->twig->setCache(TwStats_template_cache);
+        } else {
+            $this->twig->setCache(False);
+        }
         $template = $this->twig->load($templateFile);
         $params += $this->dependencies;
         echo $template->render($params);

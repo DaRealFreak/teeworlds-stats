@@ -3,7 +3,8 @@
 namespace TwStats\Core\Frontend;
 
 use TwStats\Core\Backend\Database;
-use TwStats\Core\Backend\Utility\GeneralUtility;
+use TwStats\Core\Backend\SystemEnvironmentBuilder;
+use TwStats\Core\Utility\GeneralUtility;
 
 class Application implements ApplicationInterface
 {
@@ -15,11 +16,15 @@ class Application implements ApplicationInterface
      */
     public function __construct($classLoader)
     {
-        /**
+        /*
+         * run the environmental builder
+         */
+        SystemEnvironmentBuilder::run();
+        /*
          * initialize the database directly
          */
         $GLOBALS['DB'] = GeneralUtility::makeInstance(Database::class);
-        /**
+        /*
          * initialize the frontend handler
          */
         $GLOBALS['FE'] = GeneralUtility::makeInstance(Twig::class);
