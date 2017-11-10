@@ -3,11 +3,30 @@
 namespace TwStats\Core\Frontend;
 
 use TwStats\Core\Backend\Database;
+use TwStats\Core\Backend\RequestHandler;
 use TwStats\Core\Backend\SystemEnvironmentBuilder;
 use TwStats\Core\Utility\GeneralUtility;
 
 class Application implements ApplicationInterface
 {
+    /**
+     * database connection
+     *
+     * @var Database|null
+     */
+    private $database = null;
+
+    /**
+     * frontend handler
+     *
+     * @var Twig|null
+     */
+    private $frontendHandler = null;
+
+    /**
+     * @var RequestHandler|null
+     */
+    private $requestHandler = null;
 
     /**
      * Constructor setting up legacy constant and register available Request Handlers
@@ -23,11 +42,15 @@ class Application implements ApplicationInterface
         /*
          * initialize the database directly
          */
-        $GLOBALS['DB'] = GeneralUtility::makeInstance(Database::class);
+        $GLOBALS['DB'] = $this->database = GeneralUtility::makeInstance(Database::class);
         /*
          * initialize the frontend handler
          */
-        $GLOBALS['FE'] = GeneralUtility::makeInstance(Twig::class);
+        $GLOBALS['FE'] = $this->frontendHandler = GeneralUtility::makeInstance(Twig::class);
+        /*
+         * initialize the request handler
+         */
+        $this->requestHandler = GeneralUtility::makeInstance(RequestHandler::class);
     }
 
     /**
@@ -38,6 +61,6 @@ class Application implements ApplicationInterface
      */
     public function run(callable $execute = null)
     {
-
+        $requestedFile = $this->requestHandler->getRequestedPath();
     }
 }

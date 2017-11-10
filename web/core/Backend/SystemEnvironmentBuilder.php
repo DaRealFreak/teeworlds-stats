@@ -32,6 +32,7 @@ class SystemEnvironmentBuilder
             $baseDir = dirname($_SERVER['PHP_SELF']);
         }
 
+        define('TwStats_path', GeneralUtility::joinPaths($baseDir, "twstats"));
         define('TwStats_templates', GeneralUtility::joinPaths($baseDir, "templates"));
         define('TwStats_template_cache', GeneralUtility::joinPaths(TwStats_templates, "cache"));
     }
