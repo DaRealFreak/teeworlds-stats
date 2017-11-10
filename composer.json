@@ -26,7 +26,7 @@
       "php -r \"copy('.env.example', '.env');\""
     ],
     "pre-autoload-dump": [
-      "rm -rf ./web/assets/vendor && mkdir ./web/assets/vendor",
+      "rm -rf ./web/assets/vendor && mkdir -p  ./web/assets/vendor",
       "cd ./web/assets/vendor && ln -s ../../../vendor/components/jquery ./jquery",
       "cd ./web/assets/vendor && ln -s ../../../vendor/twbs/bootstrap/dist ./bootstrap"
     ]
