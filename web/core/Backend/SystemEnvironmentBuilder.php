@@ -27,9 +27,9 @@ class SystemEnvironmentBuilder
     public static function definePaths($relativePathPart)
     {
         if (isset($relativePathPart)) {
-            $baseDir = realpath($relativePathPart);
+            $baseDir = $relativePathPart;
         } else {
-            $baseDir = realpath(dirname($_SERVER['PHP_SELF']));
+            $baseDir = dirname($_SERVER['PHP_SELF']);
         }
 
         define('TwStats_templates', GeneralUtility::joinPaths($baseDir, "templates"));
