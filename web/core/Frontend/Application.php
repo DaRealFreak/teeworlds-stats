@@ -61,6 +61,6 @@ class Application implements ApplicationInterface
      */
     public function run(callable $execute = null)
     {
-        $requestedFile = $this->requestHandler->getRequestedPath();
+        GeneralUtility::makeInstance($this->requestHandler->getRequestedClass());
     }
 }
