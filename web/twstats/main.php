@@ -8,7 +8,7 @@ class Main extends AbstractController
 {
     public function run()
     {
-        echo "run function";
+        $this->frontendHandler->renderTemplate("main.twig");
     }
 
     public function originalFunction($twig) {
