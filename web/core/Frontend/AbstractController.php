@@ -13,19 +13,19 @@ abstract class AbstractController
      *
      * @var Database|null
      */
-    private $database = null;
+    protected $database = null;
 
     /**
      * frontend handler
      *
      * @var Twig|null
      */
-    private $frontendHandler = null;
+    protected $frontendHandler = null;
 
     /**
      * @var RequestHandler|null
      */
-    private $requestHandler = null;
+    protected $requestHandler = null;
 
     /**
      * AbstractController constructor.
