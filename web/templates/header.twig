@@ -64,27 +64,29 @@
 
 <div id="fb-root"></div>
 <script>
+    window.fbAsyncInit = function() {
+        FB.init({
+            appId      : '133904623933394',
+            cookie     : true,
+            xfbml      : true,
+            version    : 'v2.11'
+        });
+        FB.Event.subscribe('auth.login', function(response) {
+            window.location.reload();
+        });
+        FB.Event.subscribe('auth.logout', function(response) {
+            window.location.reload();
+        });
+        FB.AppEvents.logPageView();
+    };
 
-window.fbAsyncInit = function() {
-  FB.init({
-    appId: '626460964035808',
-    cookie: true,
-    xfbml: true,
-    oauth: true
-  });
-  FB.Event.subscribe('auth.login', function(response) {
-    window.location.reload();
-  });
-  FB.Event.subscribe('auth.logout', function(response) {
-    window.location.reload();
-  });
-};
-(function() {
-  var e = document.createElement('script'); e.async = true;
-  e.src = document.location.protocol +
-    '//connect.facebook.net/en_US/all.js';
-  document.getElementById('fb-root').appendChild(e);
-}());
+    (function(d, s, id){
+        var js, fjs = d.getElementsByTagName(s)[0];
+        if (d.getElementById(id)) {return;}
+        js = d.createElement(s); js.id = id;
+        js.src = "https://connect.facebook.net/en_US/sdk.js";
+        fjs.parentNode.insertBefore(js, fjs);
+    }(document, 'script', 'facebook-jssdk'));
 </script>
 
 <div class="navbar">
