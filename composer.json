@@ -9,7 +9,7 @@
   },
   "require": {
     "facebook/graph-sdk": "~5.0",
-    "guzzlehttp/guzzle": "~5.0",
+    "guzzlehttp/guzzle": "~6.0",
     "ezyang/htmlpurifier": "^4.9",
     "twig/twig": "^2.4",
     "components/jquery": "^3.2",
