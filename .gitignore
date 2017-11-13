@@ -24,3 +24,6 @@ Thumbs.db
 
 # asset files from dependencies
 /web/assets/vendor/
+
+# environmental file
+.env
