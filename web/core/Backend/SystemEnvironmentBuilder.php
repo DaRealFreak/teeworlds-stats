@@ -33,7 +33,8 @@ class SystemEnvironmentBuilder
         }
 
         define('TwStats_path', GeneralUtility::joinPaths($baseDir, "twstats"));
-        define('TwStats_main', GeneralUtility::joinPaths(TwStats_path, "main.php"));
+        define('TwStats_main_class', "main");
+        define('TwStats_main_file', GeneralUtility::joinPaths(TwStats_path, TwStats_main_class . ".php"));
         define('TwStats_namespace', "TwStats\\Ext\\");
         define('TwStats_templates', GeneralUtility::joinPaths($baseDir, "templates"));
         define('TwStats_template_cache', GeneralUtility::joinPaths(TwStats_templates, "cache"));

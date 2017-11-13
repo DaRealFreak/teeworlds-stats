@@ -30,11 +30,11 @@ class RequestHandler implements SingletonInterface
         $requestedPath = substr(parse_url(self::getUrl(), PHP_URL_PATH), 1);
         if ($requestedPath) {
             $requestedPath = GeneralUtility::joinPaths(TwStats_path, $requestedPath);
-            if (!is_file($requestedPath) || !is_file($requestedPath)) {
-                $requestedPath = TwStats_main;
+            if (!@is_file($requestedPath) || !@is_file($requestedPath)) {
+                $requestedPath = TwStats_main_file;
             }
         } else {
-            return TwStats_main;
+            return TwStats_main_file;
         }
         return $requestedPath;
     }
