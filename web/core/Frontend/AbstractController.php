@@ -4,6 +4,7 @@ namespace TwStats\Core\Frontend;
 
 use TwStats\Core\Backend\Database;
 use TwStats\Core\Backend\RequestHandler;
+use TwStats\Core\Backend\SessionHandler;
 use TwStats\Core\Utility\GeneralUtility;
 
 abstract class AbstractController
@@ -11,21 +12,26 @@ abstract class AbstractController
     /**
      * database connection
      *
-     * @var Database|null
+     * @var Database
      */
     protected $database = null;
 
     /**
      * frontend handler
      *
-     * @var Twig|null
+     * @var Twig
      */
     protected $frontendHandler = null;
 
     /**
-     * @var RequestHandler|null
+     * @var RequestHandler
      */
     protected $requestHandler = null;
+
+    /**
+     * @var SessionHandler
+     */
+    protected $sessionHandler = null;
 
     /**
      * AbstractController constructor.
@@ -35,6 +41,7 @@ abstract class AbstractController
         $this->database = $GLOBALS['DB'];
         $this->frontendHandler = $GLOBALS['FE'];
         $this->requestHandler = GeneralUtility::makeInstance(RequestHandler::class);
+        $this->sessionHandler = GeneralUtility::makeInstance(SessionHandler::class);
         $this->run();
     }
 
