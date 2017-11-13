@@ -81,8 +81,8 @@ class Facebook implements SingletonInterface
      */
     function getAccountDetails($facebookId)
     {
-        $req = $this->databaseConnection->sqlquery("SELECT * FROM accounts WHERE facebookid = ?", array($facebookId));
-        return $this->databaseConnection->sqlfetch($req);
+        $req = $this->databaseConnection->sqlQuery("SELECT * FROM accounts WHERE facebookid = ?", array($facebookId));
+        return $this->databaseConnection->sqlFetch($req);
     }
 
 }
