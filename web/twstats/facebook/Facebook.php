@@ -8,6 +8,10 @@
 
 namespace TwStats\Ext\Facebook;
 
+use Facebook\Exceptions\FacebookResponseException;
+use Facebook\Exceptions\FacebookSDKException;
+use TwStats\Core\Backend\Database;
+use TwStats\Core\Utility\GeneralUtility;
 use TwStats\Core\Utility\SingletonInterface;
 
 
@@ -19,6 +23,11 @@ class Facebook implements SingletonInterface
     protected $facebook = null;
 
     /**
+     * @var Database|null
+     */
+    protected $databaseConnection = null;
+
+    /**
      * Facebook constructor.
      */
     public function __construct()
@@ -28,6 +37,53 @@ class Facebook implements SingletonInterface
             'app_id' => '133904623933394',
             'app_secret' => '39b31cc4a948b8494fc3e435d42061ad',
         ));
+        $this->databaseConnection = GeneralUtility::makeInstance(Database::class);
+    }
+
+    /**
+     * get the facebook id from the facebook sdk and optionally verify this id
+     *
+     * @param bool $verify
+     * @return int|string
+     */
+    public function getFacebookID($verify = false)
+    {
+        # Facebook PHP SDK v5: Check Login Status Example
+        $helper = $this->facebook->getCanvasHelper();
+
+        // Grab the signed request entity
+        $sr = $helper->getSignedRequest();
+
+        // Get the user ID if signed request exists
+        $user = $sr ? $sr->getUserId() : 0;
+
+        if ($user && $verify) {
+            try {
+                // Get the access token
+                $accessToken = $helper->getAccessToken();
+                // Returns a `Facebook\FacebookResponse` object
+                $this->facebook->get('/me?fields=id,name', $accessToken);
+            } catch (FacebookResponseException $e) {
+                // echo 'Graph returned an error: ' . $e->getMessage();
+                $user = 0;
+            } catch (FacebookSDKException $e) {
+                // echo 'Facebook SDK returned an error: ' . $e->getMessage();
+                $user = 0;
+            }
+        }
+        return $user;
+    }
+
+    /**
+     * get the corresponding account to the facebook id
+     *
+     * @param int $facebookId
+     * @return array
+     */
+    function getAccountDetails($facebookId)
+    {
+        $req = $this->databaseConnection->sqlquery("SELECT * FROM accounts WHERE facebookid = ?", array($facebookId));
+        return $this->databaseConnection->sqlfetch($req);
     }
 
 }
