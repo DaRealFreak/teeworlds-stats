@@ -39,7 +39,20 @@ class Twig implements SingletonInterface
      * @param array $params
      * @param bool $cache
      */
-    public function renderTemplate($templateFile, $params = [], $cache = True)
+    public function renderTemplate($templateFile, $params = [], $cache = False)
+    {
+        echo $this->getTemplateHtml($templateFile, $params, $cache);
+    }
+
+    /**
+     * render a template and pass the parameters
+     *
+     * @param string $templateFile
+     * @param array $params
+     * @param bool $cache
+     * @return string
+     */
+    public function getTemplateHtml($templateFile, $params = [], $cache = False)
     {
         if ($cache && !$this->twig->getCache()) {
             $this->twig->setCache(TwStats_template_cache);
@@ -48,7 +61,7 @@ class Twig implements SingletonInterface
         }
         $template = $this->twig->load($templateFile);
         $params += $this->dependencies;
-        echo $template->render($params);
+        return $template->render($params);
     }
 
     /**
