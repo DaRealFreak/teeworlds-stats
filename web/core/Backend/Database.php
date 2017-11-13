@@ -20,11 +20,10 @@ class Database implements SingletonInterface
      */
     public function __construct()
     {
-        // ToDo: extract into .env file
-        $sql_host = "db";
-        $sql_user = "root";
-        $sql_pass = "root";
-        $sql_db = "teestats";
+        $sql_host = getenv('TWSTATS_DB_HOST');
+        $sql_user = getenv('TWSTATS_DB_USER');
+        $sql_pass = getenv('TWSTATS_DB_PASS');
+        $sql_db = getenv('TWSTATS_DB');
 
         try {
             $pdo_options[\PDO::ATTR_ERRMODE] = \PDO::ERRMODE_EXCEPTION;

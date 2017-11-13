@@ -32,10 +32,9 @@ class Facebook implements SingletonInterface
      */
     public function __construct()
     {
-        // ToDo: extract to .env file
         $this->facebook = new \Facebook\Facebook(array(
-            'app_id' => '133904623933394',
-            'app_secret' => '39b31cc4a948b8494fc3e435d42061ad',
+            'app_id' => getenv('TWSTATS_FACEBOOK_APP_ID'),
+            'app_secret' => getenv('TWSTATS_FACEBOOK_APP_SECRET'),
         ));
         $this->databaseConnection = GeneralUtility::makeInstance(Database::class);
     }
