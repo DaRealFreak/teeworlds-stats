@@ -1,6 +1,8 @@
 {% include 'header.twig' %}
 
-{$navigation}
+{% if navigation %}
+    {{ navigation | raw }}
+{% endif %}
 
 <div id="content" class="span9">
     <div>
@@ -29,20 +31,20 @@
                 </div>
                 </form>
 
-                {{ if missingTee }}
+                {% if missingTee %}
                     <div class="list arrow2Blue">
                         <span class="legend">This player does not exist
-                            {{ if suggestionsTee }}
+                            {% if suggestionsTee %}
                                 , try one of the following :
-                            {{ endif}}
+                            {% endif %}
                         </span>
                         <ul>
-                            {{ for url,name in suggestionsTee }}
-                                <li><a href="{$ url }">{$ name }</a></li>
-                            {{ endfor }}
+                            {% for url,name in suggestionsTee %}
+                                <li><a href="{{ url }}">{{ name }}</a></li>
+                            {%  endfor %}
                         </ul>
                     </div>
-                {{ endif }}
+                {% endif %}
 
                 <br/><h3>Clan statistics</h3><br/>
                 <form action="clan" method="get" class="form-horizontal">
@@ -55,20 +57,20 @@
                 </div>
                 </form>
 
-                {{ if missingClan }}
+                {% if missingClan %}
                     <div class="list arrow2Blue">
                         <span class="legend">This clan does not exist
-                            {{ if suggestionsClan }}
+                            {% if suggestionsClan %}
                                 , try one of the following :
-                            {{ endif}}
+                            {% endif %}
                         </span>
                         <ul>
-                            {{ for url,name in suggestionsClan }}
-                                <li><a href="{$ url }">{$ name }</a></li>
-                            {{ endfor }}
+                            {% for url,name in suggestionsClan %}
+                                <li><a href="{{ url }}">{{ name }}</a></li>
+                            {% endfor %}
                         </ul>
                     </div>
-                {{ endif }}
+                {% endif %}
 
 
                 <br/><h3>Server statistics</h3><br/>
@@ -82,20 +84,20 @@
                 </div>
                 </form>
 
-                {{ if missingServer }}
+                {% if missingServer %}
                     <div class="list arrow2Blue">
                         <span class="legend">This server does not exist
-                            {{ if suggestionsServer }}
+                            {% if suggestionsServer %}
                                 , try one of the following :
-                            {{ endif}}
+                            {% endif %}
                         </span>
                         <ul>
-                            {{ for url,name in suggestionsServer }}
-                                <li><a href="{$ url }">{$ name }</a></li>
-                            {{ endfor }}
+                            {% for url,name in suggestionsServer %}
+                                <li><a href="{{ url }}">{{ name }}</a></li>
+                            {% endfor %}
                         </ul>
                     </div>
-                {{ endif }}
+                {% endif %}
 
             </div>
         </div><!--/span-->

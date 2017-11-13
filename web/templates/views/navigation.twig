@@ -1,17 +1,15 @@
-{* items *}
-
 <div class="span3 main-menu-span">
 <div class="well nav-collapse sidebar-nav">
 <ul class="nav nav-tabs nav-stacked main-menu">
     <li class="nav-header hidden-tablet">Menu</li>
-    {{ for item in items }}
-        <li {{if item.active}} class="active" {{endif}}>
-            <a class="ajax-link" href="{$item.url}">
-                <i class="{$item.class}"></i>
-                <span class="hidden-tablet"> {$item.text}</span>
+    {% for item in items %}
+        <li {%if item.active%} class="active" {%endif%}>
+            <a class="ajax-link" href="{{ item.url }}">
+                <i class="{{ item.class }}"></i>
+                <span class="hidden-tablet"> {{ item.text }}</span>
             </a>
         </li>
-    {{ endfor }}
+    {% endfor %}
 </ul>
 
 <label id="for-is-ajax" class="hidden-tablet" for="is-ajax">
