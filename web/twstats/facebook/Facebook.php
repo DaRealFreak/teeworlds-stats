@@ -47,20 +47,20 @@ class Facebook implements SingletonInterface
      */
     public function getFacebookID($verify = false)
     {
-        # Facebook PHP SDK v5: Check Login Status Example
-        $helper = $this->facebook->getCanvasHelper();
+        // get the javascript helper
+        $jsHelper = $this->facebook->getJavaScriptHelper();
 
-        // Grab the signed request entity
-        $sr = $helper->getSignedRequest();
+        // get the signed request after the login
+        $sr = $jsHelper->getSignedRequest();
 
-        // Get the user ID if signed request exists
+        // get the user ID if signed request exists
         $user = $sr ? $sr->getUserId() : 0;
 
         if ($user && $verify) {
             try {
-                // Get the access token
-                $accessToken = $helper->getAccessToken();
-                // Returns a `Facebook\FacebookResponse` object
+                // get the access token
+                $accessToken = $jsHelper->getAccessToken();
+                // returns a `Facebook\FacebookResponse` object
                 $this->facebook->get('/me?fields=id,name', $accessToken);
             } catch (FacebookResponseException $e) {
                 // echo 'Graph returned an error: ' . $e->getMessage();
