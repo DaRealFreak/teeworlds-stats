@@ -3,9 +3,24 @@
 namespace TwStats\Ext;
 
 use TwStats\Core\Frontend\AbstractController;
+use TwStats\Core\Utility\GeneralUtility;
+use TwStats\Ext\Facebook\Facebook;
 
 class Main extends AbstractController
 {
+
+    /**
+     * @var Facebook|null
+     */
+    protected $facebook = null;
+
+    /**
+     * initializing function to replace the constructor function
+     */
+    public function initialize()
+    {
+        $this->facebook = GeneralUtility::makeInstance(Facebook::class);
+    }
 
     /**
      * run function
@@ -21,21 +36,22 @@ class Main extends AbstractController
                 'class' => 'icon-search')
         );
 
-        // ToDo: implement Facebook SDK again
-        $user = 0; //getFacebookID();
+        $user = $this->facebook->getFacebookID();
 
         if ($user) {
             $page['logged'] = true;
 
-            $account = getAccountDetails($user);
-            if (!empty($account["tee"]))
+            $account = $this->facebook->getAccountDetails($user);
+            if (!empty($account["tee"])) {
                 $items[] = array('text' => $account['tee'],
                     'url' => $this->prettyUrl->buildPrettyUri("tee", array("n" => $account['tee'])),
                     'class' => 'icon-user');
-            if (!empty($account["clan"]))
+            }
+            if (!empty($account["clan"])) {
                 $items[] = array('text' => $account['clan'],
                     'url' => $this->prettyUrl->buildPrettyUri("clan", array("n" => $account['clan'])),
                     'class' => 'icon-home');
+            }
 
             $items[] = array('text' => 'Account', 'url' => $this->prettyUrl->buildPrettyUri("account"), 'class' => 'icon-pencil');
         }
