@@ -13,7 +13,8 @@
     "ezyang/htmlpurifier": "^4.9",
     "twig/twig": "^2.4",
     "components/jquery": "^3.2",
-    "twbs/bootstrap": "~4.0"
+    "twbs/bootstrap": "~4.0",
+    "vlucas/phpdotenv": "^2.4"
   },
   "autoload": {
     "psr-4": {
