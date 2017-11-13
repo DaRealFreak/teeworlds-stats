@@ -4,8 +4,9 @@ namespace TwStats\Core\Backend;
 
 
 use TwStats\Core\Utility\GeneralUtility;
+use TwStats\Core\Utility\SingletonInterface;
 
-class RequestHandler
+class RequestHandler implements SingletonInterface
 {
     /**
      * build the called url
