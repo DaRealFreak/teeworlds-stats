@@ -8,35 +8,16 @@ class Main extends AbstractController
 {
 
     /**
-     * ToDo: extract to url handler
-     *
-     * @param string $page
-     * @param array $params
-     * @param bool $usePath
-     * @return string
+     * run function
      */
-    private function myurl($page = "", $params = array(), $usePath = true)
-    {
-        if (!$usePath) {
-            $params['p'] = $page;
-            $url = "index.php?" . http_build_query($params);
-        } else {
-            $url = $page;
-            if (!empty($params))
-                $url = $url . "?" . http_build_query($params);
-        }
-
-        return $url;
-    }
-
     public function run()
     {
         $items = array(
             array('text' => 'Game statistics',
-                'url' => $this->myurl("general"),
+                'url' => $this->prettyUrl->buildPrettyUri("general"),
                 'class' => 'icon-globe'),
             array('text' => 'Search',
-                'url' => $this->myurl(""),
+                'url' => $this->prettyUrl->buildPrettyUri(""),
                 'class' => 'icon-search')
         );
 
@@ -49,17 +30,17 @@ class Main extends AbstractController
             $account = getAccountDetails($user);
             if (!empty($account["tee"]))
                 $items[] = array('text' => $account['tee'],
-                    'url' => $this->myurl("tee", array("n" => $account['tee'])),
+                    'url' => $this->prettyUrl->buildPrettyUri("tee", array("n" => $account['tee'])),
                     'class' => 'icon-user');
             if (!empty($account["clan"]))
                 $items[] = array('text' => $account['clan'],
-                    'url' => $this->myurl("clan", array("n" => $account['clan'])),
+                    'url' => $this->prettyUrl->buildPrettyUri("clan", array("n" => $account['clan'])),
                     'class' => 'icon-home');
 
-            $items[] = array('text' => 'Account', 'url' => $this->myurl("account"), 'class' => 'icon-pencil');
+            $items[] = array('text' => 'Account', 'url' => $this->prettyUrl->buildPrettyUri("account"), 'class' => 'icon-pencil');
         }
 
-        $items[] = array('text' => 'About', 'url' => $this->myurl("about"), 'class' => 'icon-info-sign');
+        $items[] = array('text' => 'About', 'url' => $this->prettyUrl->buildPrettyUri("about"), 'class' => 'icon-info-sign');
 
         $page['navigation'] = $this->frontendHandler->getTemplateHtml("views/navigation.twig", array("items" => $items));
 
