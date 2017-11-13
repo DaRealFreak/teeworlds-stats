@@ -24,7 +24,7 @@
   },
   "scripts": {
     "post-root-package-install": [
-      "php -r \"copy('.env.example', '.env');\""
+      "cp .env.example .env"
     ],
     "pre-autoload-dump": [
       "rm -rf ./web/assets/vendor && mkdir -p ./web/assets/vendor",
