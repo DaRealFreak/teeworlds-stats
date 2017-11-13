@@ -15,7 +15,7 @@ abstract class AbstractController
      *
      * @var Database
      */
-    protected $database = null;
+    protected $databaseConnection = null;
 
     /**
      * frontend handler
@@ -44,11 +44,14 @@ abstract class AbstractController
      */
     public function __construct()
     {
-        $this->database = $GLOBALS['DB'];
+        $this->databaseConnection = $GLOBALS['DB'];
         $this->frontendHandler = $GLOBALS['FE'];
         $this->requestHandler = GeneralUtility::makeInstance(RequestHandler::class);
         $this->sessionHandler = GeneralUtility::makeInstance(SessionHandler::class);
         $this->prettyUrl = GeneralUtility::makeInstance(PrettyUrl::class);
+        if (method_exists($this, "initialize")) {
+            call_user_func_array(array($this,'initialize'), func_get_args());
+        }
         $this->run();
     }
 
