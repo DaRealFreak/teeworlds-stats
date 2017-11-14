@@ -13,7 +13,6 @@
 namespace TwStats\Core\Utility;
 
 
-
 class GeneralUtility
 {
     /**
@@ -139,5 +138,16 @@ class GeneralUtility
         $paths = array_map(create_function('$p', 'return trim($p, "' . DIRECTORY_SEPARATOR . '");'), $paths);
         $paths = array_filter($paths);
         return join(DIRECTORY_SEPARATOR, $paths);
+    }
+
+    /**
+     * sets location header to url
+     *
+     * @param $url
+     */
+    public static function redirectToUri($url)
+    {
+        header("Location: $url");
+        exit(0);
     }
 }
