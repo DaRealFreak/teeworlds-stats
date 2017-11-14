@@ -61,6 +61,10 @@ class Application implements ApplicationInterface
      */
     public function run(callable $execute = null)
     {
+        if ($execute !== null) {
+            call_user_func($execute);
+        }
+
         GeneralUtility::makeInstance($this->requestHandler->getRequestedClass());
     }
 }
