@@ -1,6 +1,6 @@
 {% include 'header.twig' %}
 
-{$navigation}
+{{ navigation|raw }}
 <script type="text/javascript">
   $(document).ready(function() {
     $(".cledit").cleditor();
@@ -21,31 +21,31 @@
                 <h2><i class="icon-edit"></i> Edit info</h2>
             </div>
             <div class="box-content">
-                {{ if logged }}
-                {{ if success }}
+                {% if logged %}
+                {% if success %}
                 <div class="alert alert-success">
                     <strong>Well done !</strong> Your account information is now online.
                 </div>
-                {{ endif }}
-                {{ for error in errors }}
+                {% endif %}
+                {% for error in errors %}
                 <div class="alert alert-error">
-                    <strong>Error!</strong> {$error}
+                    <strong>Error!</strong> {{ error }}
                 </div>
-                {{ endfor }}
+                {% endfor %}
                 <form class="form-horizontal" method="post" action="account">
                 <fieldset>
                     <legend>Personal info</legend>
                     <div class="control-group">
                       <label class="control-label">Tee name </label>
                       <div class="controls">
-                        <input type="text" name="tee" class="span6" value="{$tee}">
+                        <input type="text" name="tee" class="span6" value="{{ tee }}">
                       </div>
                     </div>
 
                     <div class="control-group">
                       <label class="control-label" for="textarea2">Presentation</label>
                       <div class="controls">
-                          <textarea class="cledit" name="teetxt">{$teetxt}</textarea>
+                          <textarea class="cledit" name="teetxt">{{ teetxt }}</textarea>
                        </div>
                     </div>
 
@@ -58,7 +58,7 @@
                                     <input type="hidden" name="teemods" value="0" />
                                    <input type="checkbox" id="inlineCheckbox1"
                                           name="teemods" value="1" style="opacity:0;"
-                                           {{ if teemods }} checked="checked" {{ endif }}>
+                                           {% if teemods %} checked="checked" {% endif %}>
                                 </span>
                             </div> Mods
                           </label>
@@ -67,7 +67,7 @@
                                 <input type="hidden" name="teemaps" value="0" />
                                 <input type="checkbox" id="inlineCheckbox2" name="teemaps" value="1"
                                        style="opacity: 0;"
-                                        {{ if teemaps }} checked="checked" {{ endif }}>
+                                        {% if teemaps %} checked="checked" {% endif %}>
                             </span>
                             </div> Maps
                           </label>
@@ -77,7 +77,7 @@
                                       <input type="hidden" name="teehours" value="0" />
                                       <input type="checkbox" name="teehours" id="inlineCheckbox3" value="1"
                                              style="opacity: 0;"
-                                              {{ if teehours }} checked="checked" {{ endif }}>
+                                              {% if teehours %} checked="checked" {% endif %}>
                                   </span></div> Hours
                             </label>
                             <label class="checkbox inline">
@@ -86,7 +86,7 @@
                                       <input type="hidden" name="teedays" value="0" />
                                       <input type="checkbox" name="teedays" id="inlineCheckbox3" value="1"
                                              style="opacity: 0;"
-                                              {{ if teedays }} checked="checked" {{ endif }}>
+                                              {% if teedays %} checked="checked" {% endif %}>
                                   </span></div> Days
                             </label>
                         </div>
@@ -97,14 +97,14 @@
                     <div class="control-group">
                       <label class="control-label">Clan name </label>
                       <div class="controls">
-                        <input type="text" class="span6" name="clan" value="{$clan}"></input>
+                        <input type="text" class="span6" name="clan" value="{{ clan }}" />
                       </div>
                     </div>
 
                     <div class="control-group">
                       <label class="control-label" for="textarea2">Presentation</label>
                       <div class="controls">
-                          <textarea class="cledit" name="clantxt">{$clantxt}</textarea>
+                          <textarea class="cledit" name="clantxt">{{ clantxt }}</textarea>
                        </div>
                     </div>
 
@@ -117,7 +117,7 @@
                                     <input type="hidden" name="clanmods" value="0" />
                                    <input type="checkbox" name="clanmods" id="inlineCheckbox1" value="1"
                                           style="opacity:0;"
-                                           {{ if clanmods }} checked="checked" {{ endif }}>
+                                           {% if clanmods %} checked="checked" {% endif %}>
                                 </span>
                             </div> Mods
                           </label>
@@ -126,7 +126,7 @@
                                 <input type="hidden" name="clanmaps" value="0" />
                                 <input type="checkbox" name="clanmaps" id="inlineCheckbox2" value="1"
                                        style="opacity: 0;"
-                                        {{ if clanmaps }} checked="checked" {{ endif }}>
+                                        {% if clanmaps %} checked="checked" {% endif %}>
                             </span>
                             </div> Maps
                           </label>
@@ -134,7 +134,7 @@
                               <div class="checker" id="uniform-inlineCheckbox2"><span class="checked">
                                   <input type="hidden" name="clancountries" value="0" />
                                   <input type="checkbox" name="clancountries" id="inlineCheckbox2" value="1"
-                                          {{ if clancountries }} checked="checked" {{ endif }}
+                                          {% if clancountries %} checked="checked" {% endif %}
                                          style="opacity: 0;">
                               </span>
                               </div> Countries
@@ -144,7 +144,7 @@
                                   <span class="checked">
                                       <input type="hidden" name="clanhours" value="0" />
                                       <input type="checkbox" name="clanhours" id="inlineCheckbox3" value="1"
-                                              {{ if clanhours }} checked="checked" {{ endif }}
+                                              {% if clanhours %} checked="checked" {% endif %}
                                              style="opacity: 0;">
                                   </span></div> Hours
                             </label>
@@ -153,7 +153,7 @@
                                   <span class="checked">
                                       <input type="hidden" name="clandays" value="0" />
                                       <input type="checkbox" name="clandays" id="inlineCheckbox3" value="1"
-                                              {{ if clandays }} checked="checked" {{ endif }}
+                                              {% if clandays %} checked="checked" {% endif %}
                                              style="opacity: 0;">
                                   </span></div> Days
                             </label>
@@ -168,7 +168,7 @@
                                   <span class="checked">
                                       <input type="hidden" name="clanplayers" value="0" />
                                      <input type="checkbox" name="clanplayers" id="inlineCheckbox1" value="1"
-                                             {{ if clanplayers }} checked="checked" {{ endif }}
+                                             {% if clanplayers %} checked="checked" {% endif %}
                                             style="opacity: 0;">
                                   </span>
                               </div> Display the list of players
@@ -182,11 +182,11 @@
                     </div>
                   </fieldset>
                 </form>
-                {{ else }}
+                {% else %}
                 <div class="alert alert-error">
-                    <strong>Access denied !</strong> You must be logged in to acces this information{$logged}
+                    <strong>Access denied !</strong> You must be logged in to acces this information {{ logged }}
                 </div>
-                {{ endif }}
+                {% endif %}
             </div>
         </div><!--/span-->
     </div>
