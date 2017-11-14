@@ -48,6 +48,11 @@ class Application implements ApplicationInterface
          */
         $GLOBALS['FE'] = $this->frontendHandler = GeneralUtility::makeInstance(Twig::class);
         /*
+         * initialize the html purifier with the default configuration
+         */
+        $config = \HTMLPurifier_Config::createDefault();
+        $GLOBALS['purifier'] = new \HTMLPurifier($config);
+        /*
          * initialize the request handler
          */
         $this->requestHandler = GeneralUtility::makeInstance(RequestHandler::class);
