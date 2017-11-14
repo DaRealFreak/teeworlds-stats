@@ -1,7 +1,6 @@
 {% include 'header.twig' %}
-{* nnames, nservers, ncountries, nmods, nonline, nmonths *}
 
-{$navigation}
+{{ navigation|raw }}
 
 
 <div id="content" class="span9">
@@ -23,31 +22,31 @@
                 <ul class="dashboard-list">
                     <li>
                         <a href="#" style="text-decoration:none;">
-                            <span class="green">{$nnames}</span>
+                            <span class="green">{{ nnames }}</span>
                             tee names
                         </a>
                     </li>
                     <li>
                         <a href="#" style="text-decoration:none;">
-                            <span class="red">{$nservers}</span>
+                            <span class="red">{{ nservers }}</span>
                             servers
                         </a>
                     </li>
                     <li>
                         <a href="#" style="text-decoration:none;">
-                            <span class="blue">{$ncountries}</span>
+                            <span class="blue">{{ ncountries }}</span>
                             countries
                         </a>
                     </li>
                     <li>
                         <a href="#" style="text-decoration:none;">
-                            <span class="yellow">{$nmods}</span>
+                            <span class="yellow">{{ nmods }}</span>
                             mods
                         </a>
                     </li>
                     <li>
                         <a href="#" style="text-decoration:none;">
-                            <span class="green">{$nonline}</span>
+                            <span class="green">{{ nonline }}</span>
                             online tees
                         </a>
                     </li>
@@ -55,8 +54,8 @@
 
             </div>
         </div><!--/span-->
-        {$countries}
-        {$mods}
+        {{ countries|raw }}
+        {{ mods|raw }}
     </div>
 
 </div>

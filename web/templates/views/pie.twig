@@ -1,10 +1,9 @@
-{* histogram, name, id *}
 <script type="text/javascript">
 $(function () {
     var data = {$histogram|json_encode|raw} ;
     var previousPoint;
 
-    $.plot($("#{$id}"), data,
+    $.plot($("#{{ id }}}"), data,
     {
             series: {
                 pie: {
@@ -36,7 +35,7 @@ $(function () {
     });
 
     //add tooltip event
-    $("#{$id}").bind("plothover", function (event, pos, item) {
+    $("#{{ id }}").bind("plothover", function (event, pos, item) {
         if (item) {
             if (previousPoint != item.datapoint) {
                 previousPoint = item.datapoint;
@@ -59,11 +58,11 @@ $(function () {
 
 $(window).resize(function() {
     // erase the flot graph, allowing the div to shrink correctly
-    $('#{$id}').text('');
+    $('#{{ id }}').text('');
 
     var data = {$histogram|json_encode|raw} ;
     // redraw the graph in the correctly sized div
-    $.plot($("#{$id}"), data,
+    $.plot($("#{{ id }}"), data,
         {
                 series: {
                     pie: {
@@ -121,9 +120,9 @@ function showTooltip(x, y, contents, areAbsoluteXY) {
 
 <div class="box span4">
     <div class="box-header well" data-original-title="">
-        <h2><i class="icon-time"></i> {$name}</h2>
+        <h2><i class="icon-time"></i> {{ name }}</h2>
     </div>
     <div class="box-content">
-        <div id="{$id}" class="pieWidget"></div>
+        <div id="{{ id }}" class="pieWidget"></div>
     </div>
 </div>

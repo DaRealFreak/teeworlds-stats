@@ -1,35 +1,34 @@
 {% include 'header.twig' %}
-{* clan, players, countries, mods, maps, hours, days *}
 
-{$navigation}
+{{ navigation|raw }}
 
 
 <div id="content" class="span9">
     <div>
         <ul class="breadcrumb">
             <li>
-                <h3>{$clan} clan page</h3>
+                <h3>{{ clan }} clan page</h3>
             </li>
         </ul>
     </div>
 
-    {{ if clantxt }}
+    {% if clantxt %}
     <div class="well">
-        {$clantxt}
+        {{ clantxt }}
     </div>
-    {{ endif }}
+    {% endif %}
 
     <div class="row">
-			{$players}
+			{{ players }}
 
-			{$countries}
-			{$mods}
-			{$maps}
+			{{ countries }}
+			{{ mods }}
+			{{ maps }}
 	</div>
 
 	<br/>
 	<div style="clear:both;"><br/>
-	Do you like {$clan} ?
+	Do you like {{ clan }} ?
 	<div class="fb-like" data-send="false" data-layout="button_count" data-width="100" data-show-faces="false"></div>
 	<div class="g-plusone" data-size="medium" data-annotation="none"></div>
 	</div>
@@ -40,14 +39,14 @@
         <div class="control-group">
             <label class="control-label" for="focusedInput">Find this clan online :</label>
             <div class="controls">
-                <input class="input-xlarge focused" type="text" name="q" value="teeworlds {$clan} clan">
+                <input class="input-xlarge focused" type="text" name="q" value="teeworlds {{ clan }} clan">
                 <button type="submit" class="btn">Search on google</button>
             </div>
         </div>
     </form>
 
-	{$hours}
-	{$days}
+	{{ hours }}
+	{{ days }}
 </div>
 
 {% include 'footer.twig' %}
