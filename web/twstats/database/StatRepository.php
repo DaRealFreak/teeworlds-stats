@@ -308,6 +308,6 @@ class StatRepository extends AbstractRepository
         $req = $this->databaseConnection->sqlQuery("SELECT count(*) AS nonline FROM tees WHERE lastseen > now() - INTERVAL 6 MINUTE");
         $res += $this->databaseConnection->sqlFetch($req);
 
-        return array_map("niceDigits", $res);
+        return array_map(array($this, 'niceDigits'), $res);
     }
 }
