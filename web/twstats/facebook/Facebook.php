@@ -70,6 +70,17 @@ class Facebook implements SingletonInterface
                 $user = 0;
             }
         }
+
+        /*
+         * ToDo: why was this in the facebook sdk, can I remove it from the facebook class?
+        if (!$user) {
+            $formDetails = array("tee", "teetxt", "teemods", "teemaps", "teehours", "teedays",
+                "clan", "clantxt", "clanmods", "clanmaps", "clancountries",
+                "clanhours", "clandays", "clanplayers");
+            frmremove($formDetails);
+        }
+        */
+
         return $user;
     }
 
