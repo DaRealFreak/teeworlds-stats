@@ -2,7 +2,6 @@
 
 namespace TwStats\Core\Backend;
 
-
 use TwStats\Core\Utility\GeneralUtility;
 use TwStats\Core\Utility\SingletonInterface;
 

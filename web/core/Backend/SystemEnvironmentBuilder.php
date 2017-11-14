@@ -2,7 +2,6 @@
 
 namespace TwStats\Core\Backend;
 
-
 use Dotenv\Dotenv;
 use TwStats\Core\Utility\GeneralUtility;
 

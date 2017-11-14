@@ -1,13 +1,6 @@
 <?php
-/**
- * Created by PhpStorm.
- * User: Steffen
- * Date: 09/11/2017
- * Time: 14:25
- */
 
 namespace TwStats\Core\Backend;
-
 
 use TwStats\Core\Frontend\Twig;
 use TwStats\Core\Utility\GeneralUtility;
