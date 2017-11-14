@@ -16,13 +16,13 @@
 
     {% if teetxt %}
     <div class="well">
-        {{ teetxt }}
+        {{ teetxt|raw }}
     </div>
     {% endif %}
     <div class="row">
 
-		{{ mods }}
-		{{ maps }}
+		{{ mods|raw }}
+		{{ maps|raw }}
 
         <div style="clear:both;"><br/>
         Do you like {{ tee }} ?
@@ -30,8 +30,8 @@
         <div class="g-plusone" data-size="medium" data-annotation="none"></div>
         </div>
 
-        {{ hours }}
-        {{ days }}
+        {{ hours|raw }}
+        {{ days|raw }}
     </div>
 </div>
 
