@@ -17,13 +17,13 @@ class StatRepository extends AbstractRepository
      */
     public function gethisto($tsc, $name, $stat, $nbin = 8)
     {
-        $req = $this->databaseConnection->$this->databaseConnection->sqlQuery("SELECT count AS data, stat AS label FROM data
+        $req = $this->databaseConnection->sqlQuery("SELECT count AS data, stat AS label FROM data
 							WHERE tcsName=? AND tcsType=?
 								AND statType = ? ORDER BY data DESC",
             array($name, $tsc, $stat));
         $rows = [];
 
-        while ($row = $this->databaseConnection->$this->databaseConnection->sqlFetch($req)) {
+        while ($row = $this->databaseConnection->sqlFetch($req)) {
             $row['data'] = (int)$row['data'];
             $rows[] = $row;
         }
