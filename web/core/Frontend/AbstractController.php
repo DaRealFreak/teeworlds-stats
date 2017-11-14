@@ -35,7 +35,7 @@ abstract class AbstractController
     protected $sessionHandler = null;
 
     /**
-     * @var PrettyUrl|null
+     * @var PrettyUrl
      */
     protected $prettyUrl = null;
 
