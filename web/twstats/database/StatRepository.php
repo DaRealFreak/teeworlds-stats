@@ -1,6 +1,6 @@
 <?php
 
-namespace TwStats\Ext\Stats;
+namespace TwStats\Ext\Database;
 
 
 use TwStats\Core\Backend\AbstractRepository;
@@ -194,9 +194,7 @@ class StatRepository extends AbstractRepository
      */
     public function cexists($field, $value)
     {
-        global $db;
-
-        $req = $db->prepare("SELECT * FROM data WHERE tcsName = ? AND tcsType = ? LIMIT 1 ");
+        $req = $this->databaseConnection->sqlPrepare("SELECT * FROM data WHERE tcsName = ? AND tcsType = ? LIMIT 1 ");
         $req->execute(array($value, $field));
 
         return $req->fetch(\PDO::FETCH_ASSOC) != false;
@@ -209,18 +207,13 @@ class StatRepository extends AbstractRepository
      */
     public function similarvalues($field, $value)
     {
-        global $db;
-
-        $req = $db->prepare("SELECT DISTINCT tcsName AS label FROM data
+        $req = $this->databaseConnection->sqlPrepare("SELECT DISTINCT tcsName AS label FROM data
 							WHERE tcsName LIKE ? AND tcsType=? LIMIT 10 ");
         $req->execute(array("%$value%", $field));
-
         $res = [];
-
         while ($data = $req->fetch(\PDO::FETCH_ASSOC)) {
             $res[] = $data["label"];
         }
-
         return $res;
     }
 
@@ -245,9 +238,7 @@ class StatRepository extends AbstractRepository
      */
     public function getPlayer($name)
     {
-        global $db;
-
-        $req = $db->prepare("SELECT * FROM tees WHERE tee=?");
+        $req = $this->databaseConnection->sqlPrepare("SELECT * FROM tees WHERE tee=?");
         $req->execute(array($name));
         if ($data = $req->fetch(\PDO::FETCH_ASSOC)) {
             return $data;
