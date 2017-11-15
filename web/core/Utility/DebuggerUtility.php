@@ -37,6 +37,20 @@ class DebuggerUtility
     const HTML_INDENT = '&nbsp;&nbsp;&nbsp;';
 
     /**
+     * @var array
+     */
+    protected static $renderedObjects;
+
+    /**
+     * Hardcoded list of Extbase class names (regex) which should not be displayed during debugging
+     *
+     * @var array
+     */
+    protected static $blacklistedClassNames = [
+        'PHPUnit_Framework_MockObject_InvocationMocker',
+    ];
+
+    /**
      * Hardcoded list of property names (regex) which should not be displayed during debugging
      *
      * @var array
@@ -56,6 +70,16 @@ class DebuggerUtility
      * @var int
      */
     protected static $maxDepth = 8;
+
+    /**
+     * Clear the state of the debugger
+     *
+     * @return void
+     */
+    protected static function clearState()
+    {
+        self::$renderedObjects = [];
+    }
 
     /**
      * Renders a dump of the given value
@@ -144,7 +168,7 @@ class DebuggerUtility
     protected static function renderObject($object, $level, $plainText = false, $ansiColors = false)
     {
         $header = self::renderHeader($object, $level, $plainText, $ansiColors);
-        if ($level < self::$maxDepth && !self::isBlacklisted($object) && !($plainText !== true)) {
+        if ($level < self::$maxDepth && !self::isBlacklisted($object) && !(self::isAlreadyRendered($object) && $plainText !== true)) {
             $content = self::renderContent($object, $level, $plainText, $ansiColors);
         } else {
             $content = '';
@@ -168,9 +192,20 @@ class DebuggerUtility
         if ($value instanceof \ReflectionProperty) {
             $result = in_array($value->getName(), self::$blacklistedPropertyNames, true);
         } elseif (is_object($value)) {
-            $result = False;
+            $result = in_array(get_class($value), self::$blacklistedClassNames, true);
         }
         return $result;
+    }
+
+    /**
+     * Checks if a given object was already rendered.
+     *
+     * @param object $object
+     * @return bool TRUE if the given object was already rendered
+     */
+    protected static function isAlreadyRendered($object)
+    {
+        return in_array($object, self::$renderedObjects, true);
     }
 
     /**
@@ -211,7 +246,13 @@ class DebuggerUtility
                 $dump .= '<span class="extbase-debug-ptype">' . ($persistenceType ? $persistenceType . ' ' : '') . $domainObjectType . '</span>';
             }
         }
-        if (!$plainText) {
+        if (strpos(implode('|', self::$blacklistedClassNames), get_class($object)) > 0) {
+            if ($plainText) {
+                $dump .= ' ' . self::ansiEscapeWrap('filtered', '47;30', $ansiColors);
+            } else {
+                $dump .= '<span class="extbase-debug-filtered">filtered</span>';
+            }
+        } elseif (self::isAlreadyRendered($object) && !$plainText) {
             $dump = '<a href="javascript:;" onclick="document.location.hash=\'#' . spl_object_hash($object) . '\';" class="extbase-debug-seeabove">' . $dump . '<span class="extbase-debug-filtered">see above</span></a>';
         } elseif ($level >= self::$maxDepth && !$object instanceof \DateTime) {
             if ($plainText) {
@@ -249,6 +290,7 @@ class DebuggerUtility
         if ($object instanceof \Iterator || $object instanceof \ArrayObject) {
             $dump .= self::renderCollection($object, $level, $plainText, $ansiColors);
         } else {
+            self::$renderedObjects[] = $object;
             if (!$plainText) {
                 $dump .= '<a name="' . spl_object_hash($object) . '" id="' . spl_object_hash($object) . '"></a>';
             }
@@ -324,11 +366,12 @@ class DebuggerUtility
      * @param bool $plainText If TRUE, the dump is in plain text, if FALSE the debug output is in HTML format.
      * @param bool $ansiColors If TRUE (default), ANSI color codes is added to the output, if FALSE the debug output not colored.
      * @param bool $return if TRUE, the dump is returned for custom post-processing (e.g. embed in custom HTML). If FALSE (default), the dump is directly displayed.
+     * @param array $blacklistedClassNames An array of class names (RegEx) to be filtered. Default is an array of some common class names.
      * @param array $blacklistedPropertyNames An array of property names and/or array keys (RegEx) to be filtered. Default is an array of some common property names.
      * @return string if $return is TRUE, the dump is returned. By default, the dump is directly displayed, and nothing is returned.
      * @api
      */
-    public static function var_dump($variable, $title = null, $maxDepth = 8, $plainText = false, $ansiColors = true, $return = false, $blacklistedPropertyNames = null)
+    public static function var_dump($variable, $title = null, $maxDepth = 8, $plainText = false, $ansiColors = true, $return = false, $blacklistedClassNames = null, $blacklistedPropertyNames = null)
     {
         self::$maxDepth = $maxDepth;
         if ($title === null) {
@@ -338,10 +381,15 @@ class DebuggerUtility
         if ($ansiColors === true) {
             $title = '[1m' . $title . '[0m';
         }
+        $backupBlacklistedClassNames = self::$blacklistedClassNames;
+        if (is_array($blacklistedClassNames)) {
+            self::$blacklistedClassNames = $blacklistedClassNames;
+        }
         $backupBlacklistedPropertyNames = self::$blacklistedPropertyNames;
         if (is_array($blacklistedPropertyNames)) {
             self::$blacklistedPropertyNames = $blacklistedPropertyNames;
         }
+        self::clearState();
         $css = '';
         if (!$plainText && self::$stylesheetEchoed === false) {
             $css = '
@@ -383,6 +431,7 @@ class DebuggerUtility
 			</div>
 			';
         }
+        self::$blacklistedClassNames = $backupBlacklistedClassNames;
         self::$blacklistedPropertyNames = $backupBlacklistedPropertyNames;
         if ($return === true) {
             return $css . $output;
