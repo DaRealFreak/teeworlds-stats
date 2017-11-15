@@ -31,6 +31,33 @@ class GeneralUtility
     protected static $nonSingletonInstances = [];
 
     /**
+     * Returns the 'GLOBAL' value of incoming data from POST or GET, with priority to POST (that is equivalent to 'GP' order)
+     * To enhance security in your scripts, please consider using GeneralUtility::_GET or GeneralUtility::_POST if you already
+     * know by which method your data is arriving to the scripts!
+     *
+     * @param string $var GET/POST var to return
+     * @return mixed POST var named $var and if not set, the GET var of the same name.
+     */
+    public static function _GP($var)
+    {
+        if (empty($var)) {
+            return '';
+        }
+        if (isset($_POST[$var])) {
+            $value = $_POST[$var];
+        } elseif (isset($_GET[$var])) {
+            $value = $_GET[$var];
+        } else {
+            $value = null;
+        }
+        // This is there for backwards-compatibility, in order to avoid NULL
+        if (isset($value) && !is_array($value)) {
+            $value = (string)$value;
+        }
+        return $value;
+    }
+
+    /**
      * You can also pass arguments for a constructor:
      * \TwStats\Core\Backend\Utility\GeneralUtility::makeInstance(\myClass::class, $arg1, $arg2, ..., $argN)
      *
@@ -38,7 +65,6 @@ class GeneralUtility
      * @return object the created instance
      * @throws \InvalidArgumentException if $className is empty or starts with a backslash
      */
-
     public static function makeInstance($className)
     {
         if (!is_string($className) || empty($className)) {
@@ -149,5 +175,37 @@ class GeneralUtility
     {
         header("Location: $url");
         exit(0);
+    }
+
+    /**
+     * Redirect with POST data.
+     * Not the best solution since our server now acts like a client and data lke htaccess are needed
+     *
+     * @param string $url URL.
+     * @param array $data POST data. Example: array('foo' => 'var', 'id' => 123)
+     * @param array $curlOptions Curl options. Example: array(CURLOPT_FAILONERROR => 1, CURLOPT_NOBODY => 1)
+     * @throws \Exception
+     * @internal param array $headers Optional. Extra headers to send.
+     */
+    public static function redirectPostToUri($url, array $data, $curlOptions = []) {
+        $ch = curl_init($url);
+
+        // possible to modify curl before requesting
+        foreach ($curlOptions as $option => $value) {
+            curl_setopt($ch, $option, $value);
+        }
+
+        // hard coded options which would break the functionality if changed
+        curl_setopt($ch, CURLOPT_POST, 1);
+        curl_setopt($ch, CURLOPT_POSTFIELDS, http_build_query($data));
+        curl_setopt($ch, CURLOPT_RETURNTRANSFER , 1);
+
+        $resp = curl_exec($ch);
+        if(curl_errno($ch)){
+            throw new \Exception("Error loading '$url', $php_errormsg");
+        } else {
+            echo $resp;
+            die;
+        }
     }
 }
