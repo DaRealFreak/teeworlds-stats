@@ -14,8 +14,17 @@ class RequestHandler implements SingletonInterface
      */
     public static function getUrl()
     {
+        return self::getFQDN() . $_SERVER['REQUEST_URI'];
+    }
+
+    /**
+     * get the fully qualified domain name
+     *
+     * @return string
+     */
+    public static function getFQDN() {
         $scheme = $_SERVER['HTTP_X_FORWARDED_PROTO'] ? $_SERVER['HTTP_X_FORWARDED_PROTO'] : $_SERVER['REQUEST_SCHEME'];
-        return "$scheme://$_SERVER[HTTP_HOST]$_SERVER[REQUEST_URI]";
+        return "$scheme://$_SERVER[HTTP_HOST]";
     }
 
     /**
