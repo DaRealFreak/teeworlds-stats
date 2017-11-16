@@ -2,7 +2,6 @@
 
 namespace TwStats\Core\Console;
 
-use Symfony\Component\Console\Input\ArgvInput;
 use TwStats\Core\Backend\Database;
 use TwStats\Core\Backend\SystemEnvironmentBuilder;
 use TwStats\Core\General\ApplicationInterface;
@@ -52,13 +51,14 @@ class CommandApplication implements ApplicationInterface
     public function run(callable $execute = null)
     {
         $this->inputResolver->setInput(new InputHandler());
-        $requestedClass = $this->inputResolver->resolveClass();
-        $requestedFunction = $this->inputResolver->resolveFunction();
-        $requestArguments = $this->inputResolver->resolveArguments();
 
         if ($execute !== null) {
             call_user_func($execute);
         }
+
+        $requestedClass = $this->inputResolver->resolveClass();
+        $requestedFunction = $this->inputResolver->resolveFunction();
+        $requestArguments = $this->inputResolver->resolveArguments();
 
         $classInstance = GeneralUtility::makeInstance($requestedClass);
         if (!method_exists($classInstance, $requestedFunction)) {
