@@ -1,4 +1,5 @@
 <?php
+
 /*
 Copyright (C) 2012 Marius Neugebauer - see http://code.teele.eu/twrequest
 
@@ -11,6 +12,8 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
 
 last change: 2012-05-17
 */
+
+namespace TwStats\Ext\TwRequest;
 
 class TwRequest
 {
@@ -600,6 +603,8 @@ class TwRequest
                     case self::VERSION_06:
                         $data = fread($connection[0], 1364); // size = header_size + max_servers_per_packet * server_size = 14 + 75 * 18 = 1364
                         break;
+                    default:
+                        $data = fread($connection[0], 1364); // size = header_size + max_servers_per_packet * server_size = 14 + 75 * 18 = 1364
                 }
 
                 /* packet length */
@@ -753,6 +758,9 @@ class TwRequest
                         $data = fread($connection[0], 2048); // TODO: find out how great it really can be
                         break;
                     case self::VERSION_06:
+                        $data = fread($connection[0], 2048); // by my calc the max size is 850, but trying to read more doesn't harm
+                        break;
+                    default:
                         $data = fread($connection[0], 2048); // by my calc the max size is 850, but trying to read more doesn't harm
                         break;
                 }
