@@ -315,7 +315,7 @@ class TwRequest
 
 
     /* add a server */
-    function addServer($address, $port = self::DEFAULT_PORT_SERVER, $version = self::DEFAULT_VERSION)
+    public function addServer($address, $port = self::DEFAULT_PORT_SERVER, $version = self::DEFAULT_VERSION)
     {
 
         /* cast to right types */
@@ -346,7 +346,7 @@ class TwRequest
     }
 
     /* add an array of servers in the form array(address, port, version) */
-    function addServers(Array $servers)
+    public function addServers(Array $servers)
     {
 
         /* go through each server */
@@ -363,25 +363,25 @@ class TwRequest
     }
 
     /* returns the array of servers */
-    function getServers()
+    public function getServers()
     {
         return $this->servers;
     }
 
     /* returns first server in the array */
-    function getFirstServer()
+    public function getFirstServer()
     {
         return reset($this->servers);
     }
 
     /* deletes all servers */
-    function emptyServers()
+    public function emptyServers()
     {
         $this->servers = array();
     }
 
     /* add a master server */
-    function addMasterserver($address, $port = self::DEFAULT_PORT_MASTER, $version = TwRequest::VERSION_06)
+    public function addMasterserver($address, $port = self::DEFAULT_PORT_MASTER, $version = TwRequest::VERSION_06)
     {
 
         /* cast to right types */
@@ -406,7 +406,7 @@ class TwRequest
     }
 
     /* add an array of servers in the form array(address, port) */
-    function addMasterservers(Array $servers)
+    public function addMasterservers(Array $servers)
     {
 
         /* go through each server */
@@ -423,25 +423,25 @@ class TwRequest
     }
 
     /* deletes all servers */
-    function emptyMasterservers()
+    public function emptyMasterservers()
     {
         $this->masterservers = array();
     }
 
     /* returns the master servers */
-    function getMasterservers()
+    public function getMasterservers()
     {
         return $this->masterservers;
     }
 
     /* returns the current timestamp converted to ms */
-    static function getTimeInMs()
+    public static function getTimeInMs()
     {
         return round(microtime(true) * 1000);
     }
 
     /* builds up a udp connection */
-    static function establishConnection($authority, $data, &$errno = 0, &$errstr = "")
+    public static function establishConnection($authority, $data, &$errno = 0, &$errstr = "")
     {
 
         /* connect socket */
@@ -464,7 +464,7 @@ class TwRequest
     }
 
     /* loads servers from master servers and adds them to the server list */
-    function loadServersFromMasterservers($versions = self::DEFAULT_VERSION)
+    public function loadServersFromMasterservers($versions = self::DEFAULT_VERSION)
     {
 
         /* if given, select all versions */
@@ -711,7 +711,7 @@ class TwRequest
     }
 
     /* loads the information of the server */
-    function loadServerInfo()
+    public function loadServerInfo()
     {
 
         /* define variables */
@@ -865,28 +865,28 @@ class TwRequest
     }
 
     /* return an array with the country code and name */
-    static function getCountry($number)
+    public static function getCountry($number)
     {
         $number = (int)$number;
         return isset(self::$countries[$number]) ? self::$countries[$number] : self::$countries[-1];
     }
 
     /* return an array with the country code */
-    static function getCountryCode($number)
+    public static function getCountryCode($number)
     {
         $number = (int)$number;
         return isset(self::$countries[$number]) ? self::$countries[$number][0] : self::$countries[-1][0];
     }
 
     /* return an array with the country name */
-    static function getCountryName($number)
+    public static function getCountryName($number)
     {
         $number = (int)$number;
         return isset(self::$countries[$number]) ? self::$countries[$number][1] : self::$countries[-1][1];
     }
 
     /* loads servers from master servers and adds them to the server list */
-    function loadMasterserverCounts()
+    public function loadMasterserverCounts()
     {
 
         /* define variables */
@@ -954,7 +954,7 @@ class TwRequest
     }
 
     /* sums up the counts of servers from the master servers after a request */
-    function getTotalServerCount()
+    public function getTotalServerCount()
     {
         $count = 0;
         foreach ($this->masterservers as $masterserver) {
@@ -968,7 +968,7 @@ class TwRequest
     }
 
     /* requests the current version from a version server */
-    function getCurrentVersion($address = "version.teeworlds.com", $port = self::DEFAULT_PORT_VERSION)
+    public function getCurrentVersion($address = "version.teeworlds.com", $port = self::DEFAULT_PORT_VERSION)
     {
 
         $data = "\xff\xff\xff\xff\xff\xff\xff\xff\xff\xffverg";
@@ -1012,7 +1012,7 @@ class TwRequest
     }
 
     /* requests the current map list from a version server */
-    function getCurrentMaplist($address = "version.teeworlds.com", $port = self::DEFAULT_PORT_VERSION)
+    public function getCurrentMaplist($address = "version.teeworlds.com", $port = self::DEFAULT_PORT_VERSION)
     {
 
         $maps = array();
