@@ -13,6 +13,8 @@
 namespace TwStats\Core\Utility;
 
 
+use TwStats\Core\General\SingletonInterface;
+
 class GeneralUtility
 {
     /**

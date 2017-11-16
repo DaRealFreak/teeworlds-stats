@@ -1,5 +1,5 @@
 <?php
-namespace TwStats\Core\Utility;
+namespace TwStats\Core\General;
 
 /*
  * This file is part of the TYPO3 CMS project.

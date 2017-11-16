@@ -1,6 +1,6 @@
 <?php
 
-namespace TwStats\Core\Frontend;
+namespace TwStats\Core\General;
 
 interface ApplicationInterface
 {

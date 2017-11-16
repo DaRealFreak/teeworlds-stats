@@ -1,4 +1,5 @@
 <?php
+
 namespace TwStats\Core\Utility;
 
 /*                                                                        *
@@ -228,7 +229,7 @@ class DebuggerUtility
         } else {
             $dump .= '<span class="extbase-debug-type">' . $className . '</span>';
         }
-        if (! $object instanceof \Closure) {
+        if (!$object instanceof \Closure) {
             if ($object instanceof SingletonInterface) {
                 $scope = 'singleton';
             } else {

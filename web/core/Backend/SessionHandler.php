@@ -2,7 +2,7 @@
 
 namespace TwStats\Core\Backend;
 
-use TwStats\Core\Utility\SingletonInterface;
+use TwStats\Core\General\SingletonInterface;
 
 class SessionHandler implements SingletonInterface
 {

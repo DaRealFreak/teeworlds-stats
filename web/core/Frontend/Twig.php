@@ -4,7 +4,7 @@ namespace TwStats\Core\Frontend;
 
 
 use TwStats\Core\Utility\GeneralUtility;
-use TwStats\Core\Utility\SingletonInterface;
+use TwStats\Core\General\SingletonInterface;
 
 class Twig implements SingletonInterface
 {

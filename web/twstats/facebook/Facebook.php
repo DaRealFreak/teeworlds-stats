@@ -12,7 +12,7 @@ use Facebook\Exceptions\FacebookResponseException;
 use Facebook\Exceptions\FacebookSDKException;
 use TwStats\Core\Backend\Database;
 use TwStats\Core\Utility\GeneralUtility;
-use TwStats\Core\Utility\SingletonInterface;
+use TwStats\Core\General\SingletonInterface;
 
 
 class Facebook implements SingletonInterface

@@ -3,6 +3,8 @@
 namespace TwStats\Core\Utility;
 
 
+use TwStats\Core\General\SingletonInterface;
+
 class PrettyUrl implements SingletonInterface
 {
     /**

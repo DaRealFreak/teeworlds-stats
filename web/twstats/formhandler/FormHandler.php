@@ -3,7 +3,7 @@
 namespace TwStats\Ext\FormHandler;
 
 
-use TwStats\Core\Utility\SingletonInterface;
+use TwStats\Core\General\SingletonInterface;
 
 /*
  * ToDo: handle forms with post requests not session

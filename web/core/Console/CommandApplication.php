@@ -1,14 +1,13 @@
 <?php
 
-namespace TwStats\Core\Frontend;
+namespace TwStats\Core\Console;
 
 use TwStats\Core\Backend\Database;
-use TwStats\Core\Backend\RequestHandler;
 use TwStats\Core\Backend\SystemEnvironmentBuilder;
 use TwStats\Core\General\ApplicationInterface;
 use TwStats\Core\Utility\GeneralUtility;
 
-class Application implements ApplicationInterface
+class CommandApplication implements ApplicationInterface
 {
     /**
      * database connection
@@ -16,18 +15,6 @@ class Application implements ApplicationInterface
      * @var Database|null
      */
     private $database = null;
-
-    /**
-     * frontend handler
-     *
-     * @var Twig|null
-     */
-    private $frontendHandler = null;
-
-    /**
-     * @var RequestHandler|null
-     */
-    private $requestHandler = null;
 
     /**
      * Constructor setting up legacy constant and register available Request Handlers
@@ -44,19 +31,6 @@ class Application implements ApplicationInterface
          * initialize the database directly
          */
         $GLOBALS['DB'] = $this->database = GeneralUtility::makeInstance(Database::class);
-        /*
-         * initialize the frontend handler
-         */
-        $GLOBALS['FE'] = $this->frontendHandler = GeneralUtility::makeInstance(Twig::class);
-        /*
-         * initialize the html purifier with the default configuration
-         */
-        $config = \HTMLPurifier_Config::createDefault();
-        $GLOBALS['purifier'] = new \HTMLPurifier($config);
-        /*
-         * initialize the request handler
-         */
-        $this->requestHandler = GeneralUtility::makeInstance(RequestHandler::class);
     }
 
     /**
@@ -71,6 +45,7 @@ class Application implements ApplicationInterface
             call_user_func($execute);
         }
 
-        GeneralUtility::makeInstance($this->requestHandler->getRequestedClass());
+        // ToDo: how to start properly?
+        //GeneralUtility::makeInstance($this->requestHandler->getRequestedClass());
     }
 }

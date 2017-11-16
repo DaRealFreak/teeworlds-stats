@@ -4,7 +4,7 @@ namespace TwStats\Core\Backend;
 
 use TwStats\Core\Frontend\Twig;
 use TwStats\Core\Utility\GeneralUtility;
-use TwStats\Core\Utility\SingletonInterface;
+use TwStats\Core\General\SingletonInterface;
 
 class Database implements SingletonInterface
 {
