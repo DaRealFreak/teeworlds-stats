@@ -19,7 +19,6 @@
  * Example: php core/Console/bin/cron_dispatcher.phpsh classname function argument1 argument2
  */
 call_user_func(function() {
-    // ToDo: currently console doesn't work outside of web document root with relative paths
     $classLoader = require __DIR__ . '/../../../../vendor/autoload.php';
     (new \TwStats\Core\Console\CommandApplication($classLoader))->run();
 });

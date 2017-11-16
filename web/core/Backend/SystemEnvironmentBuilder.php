@@ -2,7 +2,6 @@
 
 namespace TwStats\Core\Backend;
 
-use Dotenv\Dotenv;
 use TwStats\Core\Utility\GeneralUtility;
 
 class SystemEnvironmentBuilder
@@ -16,7 +15,6 @@ class SystemEnvironmentBuilder
     public static function run($relativePathPart = '')
     {
         self::definePaths($relativePathPart);
-        self::loadDotEnv();
     }
 
     /**
@@ -42,19 +40,5 @@ class SystemEnvironmentBuilder
         define('TwStats_Core_namespace', "TwStats\\Core\\");
         define('TwStats_templates', GeneralUtility::joinPaths($baseDir, "templates"));
         define('TwStats_template_cache', GeneralUtility::joinPaths(TwStats_templates, "cache"));
-    }
-
-    /**
-     * load environmental variables from the .env file
-     *
-     * @param string $specificPath
-     */
-    private static function loadDotEnv($specificPath = "")
-    {
-        if (!$specificPath || !@is_file($specificPath) || !@is_file($specificPath)) {
-            $specificPath = TwStats_root;
-        }
-        $dotenv = new Dotenv($specificPath);
-        $dotenv->load();
     }
 }

@@ -14,7 +14,8 @@
     "twig/twig": "^2.4",
     "components/jquery": "^3.2",
     "twbs/bootstrap": "~4.0",
-    "vlucas/phpdotenv": "^2.4"
+    "vlucas/phpdotenv": "^2.4",
+    "helhum/dotenv-connector": "^2.0"
   },
   "autoload": {
     "psr-4": {
