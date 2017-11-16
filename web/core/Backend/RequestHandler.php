@@ -57,7 +57,7 @@ class RequestHandler implements SingletonInterface
     {
         $requestedPath = self::getRequestedPath();
         $parsedPath = pathinfo($requestedPath);
-        return TwStats_namespace . ucfirst($parsedPath['filename']);
+        return TwStats_Ext_namespace . ucfirst($parsedPath['filename']);
     }
 
     /**
