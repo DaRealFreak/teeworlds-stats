@@ -42,7 +42,7 @@ abstract class AbstractController
     /**
      * AbstractController constructor.
      */
-    public function __construct()
+    public final function __construct()
     {
         $this->databaseConnection = $GLOBALS['DB'];
         $this->frontendHandler = $GLOBALS['FE'];
