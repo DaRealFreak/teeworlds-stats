@@ -2,6 +2,7 @@
 
 namespace TwStats\Core\Console;
 
+use Symfony\Component\Console\Input\ArgvInput;
 use TwStats\Core\Backend\Database;
 use TwStats\Core\Backend\SystemEnvironmentBuilder;
 use TwStats\Core\General\ApplicationInterface;
@@ -12,9 +13,14 @@ class CommandApplication implements ApplicationInterface
     /**
      * database connection
      *
-     * @var Database|null
+     * @var Database
      */
     private $database = null;
+
+    /**
+     * @var InputResolver
+     */
+    private $inputResolver = null;
 
     /**
      * Constructor setting up legacy constant and register available Request Handlers
@@ -31,6 +37,10 @@ class CommandApplication implements ApplicationInterface
          * initialize the database directly
          */
         $GLOBALS['DB'] = $this->database = GeneralUtility::makeInstance(Database::class);
+        /*
+         * initialize the file resolver
+         */
+        $this->inputResolver = GeneralUtility::makeInstance(InputResolver::class);
     }
 
     /**
@@ -41,11 +51,19 @@ class CommandApplication implements ApplicationInterface
      */
     public function run(callable $execute = null)
     {
+        $this->inputResolver->setInput(new InputHandler());
+        $requestedClass = $this->inputResolver->resolveClass();
+        $requestedFunction = $this->inputResolver->resolveFunction();
+        $requestArguments = $this->inputResolver->resolveArguments();
+
         if ($execute !== null) {
             call_user_func($execute);
         }
 
-        // ToDo: how to start properly?
-        //GeneralUtility::makeInstance($this->requestHandler->getRequestedClass());
+        $classInstance = GeneralUtility::makeInstance($requestedClass);
+        if (!method_exists($classInstance, $requestedFunction)) {
+            throw new \InvalidArgumentException("The class " . $requestedClass . " has no method named " . $requestedFunction);
+        }
+        call_user_func_array(array($classInstance, $requestedFunction), $requestArguments);
     }
 }

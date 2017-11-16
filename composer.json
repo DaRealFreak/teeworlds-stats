@@ -19,7 +19,8 @@
   "autoload": {
     "psr-4": {
       "TwStats\\Core\\": "web/core/",
-      "TwStats\\Ext\\": "web/twstats/"
+      "TwStats\\Ext\\": "web/twstats/",
+      "TwStats\\Cron\\": "cronjobs/"
     }
   },
   "scripts": {
