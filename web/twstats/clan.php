@@ -47,8 +47,9 @@ class Clan extends AbstractController
     {
         // ToDo: argument parsing from url
         $clan = 'OnFire';
-        if (empty($clan))
+        if (empty($clan)) {
             GeneralUtility::redirectToUri(".");
+        }
 
         $name = $this->statRepository->getClanName($clan);
         if (!$name) {
@@ -72,14 +73,17 @@ class Clan extends AbstractController
             $page['logged'] = true;
 
             $account = $this->facebook->getAccountDetails($user);
-            if (!empty($account["tee"]))
+            if (!empty($account["tee"])) {
                 $items[] = array('text' => $account['tee'],
                     'url' => $this->prettyUrl->buildPrettyUri("tee", array("n" => $account['tee'])),
                     'class' => 'icon-user');
-            if (!empty($account["clan"]))
+            }
+
+            if (!empty($account["clan"])) {
                 $items[] = array('text' => $account['clan'],
                     'url' => $this->prettyUrl->buildPrettyUri("clan", array("n" => $account['clan'])),
                     'class' => 'icon-home');
+            }
 
             $items[] = array('text' => 'Account', 'url' => $this->prettyUrl->buildPrettyUri("account"), 'class' => 'icon-pencil');
         }
@@ -91,9 +95,11 @@ class Clan extends AbstractController
         /*		SELECTING CLAN INFO TO DISPLAY		*/
         $clanDetails = $this->accountRepository->getClanDetails($clan);
 
-        if (!empty($clanDetails["clantxt"]))
-            if (strip_tags($clanDetails["clantxt"]) != "")
+        if (!empty($clanDetails["clantxt"])) {
+            if (strip_tags($clanDetails["clantxt"]) != "") {
                 $page["clantxt"] = Youtube::integrateYoutubeVideos($clanDetails["clantxt"]);
+            }
+        }
 
         if ($clanDetails["clanmods"] == 1) {
             $hist_mods = $this->statRepository->gethisto("clan", $clan, "mod");

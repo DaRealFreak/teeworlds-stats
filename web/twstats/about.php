@@ -43,14 +43,16 @@ class About extends AbstractController
         $page['logged'] = true;
         if ($user) {
             $account = $this->facebook->getAccountDetails($user);
-            if (!empty($account["tee"]))
+            if (!empty($account["tee"])) {
                 $items[] = array('text' => $account['tee'],
                     'url' => $this->prettyUrl->buildPrettyUri("tee", array("n" => $account['tee'])),
                     'class' => 'icon-user');
-            if (!empty($account["clan"]))
+            }
+            if (!empty($account["clan"])) {
                 $items[] = array('text' => $account['clan'],
                     'url' => $this->prettyUrl->buildPrettyUri("clan", array("n" => $account['clan'])),
                     'class' => 'icon-home');
+            }
 
             $items[] = array('text' => 'Account', 'url' => $this->prettyUrl->buildPrettyUri("account"), 'class' => 'icon-pencil');
         }
