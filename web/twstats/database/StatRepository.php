@@ -135,7 +135,7 @@ class StatRepository extends AbstractRepository
             $res2[] = array($i, isset($res[$i]) ? round($res[$i] * 100 / $sum) : 0);
         }
 
-        return $res2;
+        return array_merge([["Hours", "Probability"]], $res2);
     }
 
     /**
@@ -156,7 +156,15 @@ class StatRepository extends AbstractRepository
             $sum += (int)$data["Lignes"];
         }
 
-        $tr = array('Mon' => 1, 'Tue' => 2, 'Wed' => 3, 'Thu' => 4, 'Fri' => 5, 'Sat' => 6, 'Sun' => 7);
+        $tr = array(
+            'Mon' => 'Monday',
+            'Tue' => 'Tuesday',
+            'Wed' => 'Wednesday',
+            'Thu' => 'Thursday',
+            'Fri' => 'Friday',
+            'Sat' => 'Saturday',
+            'Sun' => 'Sunday'
+        );
         $tmp = [];
         foreach ($tr as $day => $num) {
             $tmp[$num] = empty($res[$day]) ? 0 : $res[$day];
@@ -166,7 +174,7 @@ class StatRepository extends AbstractRepository
             $res2[] = array($num, round($c * 100 / $sum));
         }
 
-        return $res2;
+        return array_merge([["Weekday", "Probability"]], $res2);
     }
 
     /**
