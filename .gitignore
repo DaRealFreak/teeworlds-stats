@@ -27,3 +27,6 @@ Thumbs.db
 
 # environmental file
 .env
+
+# cron logs
+/log/*.log
