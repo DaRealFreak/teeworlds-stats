@@ -44,18 +44,19 @@ class Server extends AbstractController
      */
     public function run()
     {
-        // ToDo: argument parsing from url
-        $server = 'DDraceNetwork';
-
-        if (empty($server))
-            GeneralUtility::redirectToUri(".");
+        $server = $this->requestHandler->getArgument('n');
+        if (empty($server)) {
+            GeneralUtility::redirectToUri($this->requestHandler->getFQDN());
+        }
 
         $name = $this->statRepository->getServerName($server);
 
         if (!$name) {
-            $_SESSION['suggestionsServer'] = $this->statRepository->getSimilarData("server", $server);
-            $_SESSION['missingServer'] = true;
-            GeneralUtility::redirectToUri(".");
+            $payload = [
+                'suggestionsServer' => $this->statRepository->getSimilarData("server", $server),
+                'missingServer' => true
+            ];
+            GeneralUtility::redirectPostToUri($this->requestHandler->getFQDN(), $payload);
         }
         $server = $name;
 
@@ -66,14 +67,16 @@ class Server extends AbstractController
             $page['logged'] = true;
 
             $account = $this->facebook->getAccountDetails($user);
-            if (!empty($account["tee"]))
+            if (!empty($account["tee"])) {
                 $items[] = array('text' => $account['tee'],
                     'url' => $this->prettyUrl->buildPrettyUri("tee", array("n" => $account['tee'])),
                     'class' => 'icon-user');
-            if (!empty($account["clan"]))
+            }
+            if (!empty($account["clan"])) {
                 $items[] = array('text' => $account['clan'],
                     'url' => $this->prettyUrl->buildPrettyUri("clan", array("n" => $account['clan'])),
                     'class' => 'icon-home');
+            }
 
             $items[] = array('text' => 'Account', 'url' => $this->prettyUrl->buildPrettyUri("account"), 'class' => 'icon-pencil');
         }

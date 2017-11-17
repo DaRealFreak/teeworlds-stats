@@ -45,19 +45,20 @@ class Tee extends AbstractController
      */
     public function run()
     {
-        // ToDo: argument parsing from url
-        $tee = 'Nibiru';
+        $tee = $this->requestHandler->getArgument('n');
 
         if (empty($tee)) {
-            GeneralUtility::redirectToUri(".");
+            GeneralUtility::redirectToUri($this->requestHandler->getFQDN());
         }
 
         $player = $this->statRepository->getPlayer($tee);
 
         if (!$player) {
-            $_SESSION['suggestionsTee'] = $this->statRepository->getSimilarData("tee", $tee);
-            $_SESSION['missingTee'] = true;
-            GeneralUtility::redirectToUri(".");
+            $payload = [
+                'suggestionsTee' => $this->statRepository->getSimilarData("tee", $tee),
+                'missingTee' => true
+            ];
+            GeneralUtility::redirectPostToUri($this->requestHandler->getFQDN(), $payload);
         }
 
         $tee = $player['tee'];

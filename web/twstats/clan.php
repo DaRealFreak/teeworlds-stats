@@ -45,17 +45,19 @@ class Clan extends AbstractController
      */
     public function run()
     {
-        // ToDo: argument parsing from url
-        $clan = 'OnFire';
+        $clan = $this->requestHandler->getArgument('n');
+
         if (empty($clan)) {
-            GeneralUtility::redirectToUri(".");
+            GeneralUtility::redirectToUri($this->requestHandler->getFQDN());
         }
 
         $name = $this->statRepository->getClanName($clan);
         if (!$name) {
-            $_SESSION['suggestionsClan'] = $this->statRepository->getSimilarData("clan", $clan);
-            $_SESSION['missingClan'] = true;
-            GeneralUtility::redirectToUri(".");
+            $payload = [
+                'suggestionsClan' => $this->statRepository->getSimilarData("clan", $clan),
+                'missingClan' => true
+            ];
+            GeneralUtility::redirectPostToUri($this->requestHandler->getFQDN(), $payload);
         }
         $clan = $name;
 

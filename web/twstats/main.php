@@ -72,9 +72,8 @@ class Main extends AbstractController
             'missingServer'
         ];
         foreach ($options as $argument) {
-            if ($this->sessionHandler->hasArgument($argument)) {
-                $page[$argument] = $this->sessionHandler->getArgument($argument);
-                $this->sessionHandler->removeAgument($argument);
+            if ($this->requestHandler->hasArgument($argument)) {
+                $page[$argument] = $this->requestHandler->getArgument($argument);
             }
         }
 

@@ -60,21 +60,18 @@ class Account extends AbstractController
                 // ToDo: display error message
                 if (!$err = $this->accountRepository->checkNameAvailability(FormHandler::frmget($formDetails), $user)) {
                     $this->accountRepository->updateAccountDetails(FormHandler::frmget($formDetails), $user);
-                    $_SESSION['success'] = true;
+                    $payload = ['success' => true];
                 } else {
-                    $_SESSION['success'] = false;
-                    $_SESSION['errors'] = $err;
+                    $payload = [
+                        'success' => true,
+                        'errors' => $err
+                    ];
                 }
-                GeneralUtility::redirectToUri($this->prettyUrl->buildPrettyUri("account"));
+                GeneralUtility::redirectPostToUri($this->prettyUrl->buildPrettyUri("account"), $payload);
             }
 
-            if (!empty($_SESSION['success'])) {
-                $page['success'] = $_SESSION['success'];
-                unset($_SESSION['success']);
-            }
-            if (!empty($_SESSION['errors'])) {
-                $page['errors'] = $_SESSION['errors'];
-                unset($_SESSION['errors']);
+            if ($this->requestHandler->hasArgument('errors')) {
+                $page['errors'] = $this->requestHandler->getArgument('errors');
             }
 
             $account = $this->facebook->getAccountDetails($user);
@@ -88,7 +85,7 @@ class Account extends AbstractController
                     'url' => $this->prettyUrl->buildPrettyUri("clan", array("n" => $account['clan'])),
                     'class' => 'icon-home');
             }
-            
+
             $items[] = array('text' => 'Account', 'url' => $this->prettyUrl->buildPrettyUri("account"), 'class' => 'icon-pencil');
 
             if ($account) {
