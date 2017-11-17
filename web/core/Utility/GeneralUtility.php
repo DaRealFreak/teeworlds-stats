@@ -181,7 +181,8 @@ class GeneralUtility
 
     /**
      * Redirect with POST data.
-     * Not the best solution since our server now acts like a client and data lke htaccess are needed
+     * Not the best solution since our server now acts like a client and saved data like facebook user
+     * htaccess etc are not saved
      *
      * @param string $url URL.
      * @param array $data POST data. Example: array('foo' => 'var', 'id' => 123)
@@ -189,7 +190,8 @@ class GeneralUtility
      * @throws \Exception
      * @internal param array $headers Optional. Extra headers to send.
      */
-    public static function redirectPostToUri($url, array $data, $curlOptions = []) {
+    public static function redirectPostToUri($url, array $data, $curlOptions = [])
+    {
         $ch = curl_init($url);
 
         // possible to modify curl before requesting
@@ -200,11 +202,11 @@ class GeneralUtility
         // hard coded options which would break the functionality if changed
         curl_setopt($ch, CURLOPT_POST, 1);
         curl_setopt($ch, CURLOPT_POSTFIELDS, http_build_query($data));
-        curl_setopt($ch, CURLOPT_RETURNTRANSFER , 1);
+        curl_setopt($ch, CURLOPT_RETURNTRANSFER, 1);
 
         $resp = curl_exec($ch);
-        if(curl_errno($ch)){
-            throw new \Exception("Error loading '$url', $php_errormsg");
+        if (curl_errno($ch)) {
+            throw new \Exception("Error loading '$url', " . curl_errno($ch));
         } else {
             echo $resp;
             die;
