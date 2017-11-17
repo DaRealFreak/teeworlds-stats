@@ -1,0 +1,48 @@
+<script type="text/javascript">
+    google.charts.load("current", {packages: ["corechart"]});
+    google.charts.setOnLoadCallback(drawChart);
+    console.log({{ histogram|json_encode|raw }});
+
+    function drawChart() {
+        var data = google.visualization.arrayToDataTable(
+                {{ histogram|json_encode|raw }}
+        );
+
+        var view = new google.visualization.DataView(data);
+        view.setColumns([0, 1,
+            {
+                calc: "stringify",
+                sourceColumn: 1,
+                type: "string",
+                role: "annotation"
+            }
+        ]);
+
+        var options = {
+            chart: {
+                title: 'Company Performance'
+            },
+            vAxis: {
+                viewWindowMode: 'explicit',
+                viewWindow: {
+                    max: 0,
+                    min: 100
+                }
+            }
+        };
+
+
+        var chart = new google.visualization.LineChart(document.getElementById('{{ id }}'));
+
+        chart.draw(data, options);
+    }
+</script>
+
+<div class="box span9">
+    <div class="box-header well" data-original-title="">
+        <h2><i class="icon-signal"></i> {{ name }}</h2>
+    </div>
+    <div class="box-content">
+        <div id="{{ id }}"></div>
+    </div>
+</div>
