@@ -147,6 +147,6 @@ class Clan extends AbstractController
         $page['title'] = "$clan statistics on Teeworlds";
         $page['clan'] = $clan;
 
-        $this->frontendHandler->renderTemplate("templates/clan.twig", $page);
+        $this->frontendHandler->renderTemplate("clan.twig", $page);
     }
 }
