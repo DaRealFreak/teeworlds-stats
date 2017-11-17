@@ -127,7 +127,7 @@ class Clan extends AbstractController
 
         if ($clanDetails["clanhours"] == 1) {
             $hhours = $this->statRepository->gethours("clan", $clan);
-            $page['hours'] = $this->frontendHandler->getTemplateHtml("views/bars.twig", array("histogram" => $hhours,
+            $page['hours'] = $this->frontendHandler->getTemplateHtml("views/line.twig", array("histogram" => $hhours,
                 "name" => "$clan online time per hour",
                 "id" => "piehours"));
         }

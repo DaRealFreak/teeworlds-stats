@@ -116,7 +116,7 @@ class Server extends AbstractController
         $page['maps'] = $this->frontendHandler->getTemplateHtml("views/pie.twig", array("histogram" => $hist_maps,
             "name" => "Most played maps	",
             "id" => "piemaps"));
-        $page['hours'] = $this->frontendHandler->getTemplateHtml("views/bars.twig", array("histogram" => $hhours,
+        $page['hours'] = $this->frontendHandler->getTemplateHtml("views/line.twig", array("histogram" => $hhours,
             "name" => "Online time per hour",
             "id" => "piehours"));
         $page['days'] = $this->frontendHandler->getTemplateHtml("views/bars.twig", array("histogram" => $hdays,

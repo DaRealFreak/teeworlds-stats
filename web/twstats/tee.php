@@ -147,7 +147,7 @@ class Tee extends AbstractController
         // FixMe: doesn't work currently
         if ($teeDetails["teehours"] == 1) {
             $histogramHours = $this->statRepository->gethours("tee", $tee);
-            $page['hours'] = $this->frontendHandler->getTemplateHtml("views/bars.twig",
+            $page['hours'] = $this->frontendHandler->getTemplateHtml("views/line.twig",
                 array("id" => "hourbars",
                     "name" => "$tee's online time per hour",
                     "histogram" => $histogramHours));
