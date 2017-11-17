@@ -19,11 +19,11 @@
     {% endif %}
 
     <div class="row">
-			{{ players }}
+			{{ players|raw }}
 
-			{{ countries }}
-			{{ mods }}
-			{{ maps }}
+			{{ countries|raw }}
+			{{ mods|raw }}
+			{{ maps|raw }}
 	</div>
 
 	<br/>
@@ -45,8 +45,8 @@
         </div>
     </form>
 
-	{{ hours }}
-	{{ days }}
+	{{ hours|raw }}
+	{{ days|raw }}
 </div>
 
 {% include 'footer.twig' %}
