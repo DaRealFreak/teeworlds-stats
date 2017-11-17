@@ -61,12 +61,59 @@ class RequestHandler implements SingletonInterface
     }
 
     /**
+     * check if the requested argument is in either $_POST, $_GET or $_SESSION
+     *
+     * @param $var
+     * @return bool
+     */
+    public static function hasArgument($var) {
+        if (empty($var)) {
+            return False;
+        }
+        if (isset($_POST[$var]) || isset($_GET[$var]) || isset($_SESSION[$var])) {
+            return True;
+        } else {
+            return False;
+        }
+    }
+
+    /**
+     * get the requested argument from $_SESSION, $_POST or $_GET
+     *
+     * @param $var
+     * @return null|string
+     */
+    public static function getArgument($var) {
+        if (empty($var)) {
+            return '';
+        }
+        if (isset($_SESSION[$var])) {
+            $value = $_SESSION[$var];
+        } elseif (isset($_GET[$var])) {
+            $value = $_GET[$var];
+        } elseif (isset($_POST[$var])) {
+            $value = $_POST[$var];
+        } else {
+            $value = null;
+        }
+        // This is there for backwards-compatibility, in order to avoid NULL
+        if (isset($value) && !is_array($value)) {
+            $value = (string)$value;
+        }
+        return $value;
+    }
+
+    /**
      * retrieve the passed arguments
      *
      * @return mixed
      */
     public static function getArguments()
     {
-        return parse_url(self::getUrl(), PHP_URL_QUERY);
+        $value = array_merge($_GET, $_POST);
+        if (isset($_SESSION)) {
+            $value = array_merge($value, $_SESSION);
+        }
+        return $value;
     }
 }
