@@ -60,18 +60,11 @@ class Account extends AbstractController
                 // ToDo: display error message
                 if (!$err = $this->accountRepository->checkNameAvailability(FormHandler::frmget($formDetails), $user)) {
                     $this->accountRepository->updateAccountDetails(FormHandler::frmget($formDetails), $user);
-                    $payload = ['success' => true];
+                    $page['success'] = true;
                 } else {
-                    $payload = [
-                        'success' => true,
-                        'errors' => $err
-                    ];
+                    $page['success'] = false;
+                    $page['errors'] = $err;
                 }
-                GeneralUtility::redirectPostToUri($this->prettyUrl->buildPrettyUri("account"), $payload);
-            }
-
-            if ($this->requestHandler->hasArgument('errors')) {
-                $page['errors'] = $this->requestHandler->getArgument('errors');
             }
 
             $account = $this->facebook->getAccountDetails($user);
@@ -101,6 +94,6 @@ class Account extends AbstractController
 
         $page['navigation'] = $this->frontendHandler->getTemplateHtml("views/navigation.twig", array("items" => $items));
 
-        echo $this->frontendHandler->renderTemplate("account.twig", $page);
+        $this->frontendHandler->renderTemplate("account.twig", $page);
     }
 }
