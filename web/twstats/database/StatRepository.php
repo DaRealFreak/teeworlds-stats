@@ -25,17 +25,17 @@ class StatRepository extends AbstractRepository
 
         while ($row = $this->databaseConnection->sqlFetch($req)) {
             $row['data'] = (int)$row['data'];
-            $rows[] = $row;
+            $rows[] = [$row['label'], $row['data']];
         }
 
         $c = count($rows);
         $other = 0;
         if (count($rows) >= $nbin) {
             for ($i = ($nbin - 1); $i < $c; $i++) {
-                $other += $rows[$i]['data'];
+                $other += $rows[$i][1];
                 unset($rows[$i]);
             }
-            $rows[$nbin - 1] = array("label" => "other", "data" => $other);
+            $rows[$nbin - 1] = array("other", $other);
         }
 
         return $rows;
@@ -54,19 +54,18 @@ class StatRepository extends AbstractRepository
 
         while ($row = $this->databaseConnection->sqlFetch($req)) {
             $row['data'] = (int)$row['data'];
-            $rows[] = $row;
+            $rows[] = [$row['label'], $row['data']];
         }
 
         $c = count($rows);
         $other = 0;
         if (count($rows) >= $nbin) {
             for ($i = ($nbin - 1); $i < $c; $i++) {
-                $other += $rows[$i]['data'];
+                $other += $rows[$i][1];
                 unset($rows[$i]);
             }
-            $rows[$nbin - 1] = array("label" => "other", "data" => $other);
+            $rows[$nbin - 1] = array("other", $other);
         }
-
         return $rows;
     }
 

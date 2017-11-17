@@ -1,129 +1,39 @@
+<!--Load the AJAX API-->
 <script type="text/javascript">
-    $(function () {
-        var data = {{ histogram|json_encode|raw }} ;
-        var previousPoint;
+    // Load the Visualization API and the corechart package.
+    google.charts.load('current', {'packages':['corechart']});
 
-        $.plot($("#{{ id }}}"), data,
-            {
-                series: {
-                    pie: {
-                        show: true,
-                        label: {
-                            show: false,
-                            formatter: function (label, series) {
-                                return '<div style="font-size:11px;text-align:center;padding:4px;color:white;">' + label + '<br/>' + Math.round(series.percent) + '%</div>';
-                            },
-                            threshold: 0.1
-                        }
-                    }
-                },
-                legend: {
-                    show: true,
-                    noColumns: 1, // number of colums in legend table
-                    labelFormatter: null, // fn: string -> string
-                    labelBoxBorderColor: "#000", // border color for the little label boxes
-                    container: null, // container (as jQuery object) to put legend in, null means default on top of graph
-                    position: "ne", // position of default legend container within plot
-                    margin: [5, 10], // distance from grid edge to default legend container within plot
-                    backgroundColor: "#efefef", // null means auto-detect
-                    backgroundOpacity: 1 // set to 0 to avoid background
-                },
-                grid: {
-                    hoverable: true,
-                    clickable: true
-                }
-            });
+    // Set a callback to run when the Google Visualization API is loaded.
+    google.charts.setOnLoadCallback(drawChart);
 
-        //add tooltip event
-        $("#{{ id }}").bind("plothover", function (event, pos, item) {
-            if (item) {
-                if (previousPoint !== item.datapoint) {
-                    previousPoint = item.datapoint;
+    // Callback that creates and populates a data table,
+    // instantiates the pie chart, passes in the data and
+    // draws it.
+    function drawChart() {
 
-                    $('.tooltip').remove();
+        // Create the data table.
+        var data = new google.visualization.DataTable();
+        data.addColumn('string', 'key');
+        data.addColumn('number', 'amount');
+        data.addRows({{ histogram|json_encode|raw }});
 
-                    var x = item.datapoint[0];
+        // Set chart options
+        var options = {
+            'width':280,
+            'height':200
+        };
 
-                    showTooltip(pos.pageX + 5, pos.pageY + 5, item.series.label + " : " + Math.round(x) + " %");
-
-                }
-            }
-            else {
-                $('.tooltip').remove();
-                previousPoint = null;
-            }
-
-        });
-    });
-
-    $(window).resize(function () {
-        // erase the flot graph, allowing the div to shrink correctly
-        $('#{{ id }}').text('');
-
-        var data = {{ histogram | json_encode | raw }};
-        // redraw the graph in the correctly sized div
-        $.plot($("#{{ id }}"), data,
-            {
-                series: {
-                    pie: {
-                        show: true,
-                        label: {
-                            show: false,
-                            formatter: function (label, series) {
-                                return '<div style="font-size:11px;text-align:center;padding:4px;color:white;">' + label + '<br/>' + Math.round(series.percent) + '%</div>';
-                            },
-                            threshold: 0.1
-                        }
-                    }
-                },
-                legend: {
-                    show: true,
-                    noColumns: 1, // number of colums in legend table
-                    labelFormatter: null, // fn: string -> string
-                    labelBoxBorderColor: "#000", // border color for the little label boxes
-                    container: null, // container (as jQuery object) to put legend in, null means default on top of graph
-                    position: "ne", // position of default legend container within plot
-                    margin: [5, 10], // distance from grid edge to default legend container within plot
-                    backgroundColor: "#efefef", // null means auto-detect
-                    backgroundOpacity: 1 // set to 0 to avoid background
-                },
-                grid: {
-                    hoverable: true,
-                    clickable: true
-                }
-            });
-    });
-
-    //tooltip function
-    function showTooltip(x, y, contents, areAbsoluteXY) {
-        var rootElt = 'body';
-
-        $('<div id="tooltip2" class="tooltip">' + contents + '</div>').css({
-            position: 'absolute',
-            display: 'none',
-            top: y - 35,
-            left: x - 5,
-            border: '1px solid #000',
-            padding: '1px 6px',
-            'z-index': '9999',
-            'background-color': '#202020',
-            'color': '#fff',
-            'font-size': '11px',
-            'border-radius': '2px',
-            '-webkit-border-radius': '2px',
-            '-moz-border-radius': '2px',
-            opacity: 0.8
-        }).prependTo(rootElt).show();
+        // Instantiate and draw our chart, passing in some options.
+        var chart = new google.visualization.PieChart(document.getElementById('{{ id }}'));
+        chart.draw(data, options);
     }
-
 </script>
-
 
 <div class="box span4">
     <div class="box-header well" data-original-title="">
         <h2><i class="icon-time"></i> {{ name }}</h2>
     </div>
     <div class="box-content">
-        <div id="{{ id }}" class="pieWidget"></div>
+        <div id="{{ id }}"></div>
     </div>
 </div>
