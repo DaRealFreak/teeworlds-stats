@@ -69,6 +69,7 @@ class DataCommandController extends AbstractController
                     $stat['hour'] = date('H');
                     $stat['day'] = date('D');
 
+                    // FixMe: we are currently working with uids, ON DUPLICATE won't get called on auto increment
                     $req = $this->databaseConnection->sqlPrepare("INSERT INTO `data` (`tcsName`, `tcsType`, `stat`, `statType`, `count`) VALUES (?, ?, ?, ?, 1)
 								ON DUPLICATE KEY UPDATE count=count+1");
 
