@@ -56,16 +56,7 @@ class DataCommandController extends AbstractController
                     $tees['firstseen'] = $curdate;
                     $tees['lastseen'] = $curdate;
 
-                    if ($existingTee = $this->databaseConnection->selectGetRows(
-                        'SELECT uid FROM tees WHERE tee=? AND clan=?',
-                        [$tees['tee'], $tees['clan']]
-                    )) {
-                        $req = $this->databaseConnection->sqlPrepare('UPDATE tees SET server=?, clan=?, lastseen=? WHERE  uid=?;');
-                        $req->execute([$tees['server'], $tees['clan'], $tees['lastseen'], $existingTee[0]['uid']]);
-                    } else {
-                        $req = $this->databaseConnection->sqlPrepare("INSERT INTO tees (tee,server,clan,firstseen,lastseen) VALUES (?,?,?,?,?) ON DUPLICATE KEY UPDATE server=?, clan=?, lastseen=?");
-                        $req->execute(array($tees['tee'], $tees['server'], $tees['clan'], $tees['firstseen'], $tees['lastseen'], $tees['server'], $tees['clan'], $tees['lastseen']));
-                    }
+                    $this->insertOrUpdatePlayer($tees);
 
                     $tee = $player["name"];
                     $clan = $player["clan"];
@@ -79,18 +70,18 @@ class DataCommandController extends AbstractController
 
                     if (!in_array(strtolower($tee), array('(connecting)', 'nameless tee'))) {
                         foreach (array('mod', 'map', 'hour', 'day') as $st) {
-                            $this->insertOrUpdateData(array($tee, 'tee', $stat[$st], $st));
+                            $this->insertOrUpdatePlayerData(array($tee, 'tee', $stat[$st], $st));
                         }
                     }
 
                     if (!empty($clan)) {
                         foreach (array('mod', 'map', 'hour', 'day', 'country') as $st) {
-                            $this->insertOrUpdateData(array($clan, 'clan', $stat[$st], $st));
+                            $this->insertOrUpdatePlayerData(array($clan, 'clan', $stat[$st], $st));
                         }
                     }
 
                     foreach (array('map', 'hour', 'day', 'country') as $st) {
-                        $this->insertOrUpdateData(array($server, 'server', $stat[$st], $st));
+                        $this->insertOrUpdatePlayerData(array($server, 'server', $stat[$st], $st));
                     }
 
                     if (!isset($general['mod'][$stat['mod']])) {
@@ -109,10 +100,10 @@ class DataCommandController extends AbstractController
         }
 
         foreach ($general['mod'] as $mod => $count) {
-            $this->insertOrUpdateGeneral($mod, 'mod', $count);
+            $this->insertOrUpdateGeneralData($mod, 'mod', $count);
         }
         foreach ($general['country'] as $mod => $count) {
-            $this->insertOrUpdateGeneral($mod, 'country', $count);
+            $this->insertOrUpdateGeneralData($mod, 'country', $count);
         }
 
         $timeC = time();
@@ -124,12 +115,33 @@ class DataCommandController extends AbstractController
     }
 
     /**
+     * insert or update a player.
+     * if the player already exists update the last seen date
+     *
+     * @param array $player
+     */
+    private function insertOrUpdatePlayer($player)
+    {
+        if ($existingTee = $this->databaseConnection->selectGetRows(
+            'SELECT uid FROM tees WHERE tee=? AND clan=?',
+            [$player['tee'], $player['clan']]
+        )) {
+            $req = $this->databaseConnection->sqlPrepare('UPDATE tees SET server=?, lastseen=? WHERE  uid=?;');
+            $req->execute([$player['server'], $player['lastseen'], $existingTee[0]['uid']]);
+        } else {
+            $req = $this->databaseConnection->sqlPrepare("INSERT INTO tees (tee,server,clan,firstseen,lastseen) VALUES (?,?,?,?,?) ON DUPLICATE KEY UPDATE server=?, clan=?, lastseen=?");
+            $req->execute(array($player['tee'], $player['server'], $player['clan'], $player['firstseen'], $player['lastseen'], $player['server'], $player['clan'], $player['lastseen']));
+        }
+
+    }
+
+    /**
      * insert or update the different stats of the players like map, stat etc
      * if entry already exists increase count by 1
      *
      * @param array $values
      */
-    private function insertOrUpdateData($values = [])
+    private function insertOrUpdatePlayerData($values = [])
     {
         if ($existingEntry = $this->databaseConnection->selectGetRows(
             'SELECT `uid`, `count` FROM `data` WHERE `tcsName`=? AND `tcsType`=? AND `stat`=? AND `statType`=?', $values)
@@ -153,7 +165,7 @@ class DataCommandController extends AbstractController
      * @param $statType
      * @param $count
      */
-    private function insertOrUpdateGeneral($mod, $statType, $count)
+    private function insertOrUpdateGeneralData($mod, $statType, $count)
     {
         // 'stat' => $mod, 'statType' => 'mod', 'count' => $count), "general", "count = count + $count");
         //
