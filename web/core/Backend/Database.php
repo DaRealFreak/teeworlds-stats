@@ -3,8 +3,8 @@
 namespace TwStats\Core\Backend;
 
 use TwStats\Core\Frontend\Twig;
-use TwStats\Core\Utility\GeneralUtility;
 use TwStats\Core\General\SingletonInterface;
+use TwStats\Core\Utility\GeneralUtility;
 
 class Database implements SingletonInterface
 {
@@ -139,5 +139,20 @@ class Database implements SingletonInterface
         }
         $constraint = substr($constraint, 0, -1);
         return array($constraint, $values);
+    }
+
+    /**
+     * @param $sql
+     * @param array $values
+     * @return array
+     */
+    public function selectGetRows($sql, $values = [])
+    {
+        $req = $this->sqlQuery($sql, $values);
+        $res = [];
+        while ($tmp = $this->sqlFetch($req)) {
+            $res[] = $tmp;
+        }
+        return $res;
     }
 }
