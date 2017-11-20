@@ -155,4 +155,26 @@ class Database implements SingletonInterface
         }
         return $res;
     }
+
+    /**
+     * @param string $table
+     * @param array $where
+     * @param array $fields
+     */
+    public function sqlUpdate($table, array $where, array $fields)
+    {
+        $selectFields = "";
+        $setFields = "";
+        $values = [];
+        foreach ($fields as $field => $value) {
+            $setFields .= ($setFields === "" ? "" : ", ") . "`$table`.`$field`=?";
+            $values[] = $value;
+        }
+        foreach ($where as $field => $value) {
+            $selectFields .= ($selectFields === "" ? "" : ", ") . "`$table`.`$field`=?";
+            $values[] = $value;
+        }
+        $req = $this->sqlPrepare("UPDATE $table SET $setFields WHERE $selectFields");
+        $req->execute($values);
+    }
 }
