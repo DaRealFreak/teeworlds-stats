@@ -186,7 +186,7 @@ class StatRepository extends AbstractRepository
         $str = ' ' . $str;
         $str = preg_replace(
             '`([^"=\'>])(www\.[^\s<]+[^\s<\.)])`i',
-            '$1<a href="http://$2">$2</a>',
+            '$1<a href="https://$2">$2</a>',
             $str
         );
         $str = substr($str, 1);
