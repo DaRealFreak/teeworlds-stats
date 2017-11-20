@@ -36,6 +36,7 @@ class Application implements ApplicationInterface
      */
     public function __construct($classLoader)
     {
+        session_start();
         /*
          * run the environmental builder
          */
