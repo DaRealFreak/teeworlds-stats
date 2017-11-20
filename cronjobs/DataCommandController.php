@@ -122,7 +122,7 @@ class DataCommandController extends AbstractController
      */
     private function insertOrUpdatePlayer($player)
     {
-        if ($existingTee = $this->databaseConnection->selectGetRows(
+        if ($existingTee = $this->databaseConnection->statement(
             'SELECT uid FROM tees WHERE tee=? AND clan=?',
             [$player['tee'], $player['clan']]
         )) {
@@ -143,7 +143,7 @@ class DataCommandController extends AbstractController
      */
     private function insertOrUpdatePlayerData($values = [])
     {
-        if ($existingEntry = $this->databaseConnection->selectGetRows(
+        if ($existingEntry = $this->databaseConnection->statement(
             'SELECT `uid`, `count` FROM `data` WHERE `tcsName`=? AND `tcsType`=? AND `stat`=? AND `statType`=?', $values)
         ) {
             $req = $this->databaseConnection->sqlPrepare("
@@ -169,7 +169,7 @@ class DataCommandController extends AbstractController
     {
         // 'stat' => $mod, 'statType' => 'mod', 'count' => $count), "general", "count = count + $count");
         //
-        if ($existingEntry = $this->databaseConnection->selectGetRows(
+        if ($existingEntry = $this->databaseConnection->statement(
             'SELECT `uid`, `count` FROM `general` WHERE `stat`=? AND `statType`=?', [$mod, $statType])
         ) {
             $req = $this->databaseConnection->sqlPrepare("

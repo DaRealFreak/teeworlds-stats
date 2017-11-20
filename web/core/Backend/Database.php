@@ -110,6 +110,30 @@ class Database implements SingletonInterface
         return $req->execute($aChVal);
     }
 
+
+    /**
+     * @param string $table
+     * @param array $where
+     * @param array $fields
+     * @return bool
+     */
+    public function sqlUpdate($table, array $where, array $fields)
+    {
+        $selectFields = "";
+        $setFields = "";
+        $values = [];
+        foreach ($fields as $field => $value) {
+            $setFields .= ($setFields === "" ? "" : ", ") . "`$table`.`$field`=?";
+            $values[] = $value;
+        }
+        foreach ($where as $field => $value) {
+            $selectFields .= ($selectFields === "" ? "" : ", ") . "`$table`.`$field`=?";
+            $values[] = $value;
+        }
+        $req = $this->sqlPrepare("UPDATE $table SET $setFields WHERE $selectFields");
+        return $req->execute($values);
+    }
+
     /**
      * @param array $search
      * @return array
@@ -146,7 +170,7 @@ class Database implements SingletonInterface
      * @param array $values
      * @return array
      */
-    public function selectGetRows($sql, $values = [])
+    public function statement($sql, $values = [])
     {
         $req = $this->sqlQuery($sql, $values);
         $res = [];
@@ -154,27 +178,5 @@ class Database implements SingletonInterface
             $res[] = $tmp;
         }
         return $res;
-    }
-
-    /**
-     * @param string $table
-     * @param array $where
-     * @param array $fields
-     */
-    public function sqlUpdate($table, array $where, array $fields)
-    {
-        $selectFields = "";
-        $setFields = "";
-        $values = [];
-        foreach ($fields as $field => $value) {
-            $setFields .= ($setFields === "" ? "" : ", ") . "`$table`.`$field`=?";
-            $values[] = $value;
-        }
-        foreach ($where as $field => $value) {
-            $selectFields .= ($selectFields === "" ? "" : ", ") . "`$table`.`$field`=?";
-            $values[] = $value;
-        }
-        $req = $this->sqlPrepare("UPDATE $table SET $setFields WHERE $selectFields");
-        $req->execute($values);
     }
 }

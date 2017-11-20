@@ -110,7 +110,7 @@ class AccountRepository extends AbstractRepository
         }
         $setStr = substr($setStr, 1);
 
-        if ($this->databaseConnection->selectGetRows("SELECT * FROM accounts WHERE `facebookid`=?", [$facebookId])) {
+        if ($this->databaseConnection->statement("SELECT * FROM accounts WHERE `facebookid`=?", [$facebookId])) {
             $this->databaseConnection->sqlUpdate("accounts", ["facebookid" => $facebookId], $fields);
         } else {
             $this->databaseConnection->sqlInsert($fields, "accounts", $setStr);
