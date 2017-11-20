@@ -11,8 +11,8 @@ namespace TwStats\Ext\Facebook;
 use Facebook\Exceptions\FacebookResponseException;
 use Facebook\Exceptions\FacebookSDKException;
 use TwStats\Core\Backend\Database;
-use TwStats\Core\Utility\GeneralUtility;
 use TwStats\Core\General\SingletonInterface;
+use TwStats\Core\Utility\GeneralUtility;
 
 
 class Facebook implements SingletonInterface
@@ -26,6 +26,11 @@ class Facebook implements SingletonInterface
      * @var Database|null
      */
     protected $databaseConnection = null;
+
+    /**
+     * @var int|null
+     */
+    protected $user = null;
 
     /**
      * Facebook constructor.
@@ -47,6 +52,11 @@ class Facebook implements SingletonInterface
      */
     public function getFacebookID($verify = false)
     {
+        // already authenticated before
+        if ($this->user) {
+            return $this->user;
+        }
+
         // get the javascript helper
         $jsHelper = $this->facebook->getJavaScriptHelper();
 
@@ -62,6 +72,8 @@ class Facebook implements SingletonInterface
                 $accessToken = $jsHelper->getAccessToken();
                 // returns a `Facebook\FacebookResponse` object
                 $this->facebook->get('/me?fields=id,name', $accessToken);
+                // save the user for future requests
+                $this->user = $user;
             } catch (FacebookResponseException $e) {
                 // echo 'Graph returned an error: ' . $e->getMessage();
                 $user = 0;
