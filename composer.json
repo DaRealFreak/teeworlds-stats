@@ -16,8 +16,7 @@
     "twbs/bootstrap": "~4.0",
     "vlucas/phpdotenv": "^2.4",
     "helhum/dotenv-connector": "^2.0",
-    "js-cookie/js-cookie": "^2.1",
-    "ckeditor/ckeditor": "^4.7"
+    "js-cookie/js-cookie": "^2.1"
   },
   "autoload": {
     "psr-4": {
@@ -34,7 +33,6 @@
       "rm -rf ./web/assets/vendor && mkdir -p ./web/assets/vendor",
       "cd ./web/assets/vendor && ln -s ../../../vendor/components/jquery ./jquery",
       "cd ./web/assets/vendor && ln -s ../../../vendor/js-cookie/js-cookie/src ./js-cookie",
-      "cd ./web/assets/vendor && ln -s ../../../vendor/ckeditor/ckeditor ./ckeditor",
       "cd ./web/assets/vendor && ln -s ../../../vendor/twbs/bootstrap/dist ./bootstrap"
     ]
   },

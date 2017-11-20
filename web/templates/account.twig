@@ -1,11 +1,20 @@
 {% include 'header.twig' %}
 
 {{ navigation|raw }}
-<script src="/assets/vendor/ckeditor/ckeditor.js" type="text/javascript"></script>
-<script src="/assets/vendor/ckeditor/adapters/jquery.js" type="text/javascript"></script>
+<script src="https://cdn.ckeditor.com/ckeditor5/1.0.0-alpha.2/classic/ckeditor.js"></script>
 <script>
-    $(document).ready(function() {
-        $( 'textarea.cledit' ).ckeditor();
+    $(document).ready(function () {
+        document.querySelectorAll('.cledit').forEach(
+            function (element) {
+                ClassicEditor
+                    .create(element)
+                    .catch(
+                        error => {
+                            console.error(error);
+                        }
+                    );
+            }
+        );
     });
 </script>
 
