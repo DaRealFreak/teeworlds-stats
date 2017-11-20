@@ -56,8 +56,16 @@ class DataCommandController extends AbstractController
                     $tees['firstseen'] = $curdate;
                     $tees['lastseen'] = $curdate;
 
-                    $req = $this->databaseConnection->sqlPrepare("INSERT INTO tees (tee,server,clan,firstseen,lastseen) VALUES (?,?,?,?,?) ON DUPLICATE KEY UPDATE server=?, clan=?, lastseen=?");
-                    $req->execute(array($tees['tee'], $tees['server'], $tees['clan'], $tees['firstseen'], $tees['lastseen'], $tees['server'], $tees['clan'], $tees['lastseen']));
+                    if ($existingTee = $this->databaseConnection->selectGetRows(
+                        'SELECT uid FROM tees WHERE tee=? AND clan=?',
+                        [$tees['tee'], $tees['clan']]
+                    )) {
+                        $req = $this->databaseConnection->sqlPrepare('UPDATE tees SET server=?, clan=?, lastseen=? WHERE  uid=?;');
+                        $req->execute([$tees['server'], $tees['clan'], $tees['lastseen'], $existingTee[0]['uid']]);
+                    } else {
+                        $req = $this->databaseConnection->sqlPrepare("INSERT INTO tees (tee,server,clan,firstseen,lastseen) VALUES (?,?,?,?,?) ON DUPLICATE KEY UPDATE server=?, clan=?, lastseen=?");
+                        $req->execute(array($tees['tee'], $tees['server'], $tees['clan'], $tees['firstseen'], $tees['lastseen'], $tees['server'], $tees['clan'], $tees['lastseen']));
+                    }
 
                     $tee = $player["name"];
                     $clan = $player["clan"];
@@ -69,24 +77,20 @@ class DataCommandController extends AbstractController
                     $stat['hour'] = date('H');
                     $stat['day'] = date('D');
 
-                    // FixMe: we are currently working with uids, ON DUPLICATE won't get called on auto increment
-                    $req = $this->databaseConnection->sqlPrepare("INSERT INTO `data` (`tcsName`, `tcsType`, `stat`, `statType`, `count`) VALUES (?, ?, ?, ?, 1)
-								ON DUPLICATE KEY UPDATE count=count+1");
-
                     if (!in_array(strtolower($tee), array('(connecting)', 'nameless tee'))) {
                         foreach (array('mod', 'map', 'hour', 'day') as $st) {
-                            $req->execute(array($tee, 'tee', $stat[$st], $st));
+                            $this->insertOrUpdateData(array($tee, 'tee', $stat[$st], $st));
                         }
                     }
 
                     if (!empty($clan)) {
                         foreach (array('mod', 'map', 'hour', 'day', 'country') as $st) {
-                            $req->execute(array($clan, 'clan', $stat[$st], $st));
+                            $this->insertOrUpdateData(array($clan, 'clan', $stat[$st], $st));
                         }
                     }
 
                     foreach (array('map', 'hour', 'day', 'country') as $st) {
-                        $req->execute(array($server, 'server', $stat[$st], $st));
+                        $this->insertOrUpdateData(array($server, 'server', $stat[$st], $st));
                     }
 
                     if (!isset($general['mod'][$stat['mod']])) {
@@ -104,15 +108,12 @@ class DataCommandController extends AbstractController
             }
         }
 
-        foreach ($general['mod'] as $mod => $count)
-            $this->databaseConnection->sqlInsert(array('stat' => $mod, 'statType' => 'mod', 'count' => $count),
-                "general",
-                "count = count + $count");
-
-        foreach ($general['country'] as $cty => $count)
-            $this->databaseConnection->sqlInsert(array('stat' => $cty, 'statType' => 'country', 'count' => $count),
-                "general",
-                "count = count + $count");
+        foreach ($general['mod'] as $mod => $count) {
+            $this->insertOrUpdateGeneral($mod, 'mod', $count);
+        }
+        foreach ($general['country'] as $mod => $count) {
+            $this->insertOrUpdateGeneral($mod, 'country', $count);
+        }
 
         $timeC = time();
         $dT = $timeC - $timeB;
@@ -120,6 +121,55 @@ class DataCommandController extends AbstractController
         echo "Parsing all playerdata in $dT s\n";
         // ToDo: why was this commented out?
         // $this->cacheData($data);
+    }
+
+    /**
+     * insert or update the different stats of the players like map, stat etc
+     * if entry already exists increase count by 1
+     *
+     * @param array $values
+     */
+    private function insertOrUpdateData($values = [])
+    {
+        if ($existingEntry = $this->databaseConnection->selectGetRows(
+            'SELECT `uid`, `count` FROM `data` WHERE `tcsName`=? AND `tcsType`=? AND `stat`=? AND `statType`=?', $values)
+        ) {
+            $req = $this->databaseConnection->sqlPrepare("
+              UPDATE `data` SET `tcsName`=?, `tcsType`=?, `stat`=?, `statType`=?, `count`=? WHERE `uid`=?;
+            ");
+            $req->execute(array_merge($values, [(int)$existingEntry[0]['count'] + 1, $existingEntry[0]['uid']]));
+        } else {
+            $req = $this->databaseConnection->sqlPrepare(
+                "INSERT INTO `data` (`tcsName`, `tcsType`, `stat`, `statType`, `count`) VALUES (?, ?, ?, ?, 1)"
+            );
+            $req->execute($values);
+        }
+    }
+
+    /**
+     * keep track of the general data like countries and different mods
+     *
+     * @param $mod
+     * @param $statType
+     * @param $count
+     */
+    private function insertOrUpdateGeneral($mod, $statType, $count)
+    {
+        // 'stat' => $mod, 'statType' => 'mod', 'count' => $count), "general", "count = count + $count");
+        //
+        if ($existingEntry = $this->databaseConnection->selectGetRows(
+            'SELECT `uid`, `count` FROM `general` WHERE `stat`=? AND `statType`=?', [$mod, $statType])
+        ) {
+            $req = $this->databaseConnection->sqlPrepare("
+              UPDATE `general` SET `count`=? WHERE `uid`=?;
+            ");
+            $req->execute([(int)$existingEntry[0]['count'] + $count, $existingEntry[0]['uid']]);
+        } else {
+            $req = $this->databaseConnection->sqlPrepare(
+                "INSERT INTO `general` (`stat`, `statType`, `count`) VALUES (?, ?, ?)"
+            );
+            $req->execute([$mod, $statType, $count]);
+        }
     }
 
     /**
@@ -148,7 +198,8 @@ class DataCommandController extends AbstractController
     /**
      * @param array $data
      */
-    public function cacheData($data) {
+    public function cacheData($data)
+    {
         $curdate = date('Y-m-d H:i:s');
 
         foreach ($data as $serverInfo) {
