@@ -2,7 +2,7 @@
 --
 -- Host: db    Database: teestats
 -- ------------------------------------------------------
--- Server version	10.1.28-MariaDB-1~jessie
+-- Server version	10.1.29-MariaDB-1~jessie
 
 /*!40101 SET @OLD_CHARACTER_SET_CLIENT=@@CHARACTER_SET_CLIENT */;
 /*!40101 SET @OLD_CHARACTER_SET_RESULTS=@@CHARACTER_SET_RESULTS */;
@@ -24,7 +24,7 @@ DROP TABLE IF EXISTS `accounts`;
 /*!40101 SET character_set_client = utf8 */;
 CREATE TABLE `accounts` (
   `uid` int(11) NOT NULL AUTO_INCREMENT,
-  `facebookid` bigint(20) DEFAULT NULL,
+  `facebookid` text COLLATE utf8_unicode_ci,
   `tee` varchar(50) COLLATE utf8_unicode_ci NOT NULL DEFAULT '',
   `teetxt` text COLLATE utf8_unicode_ci NOT NULL,
   `teemods` tinyint(4) NOT NULL,
@@ -207,4 +207,4 @@ CREATE TABLE `tees` (
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
 /*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
 
--- Dump completed on 2017-11-20 21:07:34
+-- Dump completed on 2017-11-23  9:53:27
