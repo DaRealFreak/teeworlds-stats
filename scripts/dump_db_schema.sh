@@ -32,6 +32,16 @@ dumpDatabase () {
 		echo "one or more variables for the database connection are not defined in ${SCRIPTPATH}/${ENVPATH}"
 		exit 1
 	fi
+	if ! [ -x "$(command -v mysqldump)" ]; then
+		if ! [ -x "$(command -v apt-get)" ]; then
+			echo "mysqldump is not installed, can not continue"
+			exit 1;
+		else
+			echo "mysqldump is not installed, installing..."
+			apt-get update && apt-get install mysql-client
+		fi
+		exit 1
+	fi
 	mysqldump -h"${TWSTATS_DB_HOST}" -u"${TWSTATS_DB_USER}" -p"${TWSTATS_DB_PASS}" -d "${TWSTATS_DB}" > schema.sql
 }
 
@@ -40,7 +50,7 @@ commitGit () {
 		echo "database name variable is not defined in ${SCRIPTPATH}/${ENVPATH}"
 		exit 1
 	fi
-		if [ -z "$GIT_AUTHOR_NAME" ] || [ -z "$GIT_AUTHOR_EMAIL" ]; then
+	if [ -z "$GIT_AUTHOR_NAME" ] || [ -z "$GIT_AUTHOR_EMAIL" ]; then
 		echo "git environmental variables are not defined in ${SCRIPTPATH}/${ENVPATH}"
 		exit 1
 	fi
