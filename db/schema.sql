@@ -40,7 +40,7 @@ CREATE TABLE `accounts` (
   `clanplayers` tinyint(4) NOT NULL,
   `clantxt` text COLLATE utf8_unicode_ci NOT NULL,
   PRIMARY KEY (`uid`)
-) ENGINE=InnoDB AUTO_INCREMENT=4 DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -86,6 +86,21 @@ CREATE TABLE `cache_server` (
   `timestamp` timestamp NULL DEFAULT NULL,
   PRIMARY KEY (`uid`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci ROW_FORMAT=COMPACT;
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
+-- Table structure for table `cache_uri`
+--
+
+DROP TABLE IF EXISTS `cache_uri`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8 */;
+CREATE TABLE `cache_uri` (
+  `uid` int(11) NOT NULL AUTO_INCREMENT,
+  `org_uri` text COLLATE utf8_unicode_ci NOT NULL,
+  `slug_uri` text COLLATE utf8_unicode_ci NOT NULL,
+  PRIMARY KEY (`uid`)
+) ENGINE=InnoDB AUTO_INCREMENT=4 DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -145,7 +160,7 @@ CREATE TABLE `data` (
   `statType` varchar(50) COLLATE utf8_unicode_ci NOT NULL DEFAULT '0',
   `count` int(11) NOT NULL DEFAULT '0',
   PRIMARY KEY (`uid`)
-) ENGINE=InnoDB AUTO_INCREMENT=9989 DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=11867 DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -161,7 +176,7 @@ CREATE TABLE `general` (
   `statType` varchar(50) COLLATE utf8_unicode_ci NOT NULL DEFAULT '0',
   `count` int(11) NOT NULL DEFAULT '0',
   PRIMARY KEY (`uid`)
-) ENGINE=InnoDB AUTO_INCREMENT=255 DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=326 DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -177,7 +192,7 @@ CREATE TABLE `servers` (
   `port` int(11) DEFAULT NULL,
   `version` int(11) DEFAULT NULL,
   PRIMARY KEY (`uid`)
-) ENGINE=InnoDB AUTO_INCREMENT=584 DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=500 DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -195,7 +210,7 @@ CREATE TABLE `tees` (
   `lastseen` varchar(50) COLLATE utf8_unicode_ci NOT NULL DEFAULT '0',
   `server` varchar(50) COLLATE utf8_unicode_ci NOT NULL DEFAULT '0',
   PRIMARY KEY (`uid`)
-) ENGINE=InnoDB AUTO_INCREMENT=969 DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=1188 DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 /*!40103 SET TIME_ZONE=@OLD_TIME_ZONE */;
 
@@ -207,4 +222,4 @@ CREATE TABLE `tees` (
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
 /*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
 
--- Dump completed on 2017-11-23  9:53:27
+-- Dump completed on 2017-11-24 14:11:27
