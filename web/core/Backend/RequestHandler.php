@@ -16,7 +16,7 @@ class RequestHandler implements SingletonInterface
      */
     public static function getUrl()
     {
-        return PrettyUrl::resolvePrettyUri($_SERVER['REQUEST_URI']);
+        return PrettyUrl::resolveSlugUri($_SERVER['REQUEST_URI']);
     }
 
     /**

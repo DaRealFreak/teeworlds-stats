@@ -3,6 +3,7 @@
 namespace TwStats\Core\Utility;
 
 
+use TwStats\Core\Backend\RequestHandler;
 use TwStats\Core\General\SingletonInterface;
 
 class PrettyUrl implements SingletonInterface
@@ -83,11 +84,16 @@ class PrettyUrl implements SingletonInterface
      * @param $requestedUrl
      * @return string
      */
-    public static function resolvePrettyUri($requestedUrl)
+    public static function resolveSlugUri($requestedUrl)
     {
         $requestedUrl = substr(parse_url($requestedUrl, PHP_URL_PATH), 1);
-        if ($res = $GLOBALS['DB']->statement('SELECT org_uri FROM cache_uri WHERE org_uri=? LIMIT 1', [$requestedUrl])) {
+        if ($res = $GLOBALS['DB']->statement('SELECT org_uri FROM cache_uri WHERE slug_uri=? LIMIT 1', [$requestedUrl])) {
             $requestedUrl = $res[0]['org_uri'];
+            RequestHandler::loadGetParams($requestedUrl);
+            $parts = parse_url($requestedUrl);
+            parse_str($parts['query'], $query);
+            $_GET = array_merge($_GET, $query);
+            $_GET['uri'] = $requestedUrl;
         }
         return $requestedUrl;
     }
