@@ -4,6 +4,8 @@ namespace TwStats\Core\Backend;
 
 use TwStats\Core\Utility\GeneralUtility;
 use TwStats\Core\General\SingletonInterface;
+use TwStats\Core\Utility\PrettyUrl;
+use TwStats\Core\Utility\StringUtility;
 
 class RequestHandler implements SingletonInterface
 {
@@ -14,6 +16,13 @@ class RequestHandler implements SingletonInterface
      */
     public static function getUrl()
     {
+        return PrettyUrl::resolvePrettyUri($_SERVER['REQUEST_URI']);
+    }
+
+    /**
+     * @return string
+     */
+    public static function getAbsoluteUrl() {
         return self::getFQDN() . $_SERVER['REQUEST_URI'];
     }
 
@@ -35,7 +44,10 @@ class RequestHandler implements SingletonInterface
      */
     public static function getRequestedPath()
     {
-        $requestedPath = substr(parse_url(self::getUrl(), PHP_URL_PATH), 1);
+        $requestedPath = parse_url(self::getUrl(), PHP_URL_PATH);
+        if ($requestedPath && !StringUtility::endsWith($requestedPath, ".php")) {
+            $requestedPath = sprintf("%s.php", $requestedPath);
+        }
         if ($requestedPath) {
             $requestedPath = GeneralUtility::joinPaths(TwStats_path, $requestedPath);
             if (!@is_file($requestedPath) || !@is_file($requestedPath)) {
