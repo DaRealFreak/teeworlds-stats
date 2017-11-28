@@ -128,4 +128,15 @@ class RequestHandler implements SingletonInterface
         }
         return $value;
     }
+
+    /**
+     * @param $requestedUrl
+     */
+    public static function loadGetParams($requestedUrl)
+    {
+        $parts = parse_url($requestedUrl);
+        parse_str($parts['query'], $query);
+        $_GET = array_merge($_GET, $query);
+        $_GET['uri'] = $requestedUrl;
+    }
 }
