@@ -45,6 +45,23 @@ class Twig implements SingletonInterface
     }
 
     /**
+     * possibility to add extensions to twig
+     *
+     * @param string|object $extension
+     */
+    public function addExtension($extension) {
+        if (is_string($extension)) {
+            $extension = GeneralUtility::makeInstance($extension);
+        } elseif (!is_object($extension)) {
+            throw new \InvalidArgumentException("Twig Extension can be registered with either an instance or namespace string");
+        }
+        if (!$extension instanceof \Twig_ExtensionInterface) {
+            throw new \InvalidArgumentException("Twig Extension has to implement \Twig_ExtensionInterface");
+        }
+        $this->twig->addExtension($extension);
+    }
+
+    /**
      * render a template and pass the parameters
      *
      * @param string $templateFile
