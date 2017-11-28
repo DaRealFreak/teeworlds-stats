@@ -3,7 +3,6 @@
 namespace TwStats\Core\General;
 
 
-use Symfony\Component\Yaml\Exception\ParseException;
 use Symfony\Component\Yaml\Yaml;
 
 class SettingManager implements SingletonInterface
