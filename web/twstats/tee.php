@@ -126,7 +126,6 @@ class Tee extends AbstractController
             }
         }
 
-        // FixMe: same mod is getting indexed multiple time
         if ($teeDetails["teemods"] == 1) {
             $hist_mods = $this->statRepository->gethisto("tee", $tee, "mod");
             $page['mods'] = $this->frontendHandler->getTemplateHtml("views/pie.twig",
@@ -135,7 +134,6 @@ class Tee extends AbstractController
                     "histogram" => $hist_mods));
         }
 
-        // FixMe: same map is getting indexed multiple time
         if ($teeDetails["teemaps"] == 1) {
             $hist_maps = $this->statRepository->gethisto("tee", $tee, "map");
             $page['maps'] = $this->frontendHandler->getTemplateHtml("views/pie.twig",
@@ -144,7 +142,6 @@ class Tee extends AbstractController
                     "histogram" => $hist_maps));
         }
 
-        // FixMe: doesn't work currently
         if ($teeDetails["teehours"] == 1) {
             $histogramHours = $this->statRepository->gethours("tee", $tee);
             $page['hours'] = $this->frontendHandler->getTemplateHtml("views/line.twig",
@@ -153,7 +150,6 @@ class Tee extends AbstractController
                     "histogram" => $histogramHours));
         }
 
-        // FixMe: doesn't work currently
         if ($teeDetails["teedays"] == 1) {
             $histogramDays = $this->statRepository->getdays("tee", $tee);
             $page['days'] = $this->frontendHandler->getTemplateHtml("views/bars.twig",
