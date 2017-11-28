@@ -1,0 +1,3 @@
+# extensions for twig templating engine
+twig-extensions:
+    - TwStats\Ext\TwigExtension\SlugifyUrl

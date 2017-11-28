@@ -3,8 +3,9 @@
 namespace TwStats\Core\Frontend;
 
 
-use TwStats\Core\Utility\GeneralUtility;
+use TwStats\Core\General\SettingManager;
 use TwStats\Core\General\SingletonInterface;
+use TwStats\Core\Utility\GeneralUtility;
 
 class Twig implements SingletonInterface
 {
@@ -30,6 +31,7 @@ class Twig implements SingletonInterface
         $this->twig = new \Twig_Environment($loader, array(
             'cache' => TwStats_template_cache,
         ));
+        $this->loadExtensions();
     }
 
     /**
@@ -49,7 +51,8 @@ class Twig implements SingletonInterface
      *
      * @param string|object $extension
      */
-    public function addExtension($extension) {
+    public function addExtension($extension)
+    {
         if (is_string($extension)) {
             $extension = GeneralUtility::makeInstance($extension);
         } elseif (!is_object($extension)) {
@@ -139,5 +142,21 @@ class Twig implements SingletonInterface
             }
         }
         return $res;
+    }
+
+    /**
+     *
+     */
+    private function loadExtensions()
+    {
+        // ToDo: extract to Application
+        /** @var SettingManager $extensions */
+        $settingManager = GeneralUtility::makeInstance(SettingManager::class);
+        $extensions = $settingManager->getSetting("twig-extensions");
+        if ($extensions) {
+            foreach ($extensions as $extension) {
+                $this->addExtension($extension);
+            }
+        }
     }
 }
