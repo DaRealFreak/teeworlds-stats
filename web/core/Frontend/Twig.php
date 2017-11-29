@@ -6,6 +6,7 @@ namespace TwStats\Core\Frontend;
 use TwStats\Core\General\SettingManager;
 use TwStats\Core\General\SingletonInterface;
 use TwStats\Core\Utility\GeneralUtility;
+use TwStats\Core\Utility\StringUtility;
 
 class Twig implements SingletonInterface
 {
@@ -104,6 +105,11 @@ class Twig implements SingletonInterface
     private function includeCharismaLibs()
     {
         $baseDir = dirname($_SERVER['PHP_SELF']);
+
+        if (StringUtility::startsWith($baseDir, "/")) {
+            $baseDir = ltrim($baseDir, '/');
+        }
+
         if (strlen($baseDir) > 1) {
             $baseDir = $baseDir . "/";
         }
