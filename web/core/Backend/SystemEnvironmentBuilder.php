@@ -25,10 +25,10 @@ class SystemEnvironmentBuilder
      */
     public static function definePaths($relativePathPart)
     {
-        if (isset($relativePathPart)) {
+        if ($relativePathPart) {
             $baseDir = $relativePathPart;
         } else {
-            $baseDir = dirname($_SERVER['PHP_SELF']);
+            $baseDir = GeneralUtility::joinPaths(__DIR__, '../..');
         }
 
         define('TwStats_root', realpath(GeneralUtility::joinPaths($baseDir, "..")));
