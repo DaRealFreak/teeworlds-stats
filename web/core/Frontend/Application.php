@@ -6,10 +6,17 @@ use TwStats\Core\Backend\Database;
 use TwStats\Core\Backend\RequestHandler;
 use TwStats\Core\Backend\SystemEnvironmentBuilder;
 use TwStats\Core\General\ApplicationInterface;
+use TwStats\Core\General\SettingManager;
 use TwStats\Core\Utility\GeneralUtility;
 
 class Application implements ApplicationInterface
 {
+    /**
+     * setting manager
+     *
+     * @var SettingManager|null
+     */
+    private $settingManager = null;
     /**
      * database connection
      *
@@ -41,6 +48,10 @@ class Application implements ApplicationInterface
          * run the environmental builder
          */
         SystemEnvironmentBuilder::run();
+        /*
+         * initialize the setting manager
+         */
+        $GLOBALS['SETTINGS'] = $this->settingManager = GeneralUtility::makeInstance(SettingManager::class);
         /*
          * initialize the database directly
          */
