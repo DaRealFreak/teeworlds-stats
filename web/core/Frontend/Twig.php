@@ -11,11 +11,22 @@ class Twig implements SingletonInterface
 {
 
     /**
+     * setting manager
+     *
+     * @var SettingManager|null
+     */
+    private $settingManager = null;
+
+    /**
+     * dependencies
+     *
      * @var array
      */
     private $dependencies = array();
 
     /**
+     * twig instance
+     *
      * @var null|\Twig_Environment
      */
     private $twig = null;
@@ -25,6 +36,7 @@ class Twig implements SingletonInterface
      */
     public function __construct()
     {
+        $this->settingManager = GeneralUtility::makeInstance(SettingManager::class);
         $this->dependencies = $this->includeCharismaLibs();
 
         $loader = new \Twig_Loader_Filesystem(TwStats_templates);
@@ -145,14 +157,11 @@ class Twig implements SingletonInterface
     }
 
     /**
-     *
+     * load all extensions from settings in services.yml
      */
     private function loadExtensions()
     {
-        // ToDo: extract to Application
-        /** @var SettingManager $extensions */
-        $settingManager = GeneralUtility::makeInstance(SettingManager::class);
-        $extensions = $settingManager->getSetting("twig-extensions");
+        $extensions = $this->settingManager->getSetting("twig-extensions");
         if ($extensions) {
             foreach ($extensions as $extension) {
                 $this->addExtension($extension);
