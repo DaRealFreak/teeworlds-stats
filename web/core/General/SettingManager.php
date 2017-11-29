@@ -4,6 +4,7 @@ namespace TwStats\Core\General;
 
 
 use Symfony\Component\Yaml\Yaml;
+use TwStats\Core\Utility\GeneralUtility;
 
 class SettingManager implements SingletonInterface
 {
@@ -17,8 +18,7 @@ class SettingManager implements SingletonInterface
      */
     public function __construct()
     {
-        // FixMe: different entrypoints like CLI will fail relative paths
-        $services = Yaml::parse(@file_get_contents('../services.yml'));
+        $services = Yaml::parse(@file_get_contents(GeneralUtility::joinPaths(TwStats_root, 'services.yml')));
         if ($services) {
             $this->settings = $services;
         }
