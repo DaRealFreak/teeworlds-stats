@@ -18,6 +18,8 @@ class PrettyUrl implements SingletonInterface
      */
     public static function buildUri($class = "", $params = array())
     {
+        unset($params['uri']);
+
         $uri = $class;
         if (!empty($params)) {
             $uri = $uri . "?" . http_build_query($params);
@@ -72,6 +74,7 @@ class PrettyUrl implements SingletonInterface
      */
     private static function buildSlugUri($class, $params)
     {
+        unset($params['uri']);
 
         $slug_uri = \URLify::filter($class);
         foreach ($params as $key => $value) {
