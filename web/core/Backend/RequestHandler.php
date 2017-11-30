@@ -3,6 +3,7 @@
 namespace TwStats\Core\Backend;
 
 use TwStats\Core\General\SingletonInterface;
+use TwStats\Core\Utility\DebuggerUtility;
 use TwStats\Core\Utility\GeneralUtility;
 use TwStats\Core\Utility\PrettyUrl;
 use TwStats\Core\Utility\StringUtility;
@@ -161,8 +162,10 @@ class RequestHandler implements SingletonInterface
     public static function loadGetParams($requestedUrl)
     {
         $parts = parse_url($requestedUrl);
-        parse_str($parts['query'], $query);
-        $_GET = array_merge($_GET, $query);
-        $_GET['uri'] = $requestedUrl;
+        if (isset($parts['query'])) {
+            parse_str($parts['query'], $query);
+            $_GET = array_merge($_GET, $query);
+            $_GET['uri'] = $requestedUrl;
+        }
     }
 }
