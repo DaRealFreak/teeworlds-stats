@@ -132,6 +132,8 @@ class StatRepository extends AbstractRepository
         }
 
         for ($i = 0; $i < 24; $i++) {
+            // if $sum is not set divide by 1 instead of 0
+            $sum = $sum === 0 ? 1 : $sum;
             $res2[] = array($i, isset($res[$i]) ? round($res[$i] * 100 / $sum) : 0);
         }
 
@@ -171,6 +173,8 @@ class StatRepository extends AbstractRepository
         }
 
         foreach ($tmp as $num => $c) {
+            // if $sum is not set divide by 1 instead of 0
+            $sum = $sum === 0 ? 1 : $sum;
             $res2[] = array($num, round($c * 100 / $sum));
         }
 
