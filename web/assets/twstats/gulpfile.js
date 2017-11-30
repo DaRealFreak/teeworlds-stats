@@ -21,11 +21,11 @@ let concatCss = require('gulp-concat-css');
 gulp.task('sass', function () {
     return gulp.src('scss/*.scss')
         .pipe(sass())
-        .pipe(gulp.dest('public/css'));
+        .pipe(gulp.dest('css'));
 });
 
 // Concat our CSS
-gulp.task('concatCss', function () {
+gulp.task('concatCss', ['sass'], function () {
     return gulp.src('css/*.css')
         .pipe(concatCss("bundle.min.css"))
         .pipe(cleanCSS())
@@ -46,7 +46,7 @@ gulp.task('cleanCSS', function () {
 gulp.task('scripts', function () {
     return gulp.src('js/*.js')
         .pipe(concat('all.js'))
-        .pipe(gulp.dest('public'))
+        .pipe(gulp.dest('public/js'))
         .pipe(rename('all.min.js'))
         .pipe(uglify())
         .pipe(gulp.dest('public/js'));
@@ -57,16 +57,16 @@ gulp.task('scripts', function () {
  * Put everything which [require]
  * into the bundle.js
  **/
-gulp.task('browserify', function() {
+gulp.task('browserify', ['scripts'], function() {
     return browserify('public/js/all.min.js')
         .bundle()
         .pipe(source('bundle.js'))
         .pipe(buffer())
         //.pipe(uglify()) /*Did not worked */
-        .pipe(gulp.dest('./public/'));
+        .pipe(gulp.dest('./public/js/bundle'));
 });
 
-gulp.task('browserifyTest', function() {
+gulp.task('browserifyTest', ['scripts'], function() {
     return browserify({
         debug: true,
         //extensions: ['es6'],
