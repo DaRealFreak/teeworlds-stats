@@ -2,15 +2,15 @@
 
 namespace TwStats\Core\Backend;
 
-use TwStats\Core\Utility\GeneralUtility;
 use TwStats\Core\General\SingletonInterface;
+use TwStats\Core\Utility\GeneralUtility;
 use TwStats\Core\Utility\PrettyUrl;
 use TwStats\Core\Utility\StringUtility;
 
 class RequestHandler implements SingletonInterface
 {
     /**
-     * build the called url
+     * return the request uri
      *
      * @return string
      */
@@ -20,10 +20,33 @@ class RequestHandler implements SingletonInterface
     }
 
     /**
+     * build the called uri
+     *
      * @return string
      */
-    public static function getAbsoluteUrl() {
-        return self::getFQDN() . $_SERVER['REQUEST_URI'];
+    public static function getCleanUrl()
+    {
+        return $_SERVER['REQUEST_URI'];
+    }
+
+    /**
+     * return the absolute request uri
+     *
+     * @return string
+     */
+    public static function getAbsoluteUrl()
+    {
+        return self::getFQDN() . self::getUrl();
+    }
+
+    /**
+     * return the absolute clean uri
+     *
+     * @return string
+     */
+    public static function getCleanAbsoluteUrl()
+    {
+        return self::getFQDN() . self::getCleanUrl();
     }
 
     /**
@@ -31,7 +54,8 @@ class RequestHandler implements SingletonInterface
      *
      * @return string
      */
-    public static function getFQDN() {
+    public static function getFQDN()
+    {
         $scheme = $_SERVER['HTTP_X_FORWARDED_PROTO'] ? $_SERVER['HTTP_X_FORWARDED_PROTO'] : $_SERVER['REQUEST_SCHEME'];
         return "$scheme://$_SERVER[HTTP_HOST]";
     }
@@ -78,7 +102,8 @@ class RequestHandler implements SingletonInterface
      * @param $var
      * @return bool
      */
-    public static function hasArgument($var) {
+    public static function hasArgument($var)
+    {
         if (empty($var)) {
             return False;
         }
@@ -95,7 +120,8 @@ class RequestHandler implements SingletonInterface
      * @param $var
      * @return null|string
      */
-    public static function getArgument($var) {
+    public static function getArgument($var)
+    {
         if (empty($var)) {
             return '';
         }
