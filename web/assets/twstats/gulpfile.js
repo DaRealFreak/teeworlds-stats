@@ -54,8 +54,8 @@ gulp.task('scripts', function () {
 
 /**
  * Browserify everything
- * Putt everything which [require]
- * In bundle.js
+ * Put everything which [require]
+ * into the bundle.js
  **/
 gulp.task('browserify', function() {
     return browserify('public/js/all.min.js')

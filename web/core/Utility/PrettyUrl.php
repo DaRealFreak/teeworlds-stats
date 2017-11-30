@@ -46,6 +46,7 @@ class PrettyUrl implements SingletonInterface
         if ($res = $GLOBALS['DB']->statement('SELECT slug_uri FROM cache_uri WHERE org_uri=? LIMIT 1', [$orgUri])) {
             $slugUri = $res[0]['slug_uri'];
         } else {
+            // FixMe: file paths etc are curently getting slugified too
             $tmpSlugUri = self::buildSlugUri($class, $params);
             $slugUri = $tmpSlugUri;
 
