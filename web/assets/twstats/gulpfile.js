@@ -15,6 +15,7 @@ let buffer = require('vinyl-buffer');
 let fs = require('fs');
 let babelify = require('babelify');
 let path = require('path');
+let concatCss = require('gulp-concat-css');
 
 // Compile our Sass
 gulp.task('sass', function () {
@@ -23,10 +24,21 @@ gulp.task('sass', function () {
         .pipe(gulp.dest('public/css'));
 });
 
+// Concat our CSS
+gulp.task('concatCss', function () {
+    return gulp.src('css/*.css')
+        .pipe(concatCss("bundle.min.css"))
+        .pipe(cleanCSS())
+        .pipe(gulp.dest('public/css/bundle'));
+});
+
 // Clean our CSS
 gulp.task('cleanCSS', function () {
     return gulp.src('css/*.css')
         .pipe(cleanCSS())
+        .pipe(rename({
+            suffix: '.min'
+        }))
         .pipe(gulp.dest('public/css'));
 });
 
@@ -72,7 +84,8 @@ gulp.task('browserifyTest', function() {
 gulp.task('watch', function () {
     gulp.watch('js/*.js', ['lint', 'scripts', ['browserify']]);
     gulp.watch('scss/*.scss', ['sass']);
+    gulp.watch('css/*.css', ['concatCss', 'cleanCSS']);
 });
 
 // Default Task
-gulp.task('default', ['sass', 'cleanCSS', 'scripts', 'browserify', 'watch']);
+gulp.task('default', ['sass', 'concatCss', 'cleanCSS', 'scripts', 'browserify', 'watch']);
