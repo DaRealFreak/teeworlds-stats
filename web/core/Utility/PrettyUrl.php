@@ -38,8 +38,13 @@ class PrettyUrl implements SingletonInterface
     public static function buildPrettyUri($class = "", $params = [])
     {
         $orgUri = self::buildUri($class, $params);
+        // return base directory if no class or param is set
+        if (!$orgUri) {
+            return "/";
+        }
+
         // we need a database connection for slug uris so return the
-        if (!isset($GLOBALS['DB']) || !$orgUri) {
+        if (!isset($GLOBALS['DB'])) {
             return $orgUri;
         }
 
