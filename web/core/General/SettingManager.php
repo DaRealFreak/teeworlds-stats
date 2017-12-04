@@ -29,7 +29,7 @@ class SettingManager implements SingletonInterface
      * @return bool
      */
     public function hasSetting($key) {
-        return array_key_exists($key, $this->settings);
+        return array_key_exists($key, $this->settings) && isset($this->settings[$key]);
     }
 
     /**
