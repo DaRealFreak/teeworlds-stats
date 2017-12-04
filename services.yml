@@ -1,5 +1,9 @@
 # extensions for twig templating engine
 twig-extensions:
-    - TwStats\Ext\TwigExtension\SlugifyUrl
+  - TwStats\Ext\TwigExtension\SlugifyUrl
+includeCss:
+  - /assets/twstats/public/css/bundle/bundle.min.css
+includeJs:
+#  - /assets/twstats/public/js/bundle/bundle.js
 cache: false
 compress-html: true

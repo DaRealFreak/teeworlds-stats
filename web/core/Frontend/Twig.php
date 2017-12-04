@@ -5,6 +5,7 @@ namespace TwStats\Core\Frontend;
 
 use TwStats\Core\General\SettingManager;
 use TwStats\Core\General\SingletonInterface;
+use TwStats\Core\Utility\DebuggerUtility;
 use TwStats\Core\Utility\GeneralUtility;
 use TwStats\Core\Utility\StringUtility;
 use WyriHaximus\HtmlCompress\Factory;
@@ -140,9 +141,18 @@ class Twig implements SingletonInterface
 
         $res = ["basedir" => $baseDir];
 
-        // ToDo: extract these out of the code
-        $res['css'] = ['/assets/twstats/public/css/bundle/bundle.min.css'];
-        $res['js'] = ['/assets/twstats/public/js/bundle/bundle.js'];
+        if ($this->settingManager->hasSetting("includeCss")) {
+            foreach ($this->settingManager->getSetting('includeCss') as $cssFile) {
+                $res['css'][] = $cssFile;
+            }
+        }
+
+        if ($this->settingManager->hasSetting("includeJs")) {
+            foreach ($this->settingManager->getSetting('includeJs') as $jsFile) {
+                $res['js'][] = $jsFile;
+            }
+        }
+
         return $res;
     }
 
