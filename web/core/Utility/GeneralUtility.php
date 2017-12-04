@@ -184,8 +184,6 @@ class GeneralUtility
      * @param string $url URL.
      * @param array $data POST data. Example: array('foo' => 'var', 'id' => 123)
      * @param array $curlOptions Curl options. Example: array(CURLOPT_FAILONERROR => 1, CURLOPT_NOBODY => 1)
-     * @throws \Exception
-     * @internal param array $headers Optional. Extra headers to send.
      */
     public static function redirectPostToUri($url, array $data, $curlOptions = [])
     {
@@ -207,7 +205,8 @@ class GeneralUtility
 
         $resp = curl_exec($ch);
         if (curl_errno($ch)) {
-            throw new \Exception("Error loading '$url', " . curl_errno($ch));
+            echo "Error loading '$url', " . curl_errno($ch) . " (" . curl_error($ch) . ")";
+            die;
         } else {
             echo $resp;
             die;
