@@ -24,8 +24,8 @@ class SlugifyUrl extends \Twig_Extension implements SingletonInterface
      */
     public function slugifyUrl()
     {
-        $class = strtok(RequestHandler::getUrl(), "?");
-        $url = "/" . PrettyUrl::buildPrettyUri($class, $_GET);
+        $class = ltrim(strtok(RequestHandler::getUrl(), "?"), '/');
+        $url = PrettyUrl::buildPrettyUri($class, $_GET);
         $title = "Title";
         echo '<script>window.history.pushState("' . $url . '", "' . $title . '", "' . $url . '");</script>';
     }
