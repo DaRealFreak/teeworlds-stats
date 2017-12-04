@@ -13,7 +13,7 @@
 			{% for server in servers %}
 			<tr>
 				<!-- ToDo: fix link handling -->
-				<td><a href="index.php?server={{ server.servername }}">{{ server.servername }}</a></td>
+				<td><a href="/index.php?server={{ server.servername }}">{{ server.servername }}</a></td>
 				<td>{{ server.gametype }}</td>
 			</tr>
 			{% endfor %}
