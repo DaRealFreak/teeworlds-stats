@@ -4,6 +4,7 @@ namespace TwStats\Ext;
 
 
 use TwStats\Core\Frontend\AbstractController;
+use TwStats\Core\Utility\DebuggerUtility;
 use TwStats\Core\Utility\GeneralUtility;
 use TwStats\Ext\Database\AccountRepository;
 use TwStats\Ext\Database\StatRepository;
@@ -141,6 +142,9 @@ class Clan extends AbstractController
 
         if ($clanDetails["clanplayers"] == 1) {
             $players = $this->statRepository->getClanPlayers($clan);
+            foreach ($players as &$player) {
+                $player['url'] = $this->prettyUrl->buildPrettyUri("tee", array("n" => $player['name']));
+            }
             $page['players'] = $this->frontendHandler->getTemplateHtml("views/playerlist.twig", array("title" => "$clan players",
                 "players" => $players));
         }

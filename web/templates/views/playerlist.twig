@@ -7,10 +7,10 @@
         <ul class="dashboard-list">
             {% for player in players %}
             <li>
-                <a href="tee?n={{ player.name }}">
+                <a href="{{ player.url }}">
                     <img class="dashboard-avatar" alt="{{ player.name }}" src="/images/user.png">
                 </a>
-                <a href="tee?n={{ player.name }}">{{ player.name }}</a><br>
+                <a href="{{ player.url }}">{{ player.name }}</a><br>
                 {% if player.online %}
                 <span class="label label-success">Online</span><br><br>
                 {% else %}
