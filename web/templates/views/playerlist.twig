@@ -8,7 +8,7 @@
             {% for player in players %}
             <li>
                 <a href="tee?n={{ player.name }}">
-                    <img class="dashboard-avatar" alt="{{ player.name }}" src="images/user.png">
+                    <img class="dashboard-avatar" alt="{{ player.name }}" src="/images/user.png">
                 </a>
                 <a href="tee?n={{ player.name }}">{{ player.name }}</a><br>
                 {% if player.online %}
