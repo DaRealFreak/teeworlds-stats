@@ -37,14 +37,11 @@ class PrettyUrl implements SingletonInterface
      */
     public static function buildPrettyUri($class = "", $params = [])
     {
-        $orgUri = self::buildUri($class, $params);
+        $orgUri = '/' . self::buildUri($class, $params);
         // return base directory if no class or param is set
-        if (!$orgUri) {
-            return "/";
-        }
 
         // we need a database connection for slug uris so return the
-        if (!isset($GLOBALS['DB'])) {
+        if (!isset($GLOBALS['DB']) || $orgUri === '/') {
             return $orgUri;
         }
 
@@ -52,7 +49,7 @@ class PrettyUrl implements SingletonInterface
             $slugUri = $res[0]['slug_uri'];
         } else {
             // FixMe: file paths etc are curently getting slugified too
-            $tmpSlugUri = self::buildSlugUri($class, $params);
+            $tmpSlugUri = '/' . self::buildSlugUri($class, $params);
             $slugUri = $tmpSlugUri;
 
             $i = 1;
@@ -95,7 +92,7 @@ class PrettyUrl implements SingletonInterface
      */
     public static function resolveSlugUri($requestedUrl)
     {
-        $requestedUrl = substr(parse_url($requestedUrl, PHP_URL_PATH), 1);
+        $requestedUrl = parse_url($requestedUrl, PHP_URL_PATH);
         if ($res = $GLOBALS['DB']->statement('SELECT org_uri FROM cache_uri WHERE slug_uri=? LIMIT 1', [$requestedUrl])) {
             $requestedUrl = $res[0]['org_uri'];
             RequestHandler::loadGetParams($requestedUrl);
