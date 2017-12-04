@@ -141,8 +141,8 @@ class Twig implements SingletonInterface
         $res = ["basedir" => $baseDir];
 
         // ToDo: extract these out of the code
-        $res['css'] = ['assets/twstats/public/css/bundle/bundle.min.css'];
-        $res['js'] = ['assets/twstats/public/js/bundle/bundle.js'];
+        $res['css'] = ['/assets/twstats/public/css/bundle/bundle.min.css'];
+        $res['js'] = ['/assets/twstats/public/js/bundle/bundle.js'];
         return $res;
     }
 
