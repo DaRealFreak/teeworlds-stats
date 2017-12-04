@@ -7,6 +7,7 @@ use TwStats\Core\General\SettingManager;
 use TwStats\Core\General\SingletonInterface;
 use TwStats\Core\Utility\GeneralUtility;
 use TwStats\Core\Utility\StringUtility;
+use WyriHaximus\HtmlCompress\Factory;
 
 class Twig implements SingletonInterface
 {
@@ -17,6 +18,13 @@ class Twig implements SingletonInterface
      * @var SettingManager|null
      */
     private $settingManager = null;
+
+    /**
+     * html compressor
+     *
+     * @var null|\WyriHaximus\HtmlCompress\Parser
+     */
+    private $htmlCompressor = null;
 
     /**
      * dependencies
@@ -38,6 +46,8 @@ class Twig implements SingletonInterface
     public function __construct()
     {
         $this->settingManager = GeneralUtility::makeInstance(SettingManager::class);
+        $this->htmlCompressor = Factory::construct();
+
         $this->dependencies = $this->includeCharismaLibs();
 
         $loader = new \Twig_Loader_Filesystem(TwStats_templates);
@@ -53,10 +63,17 @@ class Twig implements SingletonInterface
      * @param string $templateFile
      * @param array $params
      * @param bool $cache
+     * @throws \Twig_Error_Loader
+     * @throws \Twig_Error_Runtime
+     * @throws \Twig_Error_Syntax
      */
-    public function renderTemplate($templateFile, $params = [], $cache = False)
+    public function renderTemplate($templateFile, $params = [], $cache = True)
     {
-        echo $this->getTemplateHtml($templateFile, $params, $cache);
+        $templateHtml = $this->getTemplateHtml($templateFile, $params, $cache);
+        if ($this->settingManager->getSetting("compress-html")) {
+            $templateHtml = $this->htmlCompressor->compress($templateHtml);
+        }
+        echo $templateHtml;
     }
 
     /**
@@ -84,9 +101,16 @@ class Twig implements SingletonInterface
      * @param array $params
      * @param bool $cache
      * @return string
+     * @throws \Twig_Error_Loader
+     * @throws \Twig_Error_Runtime
+     * @throws \Twig_Error_Syntax
      */
-    public function getTemplateHtml($templateFile, $params = [], $cache = False)
+    public function getTemplateHtml($templateFile, $params = [], $cache = true)
     {
+        if ($this->settingManager->hasSetting("cache")) {
+            $cache = $this->settingManager->getSetting("cache");
+        }
+
         if ($cache && !$this->twig->getCache()) {
             $this->twig->setCache(TwStats_template_cache);
         } else {
