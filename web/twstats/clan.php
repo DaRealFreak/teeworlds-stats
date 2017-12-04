@@ -4,7 +4,6 @@ namespace TwStats\Ext;
 
 
 use TwStats\Core\Frontend\AbstractController;
-use TwStats\Core\Utility\DebuggerUtility;
 use TwStats\Core\Utility\GeneralUtility;
 use TwStats\Ext\Database\AccountRepository;
 use TwStats\Ext\Database\StatRepository;

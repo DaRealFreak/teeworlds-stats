@@ -235,7 +235,7 @@ class StatRepository extends AbstractRepository
      */
     public function getSimilarData($tcs, $name)
     {
-        $req = $this->databaseConnection->sqlQuery("SELECT DISTINCT $tcs FROM tees WHERE tee LIKE ? LIMIT 10", array("%$name%"));
+        $req = $this->databaseConnection->sqlQuery("SELECT DISTINCT $tcs FROM tees WHERE $tcs LIKE ? LIMIT 10", array("%$name%"));
         $res = [];
         while ($data = $this->databaseConnection->sqlFetch($req)) {
             $res[PrettyUrl::buildPrettyUri("$tcs", array('n' => $data[$tcs]))] = $data[$tcs];
