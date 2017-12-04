@@ -63,9 +63,6 @@ class Twig implements SingletonInterface
      * @param string $templateFile
      * @param array $params
      * @param bool $cache
-     * @throws \Twig_Error_Loader
-     * @throws \Twig_Error_Runtime
-     * @throws \Twig_Error_Syntax
      */
     public function renderTemplate($templateFile, $params = [], $cache = True)
     {
@@ -101,9 +98,6 @@ class Twig implements SingletonInterface
      * @param array $params
      * @param bool $cache
      * @return string
-     * @throws \Twig_Error_Loader
-     * @throws \Twig_Error_Runtime
-     * @throws \Twig_Error_Syntax
      */
     public function getTemplateHtml($templateFile, $params = [], $cache = true)
     {
@@ -116,7 +110,13 @@ class Twig implements SingletonInterface
         } else {
             $this->twig->setCache(False);
         }
-        $template = $this->twig->load($templateFile);
+
+        try {
+            $template = $this->twig->load($templateFile);
+        } catch (\Twig_Error $e) {
+            return '';
+        }
+
         $params += $this->dependencies;
         return $template->render($params);
     }
