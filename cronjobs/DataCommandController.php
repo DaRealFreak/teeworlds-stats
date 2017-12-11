@@ -19,6 +19,7 @@ class DataCommandController extends AbstractController
 
         $curdate = date('Y-m-d H:i:s');
 
+        /** @var TwRequest $twdata */
         $twdata = GeneralUtility::makeInstance(TwRequest::class);
 
         //$twdata->loadServersFromMasterservers();
@@ -45,6 +46,16 @@ class DataCommandController extends AbstractController
         $general = array();
         foreach ($data as $serverInfo) {
             if (isset($serverInfo["players"])) {
+                // many servers currently increased the slot capacity to 64
+                // since the original client has it set on 16 they display the current
+                // slot count in the server name like xx [2/64]
+                // this is undesired in the statistics, so we split it off here
+                $re = '/(.*) \[\d+\/\d+\]/';
+                preg_match_all($re, $serverInfo['name'], $matches, PREG_SET_ORDER, 0);
+                if (isset($matches[0][1])) {
+                    $serverInfo['name'] = $matches[0][1];
+                }
+
                 foreach ($serverInfo['players'] as $player) {
                     if ($player["name"] === '(connecting)') {
                         continue;
