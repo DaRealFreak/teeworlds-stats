@@ -38,9 +38,19 @@ class PrettyUrl implements SingletonInterface
     public static function buildPrettyUri($class = "", $params = [])
     {
         $orgUri = '/' . self::buildUri($class, $params);
-        // return base directory if no class or param is set
 
-        // we need a database connection for slug uris so return the
+        /* don't sluggify classes with a file extension
+         * since we only use the class and not the file name
+         * which results in only linked files not getting slugified
+         */
+        if (StringUtility::strrpos_handmade($class, ".", -4)) {
+            return $orgUri;
+        }
+
+        /* return base directory if no class or param is set or
+         * we don't have a database since we resolve the slugified uris with a cache table
+         * which makes a database connection essential for this to work
+         */
         if (!isset($GLOBALS['DB']) || $orgUri === '/') {
             return $orgUri;
         }
