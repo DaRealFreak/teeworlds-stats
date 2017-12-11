@@ -32,6 +32,7 @@ class General extends AbstractController
 
     /**
      * Starting point
+     * ToDo: Keeping track of -> link to list of tracked elements
      *
      * @return void
      */
