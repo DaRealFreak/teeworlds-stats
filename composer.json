@@ -30,7 +30,8 @@
   },
   "scripts": {
     "post-root-package-install": [
-      "cp .env.example .env"
+      "cp .env.example .env",
+      "cd ./web/ && ln -s ./core/Frontend/bin/index.php ./index.php"
     ],
     "pre-autoload-dump": [
       "rm -rf ./web/assets/vendor && mkdir -p ./web/assets/vendor",

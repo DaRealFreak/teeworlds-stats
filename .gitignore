@@ -31,3 +31,6 @@ Thumbs.db
 
 # cron logs
 /log/*.log
+
+# symlinks from the core
+/web/index.php
