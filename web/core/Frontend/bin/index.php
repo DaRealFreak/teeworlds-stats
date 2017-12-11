@@ -11,6 +11,6 @@ if (version_compare(PHP_VERSION, '5.4.0', '<')) {
 // Set up the application for the Frontend
 call_user_func(function () {
     /** @noinspection PhpIncludeInspection */
-    $classLoader = require rtrim(realpath(__DIR__), '\\/') . '/../vendor/autoload.php';
+    $classLoader = require rtrim(realpath(__DIR__), '\\/') . '/../../../../vendor/autoload.php';
     (new \TwStats\Core\Frontend\Application($classLoader))->run();
 });
