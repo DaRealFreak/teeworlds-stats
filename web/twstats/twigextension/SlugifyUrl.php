@@ -20,7 +20,9 @@ class SlugifyUrl extends \Twig_Extension implements SingletonInterface
     }
 
     /**
-     * ToDo: implement this function
+     * slugify window title
+     * needed for example on form submits since we can't slugify
+     * the urls in the backend in this case
      */
     public function slugifyUrl()
     {
