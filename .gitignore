@@ -32,5 +32,8 @@ Thumbs.db
 # cron logs
 /log/*.log
 
+# crawled url lists
+urls.txt
+
 # symlinks from the core
 /web/index.php
