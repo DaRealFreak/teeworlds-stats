@@ -103,7 +103,7 @@ class PrettyUrl implements SingletonInterface
     public static function resolveSlugUri($requestedUrl)
     {
         $requestedUrl = parse_url($requestedUrl, PHP_URL_PATH);
-        if ($res = $GLOBALS['DB']->statement('SELECT org_uri FROM cache_uri WHERE slug_uri=? LIMIT 1', [$requestedUrl])) {
+        if (isset($GLOBALS['DB']) && $res = $GLOBALS['DB']->statement('SELECT org_uri FROM cache_uri WHERE slug_uri=? LIMIT 1', [$requestedUrl])) {
             $requestedUrl = $res[0]['org_uri'];
             RequestHandler::loadGetParams($requestedUrl);
         }
