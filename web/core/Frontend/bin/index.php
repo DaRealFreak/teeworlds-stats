@@ -4,8 +4,8 @@ ini_set('display_errors', 1);
 ini_set('display_startup_errors', 1);
 error_reporting(E_ALL);
 
-if (version_compare(PHP_VERSION, '5.4.0', '<')) {
-    die('TW-Stats requires PHP 5.4 or above for Facebook SDK');
+if (version_compare(PHP_VERSION, '7.0.0', '<')) {
+    die('TW-Stats requires PHP 7.0 or above for the Symfony YAML dependency');
 }
 
 // Set up the application for the Frontend
