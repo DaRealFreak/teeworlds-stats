@@ -145,7 +145,11 @@ class GeneralUtility
                 // The default case for classes with constructors that have more than 8 arguments.
                 // This will fail when one of the arguments shall be passed by reference.
                 // In case we really need to support this edge case, we can implement the solution from here: https://review.typo3.org/26344
-                $class = new \ReflectionClass($className);
+                try {
+                    $class = new \ReflectionClass($className);
+                } catch (\ReflectionException $e) {
+                    return null;
+                }
                 array_shift($arguments);
                 $instance = $class->newInstanceArgs($arguments);
         }
