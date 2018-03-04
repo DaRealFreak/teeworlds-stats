@@ -25,10 +25,10 @@ class DataCommandController extends AbstractController
         //$twdata->loadServersFromMasterservers();
 
         $req = $this->databaseConnection->sqlQuery("SELECT `address`, `port` FROM servers");
-        $servers = array();
+        $servers = [];
 
         while ($data = $req->fetch(\PDO::FETCH_ASSOC)) {
-            $servers[] = array(0 => $data['address'], 1 => $data['port'], 2 => 6);
+            $servers[] = [0 => $data['address'], 1 => $data['port'], 2 => 6];
         }
 
         $twdata->addServers($servers);
@@ -43,7 +43,7 @@ class DataCommandController extends AbstractController
 
         $timeB = time();
 
-        $general = array();
+        $general = [];
         foreach ($data as $serverInfo) {
             if (isset($serverInfo["players"])) {
                 // many servers currently increased the slot capacity to 64
@@ -79,20 +79,20 @@ class DataCommandController extends AbstractController
                     $stat['hour'] = date('H');
                     $stat['day'] = date('D');
 
-                    if (!in_array(strtolower($tee), array('(connecting)', 'nameless tee'))) {
-                        foreach (array('mod', 'map', 'hour', 'day') as $st) {
-                            $this->insertOrUpdatePlayerData(array($tee, 'tee', $stat[$st], $st));
+                    if (!in_array(strtolower($tee), ['(connecting)', 'nameless tee'])) {
+                        foreach (['mod', 'map', 'hour', 'day'] as $st) {
+                            $this->insertOrUpdatePlayerData([$tee, 'tee', $stat[$st], $st]);
                         }
                     }
 
                     if (!empty($clan)) {
-                        foreach (array('mod', 'map', 'hour', 'day', 'country') as $st) {
-                            $this->insertOrUpdatePlayerData(array($clan, 'clan', $stat[$st], $st));
+                        foreach (['mod', 'map', 'hour', 'day', 'country'] as $st) {
+                            $this->insertOrUpdatePlayerData([$clan, 'clan', $stat[$st], $st]);
                         }
                     }
 
-                    foreach (array('map', 'hour', 'day', 'country') as $st) {
-                        $this->insertOrUpdatePlayerData(array($server, 'server', $stat[$st], $st));
+                    foreach (['map', 'hour', 'day', 'country'] as $st) {
+                        $this->insertOrUpdatePlayerData([$server, 'server', $stat[$st], $st]);
                     }
 
                     if (!isset($general['mod'][$stat['mod']])) {
@@ -141,7 +141,7 @@ class DataCommandController extends AbstractController
             $req->execute([$player['server'], $player['lastseen'], $existingTee[0]['uid']]);
         } else {
             $req = $this->databaseConnection->sqlPrepare("INSERT INTO tees (tee,server,clan,firstseen,lastseen) VALUES (?,?,?,?,?) ON DUPLICATE KEY UPDATE server=?, clan=?, lastseen=?");
-            $req->execute(array($player['tee'], $player['server'], $player['clan'], $player['firstseen'], $player['lastseen'], $player['server'], $player['clan'], $player['lastseen']));
+            $req->execute([$player['tee'], $player['server'], $player['clan'], $player['firstseen'], $player['lastseen'], $player['server'], $player['clan'], $player['lastseen']]);
         }
 
     }
@@ -204,18 +204,18 @@ class DataCommandController extends AbstractController
         $maxdate = date("Y-m-d H:i:s", strtotime($curdate) - 4 * 24 * 3600);
 
         $req = $this->databaseConnection->sqlPrepare("DELETE FROM chdata_clan WHERE curdate<=?");
-        $req->execute(array($maxdate));
+        $req->execute([$maxdate]);
         $req = $this->databaseConnection->sqlPrepare("DELETE FROM chdata_playername WHERE curdate<=?");
-        $req->execute(array($maxdate));
+        $req->execute([$maxdate]);
         $req = $this->databaseConnection->sqlPrepare("DELETE FROM chdata_servername WHERE curdate<=?");
-        $req->execute(array($maxdate));
+        $req->execute([$maxdate]);
 
         $req = $this->databaseConnection->sqlPrepare("DELETE FROM cache_clan WHERE timestamp<=?");
-        $req->execute(array(date("Y-m-d H:i:s", time() - 9 * 60)));
+        $req->execute([date("Y-m-d H:i:s", time() - 9 * 60)]);
         $req = $this->databaseConnection->sqlPrepare("DELETE FROM cache_player WHERE timestamp<=?");
-        $req->execute(array(date("Y-m-d H:i:s", time() - 9 * 60)));
+        $req->execute([date("Y-m-d H:i:s", time() - 9 * 60)]);
         $req = $this->databaseConnection->sqlPrepare("DELETE FROM cache_server WHERE timestamp<=?");
-        $req->execute(array(date("Y-m-d H:i:s", time() - 9 * 60)));
+        $req->execute([date("Y-m-d H:i:s", time() - 9 * 60)]);
     }
 
     /**
@@ -228,7 +228,6 @@ class DataCommandController extends AbstractController
         foreach ($data as $serverInfo) {
             if (isset($serverInfo["players"])) {
                 foreach ($serverInfo['players'] as $player) {
-                    $rec = array();
                     $rec["curdate"] = $curdate;
                     $rec["playername"] = $player["name"];
                     $rec["clan"] = $player["clan"];

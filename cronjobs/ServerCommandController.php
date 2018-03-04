@@ -27,7 +27,7 @@ class ServerCommandController extends AbstractController
 
         $count = 0;
         foreach ($servers as $server) {
-            $req->execute(array($server[0], $server[1], $server[2]));
+            $req->execute([$server[0], $server[1], $server[2]]);
             ++$count;
         }
 
