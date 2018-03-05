@@ -5,7 +5,6 @@ namespace TwStats\Core\Frontend;
 
 use TwStats\Core\General\SettingManager;
 use TwStats\Core\General\SingletonInterface;
-use TwStats\Core\Utility\DebuggerUtility;
 use TwStats\Core\Utility\GeneralUtility;
 use TwStats\Core\Utility\StringUtility;
 use WyriHaximus\HtmlCompress\Factory;
@@ -68,6 +67,10 @@ class Twig implements SingletonInterface
     public function renderTemplate($templateFile, $params = [], $cache = True)
     {
         $templateHtml = $this->getTemplateHtml($templateFile, $params, $cache);
+        if ($defaultTemplate = $this->settingManager->getSetting('defaultTemplate')) {
+            $templateHtml = $this->getTemplateHtml($defaultTemplate, ['content' => $templateHtml], $cache);
+        }
+
         if ($this->settingManager->getSetting("compress-html")) {
             $templateHtml = $this->htmlCompressor->compress($templateHtml);
         }
