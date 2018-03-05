@@ -68,7 +68,8 @@ class Twig implements SingletonInterface
     {
         $templateHtml = $this->getTemplateHtml($templateFile, $params, $cache);
         if ($defaultTemplate = $this->settingManager->getSetting('defaultTemplate')) {
-            $templateHtml = $this->getTemplateHtml($defaultTemplate, ['content' => $templateHtml], $cache);
+            $templateHtml = $this->getTemplateHtml($defaultTemplate,
+                array_merge($params, ['content' => $templateHtml]), $cache);
         }
 
         if ($this->settingManager->getSetting("compress-html")) {
