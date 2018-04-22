@@ -19,7 +19,8 @@
     "js-cookie/js-cookie": "^2.1",
     "jbroadway/urlify": "^1.1",
     "wyrihaximus/html-compress": "^1.2",
-    "symfony/yaml": "^4.0"
+    "symfony/yaml": "^4.0",
+    "symfony/var-dumper": "^4.0"
   },
   "autoload": {
     "psr-4": {
