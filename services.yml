@@ -7,6 +7,6 @@ includeCss:
   - /assets/twstats/vendor/bootstrap/css/bootstrap.min.css
 includeJs:
   - /assets/twstats/public/js/bundle/bundle.js
-defaultTemplate: default.twig
+defaultTemplate:
 cache: false
 compress-html: false
