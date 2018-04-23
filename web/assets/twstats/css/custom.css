@@ -1,4 +1,10 @@
 /* your styles go here */
 html {
-    background-color: #2d3034!important;
+    background-color: #2d3034;
+}
+
+.list-group-item-transparent {
+    background-color: transparent;
+    border-radius: 0;
+    color: #2d3034;
 }
