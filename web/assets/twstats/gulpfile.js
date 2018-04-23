@@ -52,6 +52,12 @@ gulp.task('scripts', function () {
         .pipe(gulp.dest('public/js'));
 });
 
+gulp.task('lint', function() {
+    return gulp.src('js/*.js')
+        .pipe(jshint())
+        .pipe(jshint.reporter('jshint-stylish'));
+});
+
 /**
  * Browserify everything
  * Put everything which [require]
@@ -87,10 +93,10 @@ gulp.task('copyFonts', function () {
 
 // Watch Files For Changes
 gulp.task('watch', function () {
-    gulp.watch('js/*.js', ['lint', 'scripts', ['browserify']]);
+    gulp.watch('js/*.js', ['scripts', ['lint', 'browserify']]);
     gulp.watch('scss/*.scss', ['sass']);
     gulp.watch('css/*.css', ['concatCss', 'cleanCSS', 'copyFonts']);
 });
 
 // Default Task
-gulp.task('default', ['sass', 'concatCss', 'cleanCSS', 'copyFonts', 'scripts', 'browserify', 'watch']);
+gulp.task('default', ['sass', 'concatCss', 'cleanCSS', 'copyFonts', 'lint', 'scripts', 'browserify', 'watch']);
