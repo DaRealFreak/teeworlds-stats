@@ -6,7 +6,13 @@ includeCss:
   - /assets/twstats/vendor/font-awesome/css/font-awesome.min.css
   - /assets/twstats/vendor/bootstrap/css/bootstrap.min.css
 includeJs:
+  - /assets/twstats/vendor/jquery/jquery.min.js
+  - /assets/twstats/vendor/popper.js/umd/popper.min.js
+  - /assets/twstats/vendor/bootstrap/js/bootstrap.min.js
+  - /assets/twstats/vendor/jquery.cookie/jquery.cookie.js
+  - /assets/twstats/vendor/chart.js/Chart.min.js
+  - /assets/twstats/vendor/jquery-validation/jquery.validate.min.js
   - /assets/twstats/public/js/bundle/bundle.js
-defaultTemplate:
+defaultTemplate: default.twig
 cache: false
 compress-html: false
