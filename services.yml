@@ -2,9 +2,9 @@
 twig-extensions:
   - TwStats\Ext\TwigExtension\SlugifyUrl
 includeCss:
-  - /assets/twstats/public/css/bundle/bundle.min.css
   - /assets/twstats/vendor/font-awesome/css/font-awesome.min.css
   - /assets/twstats/vendor/bootstrap/css/bootstrap.min.css
+  - /assets/twstats/public/css/bundle/bundle.min.css
 includeJs:
   - /assets/twstats/vendor/jquery/jquery.min.js
   - /assets/twstats/vendor/popper.js/umd/popper.min.js
