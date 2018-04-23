@@ -80,12 +80,17 @@ gulp.task('browserifyTest', ['scripts'], function() {
         .pipe(fs.createWriteStream("public/bundle.js"));
 });
 
+gulp.task('copyFonts', function () {
+    gulp.src('fonts/*')
+        .pipe(gulp.dest('public/css/fonts'));
+});
+
 // Watch Files For Changes
 gulp.task('watch', function () {
     gulp.watch('js/*.js', ['lint', 'scripts', ['browserify']]);
     gulp.watch('scss/*.scss', ['sass']);
-    gulp.watch('css/*.css', ['concatCss', 'cleanCSS']);
+    gulp.watch('css/*.css', ['concatCss', 'cleanCSS', 'copyFonts']);
 });
 
 // Default Task
-gulp.task('default', ['sass', 'concatCss', 'cleanCSS', 'scripts', 'browserify', 'watch']);
+gulp.task('default', ['sass', 'concatCss', 'cleanCSS', 'copyFonts', 'scripts', 'browserify', 'watch']);
