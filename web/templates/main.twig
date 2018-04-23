@@ -1,110 +1,36 @@
-{% if navigation %}
-    {{ navigation | raw }}
-{% endif %}
-
-<div id="content" class="span9">
-    <div>
-        <ul class="breadcrumb">
-            <li>
-                <h3>Teeworlds statistics on Clans, Countries, Mods, Servers and Tees !</h3>
-            </li>
-        </ul>
+<div class="page-content">
+    <!-- Page Header-->
+    <div class="page-header no-margin-bottom">
+        <div class="container-fluid">
+            <h2 class="h5 no-margin-bottom">Charts</h2>
+        </div>
     </div>
-
-    <div class="row-fluid">
-        <div class="box span12">
-            <div class="box-header well" data-original-title="">
-                <h2><i class="icon-edit"></i> Choose a statistic</h2>
+    <section style="padding-top: 30px;">
+        <div class="container-fluid">
+            <div class="row">
+                <div class="col-md-3 col-sm-6">
+                    <div class="statistic-block block">
+                        <div class="progress-details d-flex align-items-end justify-content-between">
+                            <div class="title">
+                                <div class="icon"><i class="icon-user-1"></i></div><strong>New Clients</strong>
+                            </div>
+                            <div class="number dashtext-1">27</div>
+                        </div>
+                        <div class="progress progress-template">
+                            <div role="progressbar" style="width: 30%" aria-valuenow="30" aria-valuemin="0" aria-valuemax="100" class="progress-bar progress-bar-template dashbg-1"></div>
+                        </div>
+                    </div>
+                </div>
             </div>
-            <div class="box-content">
-
-                <h3>Player statistics</h3><br/>
-                <form action="tee" method="get" class="form-horizontal">
-                <div class="control-group">
-                    <label class="control-label" for="focusedInput">Tee name :</label>
-                    <div class="controls">
-                        <label>
-                            <input class="input-xlarge focused" type="text" name="n" />
-                        </label>
-                        <button type="submit" class="btn" >See the stats</button>
-                    </div>
-                </div>
-                </form>
-
-                {% if missingTee %}
-                    <div class="list arrow2Blue">
-                        <span class="legend">This player does not exist
-                            {% if suggestionsTee %}
-                                , try one of the following :
-                            {% endif %}
-                        </span>
-                        <ul>
-                            {% for url,name in suggestionsTee %}
-                                <li><a href="{{ url }}">{{ name }}</a></li>
-                            {%  endfor %}
-                        </ul>
-                    </div>
-                {% endif %}
-
-                <br/><h3>Clan statistics</h3><br/>
-                <form action="clan" method="get" class="form-horizontal">
-                <div class="control-group">
-                    <label class="control-label" for="focusedInput">Clan name :</label>
-                    <div class="controls">
-                        <label>
-                            <input class="input-xlarge focused" type="text" name="n" />
-                        </label>
-                        <button type="submit" class="btn" >See the stats</button>
-                    </div>
-                </div>
-                </form>
-
-                {% if missingClan %}
-                    <div class="list arrow2Blue">
-                        <span class="legend">This clan does not exist
-                            {% if suggestionsClan %}
-                                , try one of the following :
-                            {% endif %}
-                        </span>
-                        <ul>
-                            {% for url,name in suggestionsClan %}
-                                <li><a href="{{ url }}">{{ name }}</a></li>
-                            {% endfor %}
-                        </ul>
-                    </div>
-                {% endif %}
-
-
-                <br/><h3>Server statistics</h3><br/>
-                <form action="server" method="get" class="form-horizontal">
-                <div class="control-group">
-                    <label class="control-label" for="focusedInput">Server name :</label>
-                    <div class="controls">
-                        <label>
-                            <input class="input-xlarge focused" type="text" name="n" />
-                        </label>
-                        <button type="submit" class="btn">See the stats</button>
-                    </div>
-                </div>
-                </form>
-
-                {% if missingServer %}
-                    <div class="list arrow2Blue">
-                        <span class="legend">This server does not exist
-                            {% if suggestionsServer %}
-                                , try one of the following :
-                            {% endif %}
-                        </span>
-                        <ul>
-                            {% for url,name in suggestionsServer %}
-                                <li><a href="{{ url }}">{{ name }}</a></li>
-                            {% endfor %}
-                        </ul>
-                    </div>
-                {% endif %}
-
+        </div>
+    </section>
+    <footer class="footer">
+        <div class="footer__block block no-margin-bottom">
+            <div class="container-fluid text-center">
+                <!-- Please do not remove the backlink to us unless you support us at https://bootstrapious.com/donate. It is part of the license conditions. Thank you for understanding :)-->
+                <p class="no-margin-bottom">2018 &copy; Your company. Design by <a href="https://bootstrapious.com">Bootstrapious</a>.
+                </p>
             </div>
-        </div><!--/span-->
-    </div>
-
+        </div>
+    </footer>
 </div>
