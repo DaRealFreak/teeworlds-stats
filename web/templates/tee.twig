@@ -12,15 +12,13 @@
             <div class="col-lg-6">
                 <div class="line-chart block chart">
                     <div class="title"><strong>{{ tee|raw }}'s online probability</strong></div>
-                    <canvas id="onlineLineChartDays" style="display: block; width: 991px; height: 495px;" width="991"
-                            height="495" class="chartjs-render-monitor"></canvas>
+                    <canvas id="onlineLineChartDays"></canvas>
                 </div>
             </div>
             <div class="col-lg-6">
                 <div class="line-chart block chart">
                     <div class="title"><strong>{{ tee|raw }}'s online probability per day</strong></div>
-                    <canvas id="onlineLineChartHours" style="display: block; width: 991px; height: 495px;" width="991"
-                            height="495" class="chartjs-render-monitor"></canvas>
+                    <canvas id="onlineLineChartHours"></canvas>
                 </div>
             </div>
         </div>
@@ -34,12 +32,12 @@
                 </div>
             </div>
             <div class="col-lg-6">
-                                <div class="radar-chart chart block">
-                                    <div class="title"><strong>{{ tee|raw }}'s most played maps</strong></div>
-                                    <div class="radar-chart chart margin-bottom-sm">
-                                        <canvas id="playedMapsChart"></canvas>
-                                    </div>
-                                </div>
+                <div class="radar-chart chart block">
+                    <div class="title"><strong>{{ tee|raw }}'s most played maps</strong></div>
+                    <div class="radar-chart chart margin-bottom-sm">
+                        <canvas id="playedMapsChart"></canvas>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
