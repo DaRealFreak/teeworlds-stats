@@ -56,6 +56,12 @@
             <li><a href="/general"> <i class="fa fa-bar-chart"></i>Game Statistics </a></li>
             <li><a href="/"> <i class="icon-magnifying-glass-browser"></i>Search </a></li>
         </ul>
+        {% if clan %}
+            <span class="heading">Clan</span>
+            <ul class="list-unstyled">
+                <li><a href="{{ clan.url|raw }}"> <i class="icon-chart"></i>{{ clan.name|raw }}</a></li>
+            </ul>
+        {% endif %}
         <span class="heading">Extras</span>
         <ul class="list-unstyled">
             <li><a href="/about"> <i class="icon-padnote"></i>About </a></li>
