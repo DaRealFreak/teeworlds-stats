@@ -1,12 +1,10 @@
-<script>console.log({{ _context | json_encode | raw }});</script>
-
 <!-- Page Header-->
 <div class="page-header no-margin-bottom">
     <div class="container-fluid">
-        <h2 class="h5 no-margin-bottom">Charts</h2>
+        <h2 class="h5 no-margin-bottom">{{ tee|raw }}'s Statistics{% if clan %} - [{{ clan|raw }}] {% endif %}</h2>
     </div>
 </div>
-<section style="padding-top: 30px;">
+<section class="section-content">
     <div class="container-fluid">
         <div class="row">
             <div class="col-lg-6">

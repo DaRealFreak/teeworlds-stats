@@ -8,3 +8,7 @@ html {
     border-radius: 0;
     color: #2d3034;
 }
+
+section.section-content {
+    padding-top: 30px;
+}
