@@ -8,8 +8,8 @@ $(document).ready(function () {
     // ------------------------------------------------------- //
     // Line Chart Custom 1
     // ------------------------------------------------------ //
-    var LINECHARTEXMPLE   = $('#lineChartCustom1');
-    var lineChartExample = new Chart(LINECHARTEXMPLE, {
+    let LINECHARTEXMPLE   = $('#lineChartCustom1');
+    let lineChartExample = new Chart(LINECHARTEXMPLE, {
         type: 'line',
         options: {
             legend: {labels:{fontColor:"#777", fontSize: 12}},
@@ -22,7 +22,7 @@ $(document).ready(function () {
                 }],
                 yAxes: [{
                     ticks: {
-                        max: 60,
+                        max: 100,
                         min: 0
                     },
                     display: true,
