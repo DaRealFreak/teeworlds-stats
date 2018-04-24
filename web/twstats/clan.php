@@ -51,24 +51,16 @@ class Clan extends AbstractController
             GeneralUtility::redirectToUri($this->requestHandler->getFQDN());
         }
 
-        $name = $this->statRepository->getClanName($clan);
-        if (!$name) {
+        $clan = $this->statRepository->getClanName($clan);
+        if (!$clan) {
             $payload = [
                 'suggestionsClan' => $this->statRepository->getSimilarData("clan", $clan),
                 'missingClan' => true
             ];
             GeneralUtility::redirectPostToUri($this->requestHandler->getFQDN(), $payload);
         }
-        $clan = $name;
 
-        $items = array(
-            array('text' => 'Game statistics',
-                'url' => $this->prettyUrl->buildPrettyUri("general"),
-                'class' => 'icon-globe'),
-            array('text' => 'Search',
-                'url' => $this->prettyUrl->buildPrettyUri(""),
-                'class' => 'icon-search')
-        );
+        $items = [];
 
         $user = $this->facebook->getFacebookID();
         if ($user) {
@@ -76,80 +68,80 @@ class Clan extends AbstractController
 
             $account = $this->facebook->getAccountDetails($user);
             if (!empty($account["tee"])) {
-                $items[] = array('text' => $account['tee'],
-                    'url' => $this->prettyUrl->buildPrettyUri("tee", array("n" => $account['tee'])),
-                    'class' => 'icon-user');
+                $items[] = [
+                    'text' => $account['tee'],
+                    'url' => $this->prettyUrl->buildPrettyUri("tee", ["n" => $account['tee']])
+                ];
             }
 
             if (!empty($account["clan"])) {
-                $items[] = array('text' => $account['clan'],
-                    'url' => $this->prettyUrl->buildPrettyUri("clan", array("n" => $account['clan'])),
-                    'class' => 'icon-home');
+                $items[] = [
+                    'text' => $account['clan'],
+                    'url' => $this->prettyUrl->buildPrettyUri("clan", ["n" => $account['clan']]),
+                ];
             }
 
-            $items[] = array('text' => 'Account', 'url' => $this->prettyUrl->buildPrettyUri("account"), 'class' => 'icon-pencil');
+            $items[] = [
+                'text' => 'Account',
+                'url' => $this->prettyUrl->buildPrettyUri("account"),
+            ];
         }
-
-        $items[] = array('text' => 'About', 'url' => $this->prettyUrl->buildPrettyUri("about"), 'class' => 'icon-info-sign');
-
-        $page['navigation'] = $this->frontendHandler->getTemplateHtml("views/navigation.twig", array("items" => $items));
 
         /*		SELECTING CLAN INFO TO DISPLAY		*/
         $clanDetails = $this->accountRepository->getClanDetails($clan);
 
-        if (!empty($clanDetails["clantxt"])) {
-            if (strip_tags($clanDetails["clantxt"]) != "") {
-                $page["clantxt"] = Youtube::integrateYoutubeVideos($clanDetails["clantxt"]);
-            }
+
+        if (strip_tags($clanDetails["clantxt"]) != "") {
+            $page["clantxt"] = Youtube::integrateYoutubeVideos($clanDetails["clantxt"]);
         }
 
-        if ($clanDetails["clanmods"] == 1) {
-            $hist_mods = $this->statRepository->gethisto("clan", $clan, "mod");
-            $page['mods'] = $this->frontendHandler->getTemplateHtml("views/pie.twig", array("histogram" => $hist_mods,
-                "name" => "$clan mods",
-                "id" => "piemods"));
+        $page['countries'] = $this->statRepository->gethisto("clan", $clan, "country");
+        $page['hours'] = $this->statRepository->gethours("clan", $clan);
+        $page['days'] = $this->statRepository->getdays("clan", $clan);
+
+        $mods = $this->statRepository->gethisto("clan", $clan, "mod");
+        list($modNames, $modValues, $modHighestValue) = $this->extractChartValues($mods);
+        $page['modNames'] = $modNames;
+        $page['modValues'] = $modValues;
+        $page['modHighestValue'] = $modHighestValue;
+
+        $maps = $this->statRepository->gethisto("clan", $clan, "map");
+        list($mapNames, $mapValues, $mapHighestValue) = $this->extractChartValues($maps);
+        $page['mapNames'] = $mapNames;
+        $page['mapValues'] = $mapValues;
+        $page['mapHighestValue'] = $mapHighestValue;
+
+        $players = $this->statRepository->getClanPlayers($clan);
+        foreach ($players as &$player) {
+            $player['url'] = $this->prettyUrl->buildPrettyUri("tee", array("n" => $player['name']));
         }
 
-        if ($clanDetails["clanmaps"] == 1) {
-            $hist_maps = $this->statRepository->gethisto("clan", $clan, "map");
-            $page['maps'] = $this->frontendHandler->getTemplateHtml("views/pie.twig", array("histogram" => $hist_maps,
-                "name" => "$clan maps",
-                "id" => "piemaps"));
-        }
+        $page['players'] = $players;
 
-
-        if ($clanDetails["clancountries"] == 1) {
-            $hist_countries = $this->statRepository->gethisto("clan", $clan, "country");
-            $page['countries'] = $this->frontendHandler->getTemplateHtml("views/pie.twig", array("histogram" => $hist_countries,
-                "name" => "$clan countries",
-                "id" => "piecountries"));
-        }
-
-        if ($clanDetails["clanhours"] == 1) {
-            $hhours = $this->statRepository->gethours("clan", $clan);
-            $page['hours'] = $this->frontendHandler->getTemplateHtml("views/line.twig", array("histogram" => $hhours,
-                "name" => "$clan online time per hour",
-                "id" => "piehours"));
-        }
-
-        if ($clanDetails["clandays"] == 1) {
-            $hdays = $this->statRepository->getdays("clan", $clan);
-            $page['days'] = $this->frontendHandler->getTemplateHtml("views/bars.twig", array("histogram" => $hdays,
-                "name" => "$clan online time per day (Monday to Sunday)",
-                "id" => "piedays"));
-        }
-
-        if ($clanDetails["clanplayers"] == 1) {
-            $players = $this->statRepository->getClanPlayers($clan);
-            foreach ($players as &$player) {
-                $player['url'] = $this->prettyUrl->buildPrettyUri("tee", array("n" => $player['name']));
-            }
-            $page['players'] = $this->frontendHandler->getTemplateHtml("views/playerlist.twig", array("title" => "$clan players",
-                "players" => $players));
-        }
         $page['title'] = "$clan statistics on Teeworlds";
         $page['clan'] = $clan;
 
         $this->frontendHandler->renderTemplate("clan.twig", $page);
+    }
+
+    /**
+     * parse the return data from the StatRepository to a radar/pie-chart friendly format
+     *
+     * @param array $inputArray
+     * @return array
+     */
+    private function extractChartValues(array $inputArray)
+    {
+        $names = [];
+        $values = [];
+        $highestValue = 0;
+        foreach ($inputArray as $inputData) {
+            if ($inputData[1] > $highestValue) {
+                $highestValue = $inputData[1];
+            }
+            $names[] = $inputData[0];
+            $values[] = $inputData[1];
+        }
+        return [$names, $values, $highestValue];
     }
 }
