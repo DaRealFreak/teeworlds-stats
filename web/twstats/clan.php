@@ -95,9 +95,14 @@ class Clan extends AbstractController
             $page["clantxt"] = Youtube::integrateYoutubeVideos($clanDetails["clantxt"]);
         }
 
-        $page['countries'] = $this->statRepository->gethisto("clan", $clan, "country");
         $page['hours'] = $this->statRepository->gethours("clan", $clan);
         $page['days'] = $this->statRepository->getdays("clan", $clan);
+
+        $countries = $this->statRepository->gethisto("clan", $clan, "country");
+        list($countryNames, $countryValues, $countryHighestValue) = $this->extractChartValues($countries);
+        $page['countryNames'] = $countryNames;
+        $page['countryValues'] = $countryValues;
+        $page['countryHighestValue'] = $countryHighestValue;
 
         $mods = $this->statRepository->gethisto("clan", $clan, "mod");
         list($modNames, $modValues, $modHighestValue) = $this->extractChartValues($mods);
