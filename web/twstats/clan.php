@@ -60,36 +60,7 @@ class Clan extends AbstractController
             GeneralUtility::redirectPostToUri($this->requestHandler->getFQDN(), $payload);
         }
 
-        $items = [];
-
-        $user = $this->facebook->getFacebookID();
-        if ($user) {
-            $page['logged'] = true;
-
-            $account = $this->facebook->getAccountDetails($user);
-            if (!empty($account["tee"])) {
-                $items[] = [
-                    'text' => $account['tee'],
-                    'url' => $this->prettyUrl->buildPrettyUri("tee", ["n" => $account['tee']])
-                ];
-            }
-
-            if (!empty($account["clan"])) {
-                $items[] = [
-                    'text' => $account['clan'],
-                    'url' => $this->prettyUrl->buildPrettyUri("clan", ["n" => $account['clan']]),
-                ];
-            }
-
-            $items[] = [
-                'text' => 'Account',
-                'url' => $this->prettyUrl->buildPrettyUri("account"),
-            ];
-        }
-
-        /*		SELECTING CLAN INFO TO DISPLAY		*/
         $clanDetails = $this->accountRepository->getClanDetails($clan);
-
 
         if (strip_tags($clanDetails["clantxt"]) != "") {
             $page["clantxt"] = Youtube::integrateYoutubeVideos($clanDetails["clantxt"]);
@@ -124,7 +95,10 @@ class Clan extends AbstractController
         $page['players'] = $players;
 
         $page['title'] = "$clan statistics on Teeworlds";
-        $page['clan'] = $clan;
+        $page['clan'] = [
+            'name' => $clan,
+            'url' => $this->prettyUrl->buildPrettyUri("clan", ["n" => $clan]),
+        ];
 
         $this->frontendHandler->renderTemplate("clan.twig", $page);
     }

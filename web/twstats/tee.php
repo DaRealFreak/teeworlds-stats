@@ -68,42 +68,17 @@ class Tee extends AbstractController
         }
 
         $page['title'] = "Teeworlds statistics - $tee";
-
         $page['tee'] = $tee;
-        if (!empty($player['clan'])) {
-            $page['clan'] = $player['clan'];
-        }
 
         if (!empty($player['country'])) {
             $page['country'] = $player['country'];
         }
 
-        $items = [];
-
-        $user = $this->facebook->getFacebookID();
-        if ($user) {
-            $page['logged'] = true;
-
-            $account = $this->facebook->getAccountDetails($user);
-            if (!empty($account["tee"])) {
-                $items[] = [
-                    'text' => $account['tee'],
-                    'url' => $this->prettyUrl->buildPrettyUri("tee", ["n" => $account['tee']]),
-                ];
-            }
-            if (!empty($account["clan"])) {
-                $items[] = [
-                    'text' => $account['clan'],
-                    'url' => $this->prettyUrl->buildPrettyUri("clan", ["n" => $account['clan']]),
-                ];
-            }
-        }
-
         if (!empty($player['clan'])) {
-            $items[] = array(
-                'text' => $player['clan'],
-                'url' => $this->prettyUrl->buildPrettyUri("clan", array("n" => $player['clan'])),
-            );
+            $page['clan'] = [
+                'name' => $player['clan'],
+                'url' => $this->prettyUrl->buildPrettyUri("clan", ["n" => $player['clan']]),
+            ];
         }
 
         $mods = $this->statRepository->gethisto("tee", $tee, "mod");
@@ -131,7 +106,8 @@ class Tee extends AbstractController
      * @param array $inputArray
      * @return array
      */
-    private function extractChartValues(array $inputArray) {
+    private function extractChartValues(array $inputArray)
+    {
         $names = [];
         $values = [];
         $highestValue = 0;

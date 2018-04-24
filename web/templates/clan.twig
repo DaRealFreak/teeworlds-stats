@@ -3,7 +3,7 @@
 <!-- Page Header-->
 <div class="page-header no-margin-bottom">
     <div class="container-fluid">
-        <h2 class="h5 no-margin-bottom">{{ clan }}'s clan page</h2>
+        <h2 class="h5 no-margin-bottom">{{ clan.name }}'s clan page</h2>
     </div>
 </div>
 <section class="section-content">
@@ -23,7 +23,7 @@
                                 </div>
                                 <div class="content">
                                     <strong class="d-block">{{ player.name|raw }}</strong>
-                                    <span class="d-block">{{ clan|raw }} </span>
+                                    <span class="d-block">{{ clan.name|raw }} </span>
                                     <small class="date d-block">{{ player.lastseen|raw }}</small>
                                 </div>
                             </a>
@@ -35,7 +35,7 @@
         <div class="row">
             <div class="col-lg-6">
                 <div class="pie-chart chart block">
-                    <div class="title"><strong>{{ clan|raw }}'s player countries</strong></div>
+                    <div class="title"><strong>{{ clan.name|raw }}'s player countries</strong></div>
                     <div class="radar-chart chart margin-bottom-sm">
                         <canvas id="playerCountries"></canvas>
                     </div>
@@ -44,8 +44,10 @@
             <div class="col-lg-6">
                 <div class="public-user-block block">
                     <div class="row d-flex align-items-center">
-                        <div class="col-lg-6 d-flex align-items-center">
-                            <div class="order">Newest member: </div>
+                        <div class="col-lg-2 d-flex align-items-center">
+                            <div class="order">Newest member:</div>
+                        </div>
+                        <div class="col-lg-4 d-flex align-items-center">
                             <div class="avatar"><img src="/images/user.png" alt="..." class="img-fluid"></div>
                             <a href="#" class="name">
                                 <strong class="d-block">Jumping the gun (ToDo)</strong>
@@ -58,8 +60,10 @@
                 </div>
                 <div class="public-user-block block">
                     <div class="row d-flex align-items-center">
-                        <div class="col-lg-6 d-flex align-items-center">
-                            <div class="order">Oldest member: </div>
+                        <div class="col-lg-2 d-flex align-items-center">
+                            <div class="order">Oldest member:</div>
+                        </div>
+                        <div class="col-lg-4 d-flex align-items-center">
                             <div class="avatar"><img src="/images/user.png" alt="..." class="img-fluid"></div>
                             <a href="#" class="name">
                                 <strong class="d-block">Gunning the jump (ToDo)</strong>
@@ -70,18 +74,50 @@
                         </div>
                     </div>
                 </div>
+                <div class="public-user-block block">
+                    <div class="row d-flex align-items-center">
+                        <div class="col-lg-2 d-flex align-items-center">
+                            <div class="order">Most active member:</div>
+                        </div>
+                        <div class="col-lg-4 d-flex align-items-center">
+                            <div class="avatar"><img src="/images/user.png" alt="..." class="img-fluid"></div>
+                            <a href="#" class="name">
+                                <strong class="d-block">meter'. (ToDo)</strong>
+                            </a>
+                        </div>
+                        <div class="col-lg-6 text-center">
+                            <div class="contributions">Played: 8.164 hours (ToDo)</div>
+                        </div>
+                    </div>
+                </div>
+                <div class="public-user-block block">
+                    <div class="row d-flex align-items-center">
+                        <div class="col-lg-2 d-flex align-items-center">
+                            <div class="order">Most played map:</div>
+                        </div>
+                        <div class="col-lg-4 d-flex align-items-center">
+                            <div class="avatar"><img src="/images/user.png" alt="..." class="img-fluid"></div>
+                            <a href="#" class="name">
+                                <strong class="d-block">meter'. (ToDo)</strong>
+                            </a>
+                        </div>
+                        <div class="col-lg-6 text-center">
+                            <div class="contributions">Played: 8.164 hours (ToDo)</div>
+                        </div>
+                    </div>
+                </div>
             </div>
         </div>
         <div class="row">
             <div class="col-lg-6">
                 <div class="line-chart block chart">
-                    <div class="title"><strong>{{ clan|raw }}'s online probability</strong></div>
+                    <div class="title"><strong>{{ clan.name|raw }}'s online probability</strong></div>
                     <canvas id="onlineLineChartDays"></canvas>
                 </div>
             </div>
             <div class="col-lg-6">
                 <div class="line-chart block chart">
-                    <div class="title"><strong>{{ clan|raw }}'s online probability per day</strong></div>
+                    <div class="title"><strong>{{ clan.name|raw }}'s online probability per day</strong></div>
                     <canvas id="onlineLineChartHours"></canvas>
                 </div>
             </div>
@@ -89,7 +125,7 @@
         <div class="row">
             <div class="col-lg-6">
                 <div class="radar-chart chart block">
-                    <div class="title"><strong>{{ clan|raw }}'s most played mods</strong></div>
+                    <div class="title"><strong>{{ clan.name|raw }}'s most played mods</strong></div>
                     <div class="radar-chart chart margin-bottom-sm">
                         <canvas id="playedModsChart"></canvas>
                     </div>
@@ -97,7 +133,7 @@
             </div>
             <div class="col-lg-6">
                 <div class="radar-chart chart block">
-                    <div class="title"><strong>{{ clan|raw }}'s most played maps</strong></div>
+                    <div class="title"><strong>{{ clan.name|raw }}'s most played maps</strong></div>
                     <div class="radar-chart chart margin-bottom-sm">
                         <canvas id="playedMapsChart"></canvas>
                     </div>
