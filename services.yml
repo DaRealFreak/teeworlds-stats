@@ -5,8 +5,9 @@ includeCss:
   - /assets/twstats/vendor/font-awesome/css/font-awesome.min.css
   - /assets/twstats/vendor/bootstrap/css/bootstrap.min.css
   - /assets/twstats/public/css/bundle/bundle.min.css
-includeJs:
+includeJsHead:
   - /assets/twstats/vendor/jquery/jquery.min.js
+includeJs:
   - /assets/twstats/vendor/popper.js/umd/popper.min.js
   - /assets/twstats/vendor/bootstrap/js/bootstrap.min.js
   - /assets/twstats/vendor/jquery.cookie/jquery.cookie.js

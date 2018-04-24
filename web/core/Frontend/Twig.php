@@ -151,6 +151,12 @@ class Twig implements SingletonInterface
             }
         }
 
+        if ($this->settingManager->hasSetting("includeJsHead")) {
+            foreach ($this->settingManager->getSetting('includeJsHead') as $jsHeaderFile) {
+                $res['jsHead'][] = $jsHeaderFile;
+            }
+        }
+
         if ($this->settingManager->hasSetting("includeJs")) {
             foreach ($this->settingManager->getSetting('includeJs') as $jsFile) {
                 $res['js'][] = $jsFile;

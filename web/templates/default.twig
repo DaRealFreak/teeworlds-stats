@@ -18,6 +18,11 @@
         <link href="{{ file }}" rel="stylesheet" type="text/css"/>
     {% endfor %}
 
+    {% for file in jsHead %}
+        <script type="text/javascript" src="{{ file }}"></script>
+    {% endfor %}
+
+
     <!-- Facebook stuff -->
     <meta property="fb:admins" content="1547944861920483"/>
 </head>
