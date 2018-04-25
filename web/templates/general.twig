@@ -197,6 +197,19 @@
                 },
                 legend: {
                     position: 'left'
+                },
+                tooltips: {
+                    callbacks: {
+                        title: function(tooltipItem, data) {
+                            return data['labels'][tooltipItem[0]['index']];
+                        },
+                        label: function(tooltipItem, data) {
+                            let dataset = data['datasets'][0];
+                            let sum = dataset['data'].reduce(function(a, b) { return a + b; }, 0);
+                            let percent = Math.round((dataset['data'][tooltipItem['index']] / sum) * 100);
+                            return percent + '%';
+                        },
+                    },
                 }
             },
             data: {
@@ -226,6 +239,18 @@
                 legend: {
                     display: true,
                     position: "left"
+                },
+                tooltips: {
+                    callbacks: {
+                        title: function(tooltipItem, data) {
+                            return data['labels'][tooltipItem[0]['index']];
+                        },
+                        label: function(tooltipItem, data) {
+                            let dataset = data['datasets'][0];
+                            let percent = Math.round((dataset['data'][tooltipItem['index']] / dataset["_meta"][Object.keys(dataset["_meta"])[0]]['total']) * 100);
+                            return percent + '%';
+                        },
+                    },
                 }
             },
             data: {
@@ -259,6 +284,18 @@
                 legend: {
                     display: true,
                     position: "left"
+                },
+                tooltips: {
+                    callbacks: {
+                        title: function(tooltipItem, data) {
+                            return data['labels'][tooltipItem[0]['index']];
+                        },
+                        label: function(tooltipItem, data) {
+                            let dataset = data['datasets'][0];
+                            let percent = Math.round((dataset['data'][tooltipItem['index']] / dataset["_meta"][Object.keys(dataset["_meta"])[0]]['total']) * 100);
+                            return percent + '%';
+                        },
+                    },
                 }
             },
             data: {
