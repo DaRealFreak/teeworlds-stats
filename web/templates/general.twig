@@ -1,59 +1,249 @@
-{{ navigation|raw }}
-
-
-<div id="content" class="span9">
-    <div>
-        <ul class="breadcrumb">
-            <li>
-                <h3>General statistics</h3>
-            </li>
-        </ul>
+<!-- Page Header-->
+<div class="page-header no-margin-bottom">
+    <div class="container-fluid">
+        <h2 class="h5 no-margin-bottom">General statistics</h2>
     </div>
-
-    <div class="row">
-        <div class="box span4">
-            <div class="box-header well" data-original-title="">
-                <h2><i class="icon-edit"></i> Keeping track of</h2>
-            </div>
-            <div class="box-content">
-
-                <ul class="dashboard-list">
-                    <li>
-                        <a href="#" style="text-decoration:none;">
-                            <span class="green">{{ nnames }}</span>
-                            tee names
-                        </a>
-                    </li>
-                    <li>
-                        <a href="#" style="text-decoration:none;">
-                            <span class="red">{{ nservers }}</span>
-                            servers
-                        </a>
-                    </li>
-                    <li>
-                        <a href="#" style="text-decoration:none;">
-                            <span class="blue">{{ ncountries }}</span>
-                            countries
-                        </a>
-                    </li>
-                    <li>
-                        <a href="#" style="text-decoration:none;">
-                            <span class="yellow">{{ nmods }}</span>
-                            mods
-                        </a>
-                    </li>
-                    <li>
-                        <a href="#" style="text-decoration:none;">
-                            <span class="green">{{ nonline }}</span>
-                            online tees
-                        </a>
-                    </li>
-                </ul>
-
-            </div>
-        </div><!--/span-->
-        {{ countries|raw }}
-        {{ mods|raw }}
-    </div>
-
 </div>
+<section class="section-content">
+    <div class="container-fluid">
+        <div class="row">
+            <div class="col-lg-6">
+                <div class="statistic-block block">
+                    <div class="progress-details d-flex align-items-end justify-content-between">
+                        <div class="title">
+                            <div class="icon">
+                                <i class="icon-user-outline"></i>
+                            </div>
+                            <strong>Online tees</strong>
+                        </div>
+                        <div class="number dashtext-2">{{ nonline|raw }}</div>
+                    </div>
+                    <div class="progress progress-template">
+                        <div role="progressbar" style="width: 70%" aria-valuenow="70" aria-valuemin="0"
+                             aria-valuemax="100" class="progress-bar progress-bar-template dashbg-2"></div>
+                    </div>
+                </div>
+                <div class="statistic-block block">
+                    <div class="progress-details d-flex align-items-end justify-content-between">
+                        <div class="title">
+                            <div class="icon">
+                                <i class="icon-user-outline"></i>
+                            </div>
+                            <strong>New tees in the last 24 hours</strong>
+                        </div>
+                        <div class="number dashtext-1">27</div>
+                    </div>
+                    <div class="progress progress-template">
+                        <div role="progressbar" style="width: 30%" aria-valuenow="30" aria-valuemin="0"
+                             aria-valuemax="100" class="progress-bar progress-bar-template dashbg-1"></div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-lg-6">
+                <div class="block">
+                    <div class="title"><strong>Keeping track of:</strong></div>
+                    <div class="table-responsive">
+                        <table class="table table-striped table-hover">
+                            <tbody>
+                            <tr>
+                                <th scope="row">Tee names</th>
+                                <td>{{ nnames }}</td>
+                            </tr>
+                            <tr>
+                                <th scope="row">Servers</th>
+                                <td>{{ nservers }}</td>
+                            </tr>
+                            <tr>
+                                <th scope="row">Countries</th>
+                                <td>{{ ncountries }}</td>
+                            </tr>
+                            <tr>
+                                <th scope="row">Mods</th>
+                                <td>{{ nmods }}</td>
+                            </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="row">
+            <div class="col-lg-6">
+                <div class="line-chart block chart">
+                    <div class="title"><strong>Most playing countries</strong></div>
+                    <canvas id="playedCountries"></canvas>
+                </div>
+            </div>
+            <div class="col-lg-6">
+                <div class="radar-chart chart block">
+                    <div class="title"><strong>Most played mods</strong></div>
+                    <div class="radar-chart chart margin-bottom-sm">
+                        <canvas id="playedMods"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<script>
+    $(document).ready(function () {
+
+        'use strict';
+
+        Chart.defaults.global.defaultFontColor = '#75787c';
+
+        let playedMods = $('#playedMods');
+        {% if modNames|length >= 3 %}
+        // ------------------------------------------------------- //
+        // Played mods radar chart
+        // ------------------------------------------------------ //
+        new Chart(playedMods, {
+            type: 'radar',
+            options: {
+                scale: {
+                    gridLines: {
+                        color: '#3f4145'
+                    },
+                    ticks: {
+                        beginAtZero: true,
+                        min: 0,
+                        max: {{ modHighestValue|json_encode|raw }},
+                        stepSize: 20
+                    },
+                    pointLabels: {
+                        fontSize: 12
+                    }
+                },
+                legend: {
+                    position: 'left'
+                }
+            },
+            data: {
+                labels: {{ modNames|json_encode|raw }},
+                datasets: [
+                    {
+                        label: "Played mods",
+                        backgroundColor: "rgba(113, 39, 172, 0.4)",
+                        borderWidth: 2,
+                        borderColor: "#7127AC",
+                        pointBackgroundColor: "#7127AC",
+                        pointBorderColor: "#fff",
+                        pointHoverBackgroundColor: "#fff",
+                        pointHoverBorderColor: "#7127AC",
+                        data: {{ modValues|json_encode|raw }}
+                    }
+                ]
+            }
+        });
+        {% else %}
+        // ------------------------------------------------------- //
+        // Played mods pie chart for less than 3 played mods
+        // ------------------------------------------------------ //
+        new Chart(playedMods, {
+            type: 'pie',
+            options: {
+                legend: {
+                    display: true,
+                    position: "left"
+                }
+            },
+            data: {
+                labels: {{ modNames|json_encode|raw }},
+                datasets: [
+                    {
+                        data: {{ modValues|json_encode|raw }},
+                        borderWidth: 0,
+                        backgroundColor: [
+                            '#723ac3',
+                            "#864DD9",
+                            "#9762e6",
+                        ],
+                        hoverBackgroundColor: [
+                            '#723ac3',
+                            "#864DD9",
+                            "#9762e6",
+                        ]
+                    }]
+            }
+        });
+        {% endif %}
+
+        let playedCountries = $('#playedCountries');
+        {% if countryNames|length >= 3 %}
+        // ------------------------------------------------------- //
+        // Played mods radar chart
+        // ------------------------------------------------------ //
+        new Chart(playedCountries, {
+            type: 'radar',
+            options: {
+                scale: {
+                    gridLines: {
+                        color: '#3f4145'
+                    },
+                    ticks: {
+                        beginAtZero: true,
+                        min: 0,
+                        max: {{ countryHighestValue|json_encode|raw }},
+                        stepSize: 20
+                    },
+                    pointLabels: {
+                        fontSize: 12
+                    }
+                },
+                legend: {
+                    position: 'left'
+                }
+            },
+            data: {
+                labels: {{ countryNames|json_encode|raw }},
+                datasets: [
+                    {
+                        label: "Players",
+                        backgroundColor: "rgba(113, 39, 172, 0.4)",
+                        borderWidth: 2,
+                        borderColor: "#7127AC",
+                        pointBackgroundColor: "#7127AC",
+                        pointBorderColor: "#fff",
+                        pointHoverBackgroundColor: "#fff",
+                        pointHoverBorderColor: "#7127AC",
+                        data: {{ countryValues|json_encode|raw }}
+                    }
+                ]
+            }
+        });
+        {% else %}
+        // ------------------------------------------------------- //
+        // Played mods pie chart for less than 3 played mods
+        // ------------------------------------------------------ //
+        new Chart(playedCountries, {
+            type: 'pie',
+            options: {
+                legend: {
+                    display: true,
+                    position: "left"
+                }
+            },
+            data: {
+                labels: {{ countryNames|json_encode|raw }},
+                datasets: [
+                    {
+                        data: {{ countryValues|json_encode|raw }},
+                        borderWidth: 0,
+                        backgroundColor: [
+                            '#723ac3',
+                            "#864DD9",
+                            "#9762e6",
+                        ],
+                        hoverBackgroundColor: [
+                            '#723ac3',
+                            "#864DD9",
+                            "#9762e6",
+                        ]
+                    }]
+            }
+        });
+        {% endif %}
+
+    });
+</script>
