@@ -8,7 +8,8 @@ use TwStats\Core\Backend\SessionHandler;
 use TwStats\Core\Utility\GeneralUtility;
 use TwStats\Core\Utility\PrettyUrl;
 
-abstract class AbstractController
+
+abstract class AbstractController implements AbstractControllerInterface
 {
     /**
      * database connection
@@ -54,11 +55,4 @@ abstract class AbstractController
         }
         $this->run();
     }
-
-    /**
-     * Starting point
-     *
-     * @return void
-     */
-    abstract public function run();
 }
