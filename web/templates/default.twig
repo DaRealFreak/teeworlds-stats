@@ -62,6 +62,13 @@
                 <li><a href="{{ clan.url|raw }}"> <i class="icon-chart"></i>{{ clan.name|raw }}</a></li>
             </ul>
         {% endif %}
+        {% if server %}
+            <span class="heading">Server</span>
+            <ul class="list-unstyled">
+                <li><a href="{{ server.url|raw }}"> <i class="icon-chart"></i>{{ server.name|raw }}</a></li>
+            </ul>
+        {% endif %}
+
         <span class="heading">Extras</span>
         <ul class="list-unstyled">
             <li><a href="/about"> <i class="icon-padnote"></i>About </a></li>
