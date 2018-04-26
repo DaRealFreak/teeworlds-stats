@@ -28,7 +28,7 @@ $(function () {
     // Material Inputs
     // ------------------------------------------------------ //
 
-    var materialInputs = $('input.input-material');
+    let materialInputs = $('input.input-material');
 
     // activate labels for prefilled values
     materialInputs.filter(function() { return $(this).val() !== ""; }).siblings('.label-material').addClass('active');
@@ -53,7 +53,7 @@ $(function () {
     // Footer 
     // ------------------------------------------------------ //   
 
-    var pageContent = $('.page-content');
+    let pageContent = $('.page-content');
 
     $(document).on('sidebarChanged', function () {
         adjustFooter();
@@ -61,20 +61,21 @@ $(function () {
 
     $(window).on('resize', function(){
         adjustFooter();
-    })
+    });
 
     function adjustFooter() {
-        var footerBlockHeight = $('.footer__block').outerHeight();
+        let footerBlockHeight = $('.footer__block').outerHeight();
         pageContent.css('padding-bottom', footerBlockHeight + 'px');
     }
 
     // ------------------------------------------------------- //
     // Adding fade effect to dropdowns
     // ------------------------------------------------------ //
-    $('.dropdown').on('show.bs.dropdown', function () {
+    let dropdown = $('.dropdown');
+    dropdown.on('show.bs.dropdown', function () {
         $(this).find('.dropdown-menu').first().stop(true, true).fadeIn(100).addClass('active');
     });
-    $('.dropdown').on('hide.bs.dropdown', function () {
+    dropdown.on('hide.bs.dropdown', function () {
         $(this).find('.dropdown-menu').first().stop(true, true).fadeOut(100).removeClass('active');
     });
 
@@ -85,7 +86,7 @@ $(function () {
     $('.search-open').on('click', function (e) {
         e.preventDefault();
         $('.search-panel').fadeIn(100);
-    })
+    });
     $('.search-panel .close-btn').on('click', function () {
         $('.search-panel').fadeOut(100);
     });
@@ -111,38 +112,5 @@ $(function () {
             $(this).find('i').attr('class', 'fa fa-long-arrow-left');
         }
     });
-
-
-    // ------------------------------------------------------ //
-    // For demo purposes, can be deleted
-    // ------------------------------------------------------ //
-
-    if ($('#style-switch').length > 0) {
-        var stylesheet = $('link#theme-stylesheet');
-        $("<link id='new-stylesheet' rel='stylesheet'>").insertAfter(stylesheet);
-        var alternateColour = $('link#new-stylesheet');
-
-        if ($.cookie("theme_csspath")) {
-            alternateColour.attr("href", $.cookie("theme_csspath"));
-        }
-
-        $("#colour").change(function () {
-
-            if ($(this).val() !== '') {
-
-                var theme_csspath = 'css/style.' + $(this).val() + '.css';
-
-                alternateColour.attr("href", theme_csspath);
-
-                $.cookie("theme_csspath", theme_csspath, {
-                    expires: 365,
-                    path: document.URL.substr(0, document.URL.lastIndexOf('/'))
-                });
-
-            }
-
-            return false;
-        });
-    }
 
 });
