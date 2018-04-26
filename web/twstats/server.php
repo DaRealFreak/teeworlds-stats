@@ -60,69 +60,56 @@ class Server extends AbstractController
         }
         $server = $name;
 
+        $page['server'] = [
+            'name' => $server,
+            'url' => $this->prettyUrl->buildPrettyUri("server", ["n" => $server]),
+        ];
 
-        $user = $this->facebook->getFacebookID();
+        $maps = $this->statRepository->gethisto("server", $server, "map");
+        list($mapNames, $mapValues, $mapHighestValue) = $this->extractChartValues($maps);
+        $page['mapNames'] = $mapNames;
+        $page['mapValues'] = $mapValues;
+        $page['mapHighestValue'] = $mapHighestValue;
 
-        if ($user) {
-            $page['logged'] = true;
+        $countries = $this->statRepository->gethisto("server", $server, "country");
+        list($countryNames, $countryValues, $countryHighestValue) = $this->extractChartValues($countries);
+        $page['countryNames'] = $countryNames;
+        $page['countryValues'] = $countryValues;
+        $page['countryHighestValue'] = $countryHighestValue;
 
-            $account = $this->facebook->getAccountDetails($user);
-            if (!empty($account["tee"])) {
-                $items[] = array('text' => $account['tee'],
-                    'url' => $this->prettyUrl->buildPrettyUri("tee", array("n" => $account['tee'])),
-                    'class' => 'icon-user');
-            }
-            if (!empty($account["clan"])) {
-                $items[] = array('text' => $account['clan'],
-                    'url' => $this->prettyUrl->buildPrettyUri("clan", array("n" => $account['clan'])),
-                    'class' => 'icon-home');
-            }
-
-            $items[] = array('text' => 'Account', 'url' => $this->prettyUrl->buildPrettyUri("account"), 'class' => 'icon-pencil');
-        }
-
-        $hist_maps = $this->statRepository->gethisto("server", $server, "map");
-        $hist_countries = $this->statRepository->gethisto("server", $server, "country");
-
-        $hhours = $this->statRepository->gethours("server", $server);
-        $hdays = $this->statRepository->getdays("server", $server);
-
-
-        $items = array(
-            array('text' => 'Game statistics',
-                'url' => $this->prettyUrl->buildPrettyUri("general"),
-                'class' => 'graphs'),
-            array('text' => 'Search',
-                'url' => $this->prettyUrl->buildPrettyUri(""),
-                'class' => 'gallery'),
-            array('text' => 'About',
-                'url' => $this->prettyUrl->buildPrettyUri("about"),
-                'class' => 'typo')
-        );
-
-        $page['navigation'] = $this->frontendHandler->getTemplateHtml("views/navigation.twig", array("items" => $items));
+        $page['hours'] = $this->statRepository->gethours("server", $server);
+        $page['days'] = $this->statRepository->getdays("server", $server);
 
         $players = $this->statRepository->getServerPlayers($server);
+        foreach ($players as &$player) {
+            $player['url'] = $this->prettyUrl->buildPrettyUri("tee", array("n" => $player['name']));
+        }
 
         $page['title'] = "$server statistics on Teeworlds";
-        $page['server'] = $server;
 
-        $page['players'] = $this->frontendHandler->getTemplateHtml("views/playerlist.twig", array("title" => "Playing tees",
-            "players" => $players));
-
-        $page['countries'] = $this->frontendHandler->getTemplateHtml("views/pie.twig", array("histogram" => $hist_countries,
-            "name" => "Most playing countries",
-            "id" => "piecountries"));
-        $page['maps'] = $this->frontendHandler->getTemplateHtml("views/pie.twig", array("histogram" => $hist_maps,
-            "name" => "Most played maps	",
-            "id" => "piemaps"));
-        $page['hours'] = $this->frontendHandler->getTemplateHtml("views/line.twig", array("histogram" => $hhours,
-            "name" => "Online time per hour",
-            "id" => "piehours"));
-        $page['days'] = $this->frontendHandler->getTemplateHtml("views/bars.twig", array("histogram" => $hdays,
-            "name" => "Online time per day (Monday to Sunday)",
-            "id" => "piedays"));
+        $page['players'] = $players;
 
         $this->frontendHandler->renderTemplate("server.twig", $page);
+    }
+
+    /**
+     * parse the return data from the StatRepository to a radar/pie-chart friendly format
+     *
+     * @param array $inputArray
+     * @return array
+     */
+    private function extractChartValues(array $inputArray)
+    {
+        $names = [];
+        $values = [];
+        $highestValue = 0;
+        foreach ($inputArray as $inputData) {
+            if ($inputData[1] > $highestValue) {
+                $highestValue = $inputData[1];
+            }
+            $names[] = $inputData[0];
+            $values[] = $inputData[1];
+        }
+        return [$names, $values, $highestValue];
     }
 }
