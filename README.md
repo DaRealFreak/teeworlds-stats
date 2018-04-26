@@ -9,12 +9,12 @@ Download this repository and install the dependencies like described in the Depe
 ### Dependencies
 
 All dependencies are managed by `composer` and `npm`.
-Run `composer install` in the root directory (where the composer.lock is saved) to install all PHP dependencies
-Run `npm install && gulp build` in the `web/assets/twstats/` directory to install all JavaScript dependencies and bundle them.
+Run `composer install` in the root directory (where the [composer.lock](composer.lock) is saved) to install all PHP dependencies
+Run `npm install && gulp build` in the [web/assets/twstats/](web/assets/twstats) directory to install all JavaScript dependencies and bundle them.
 
 ### Usage
 
-You can further configure your installation with the `services.yml`.
+You can further configure your installation with the [services.yml](services.yml).
 You can enable/disable the caching of the templates and the compression of the html output.
 
 ## Running the tests
