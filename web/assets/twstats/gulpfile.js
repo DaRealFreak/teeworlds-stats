@@ -12,9 +12,6 @@ let cleanCSS = require('gulp-clean-css');
 let browserify = require('browserify');
 let source = require('vinyl-source-stream');
 let buffer = require('vinyl-buffer');
-let fs = require('fs');
-let babelify = require('babelify');
-let path = require('path');
 let concatCss = require('gulp-concat-css');
 
 // Compile our Sass
@@ -52,6 +49,12 @@ gulp.task('scripts', function () {
         .pipe(gulp.dest('public/js'));
 });
 
+gulp.task('lint', function() {
+    return gulp.src('js/*.js')
+        .pipe(jshint())
+        .pipe(jshint.reporter('jshint-stylish'));
+});
+
 /**
  * Browserify everything
  * Put everything which [require]
@@ -66,26 +69,19 @@ gulp.task('browserify', ['scripts'], function() {
         .pipe(gulp.dest('./public/js/bundle'));
 });
 
-gulp.task('browserifyTest', ['scripts'], function() {
-    return browserify({
-        debug: true,
-        //extensions: ['es6'],
-        //entries: ['src/test.es6']
-        entries: ['public/js/all.min.js']
-    }).transform(babelify.configure({
-        //extensions: ['es6'],
-        sourceMapRelative: path.resolve(__dirname, 'public')
-    }))
-        .bundle()
-        .pipe(fs.createWriteStream("public/bundle.js"));
+gulp.task('copyFonts', function () {
+    gulp.src('fonts/*')
+        .pipe(gulp.dest('public/css/fonts'));
 });
 
 // Watch Files For Changes
 gulp.task('watch', function () {
-    gulp.watch('js/*.js', ['lint', 'scripts', ['browserify']]);
+    gulp.watch('js/*.js', ['scripts', ['lint', 'browserify']]);
     gulp.watch('scss/*.scss', ['sass']);
-    gulp.watch('css/*.css', ['concatCss', 'cleanCSS']);
+    gulp.watch('css/*.css', ['concatCss', 'cleanCSS', 'copyFonts']);
 });
 
 // Default Task
-gulp.task('default', ['sass', 'concatCss', 'cleanCSS', 'scripts', 'browserify', 'watch']);
+gulp.task('default', ['watch']);
+
+gulp.task('build', ['sass', 'concatCss', 'cleanCSS', 'copyFonts', 'lint', 'scripts', 'browserify']);

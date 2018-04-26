@@ -120,24 +120,24 @@ class StatRepository extends AbstractRepository
      */
     public function gethours($tcs, $tcsName)
     {
-        $req = $this->databaseConnection->sqlQuery("SELECT count AS `Lignes`, stat AS heure FROM data
+        $req = $this->databaseConnection->sqlQuery("SELECT count AS `count`, stat AS heure FROM data
 						WHERE tcsType = ? AND tcsName = ? AND statType = 'hour'
 							ORDER BY stat", array($tcs, $tcsName));
         $sum = 0;
         $res = [];
         $res2 = [];
         while ($data = $this->databaseConnection->sqlFetch($req)) {
-            $res[(int)$data["heure"]] = (int)$data["Lignes"];
-            $sum += (int)$data["Lignes"];
+            $res[(int)$data["heure"]] = (int)$data["count"];
+            $sum += (int)$data["count"];
         }
 
         for ($i = 0; $i < 24; $i++) {
             // if $sum is not set divide by 1 instead of 0
             $sum = $sum === 0 ? 1 : $sum;
-            $res2[] = array($i, isset($res[$i]) ? round($res[$i] * 100 / $sum) : 0);
+            $res2[] = isset($res[$i]) ? round($res[$i] * 100 / $sum) : 0;
         }
 
-        return array_merge([["Hours", "Probability"]], $res2);
+        return $res2;
     }
 
     /**
@@ -147,38 +147,30 @@ class StatRepository extends AbstractRepository
      */
     public function getdays($tcs, $tcsName)
     {
-        $req = $this->databaseConnection->sqlQuery("SELECT count AS `Lignes`, stat AS day FROM data
+        $req = $this->databaseConnection->sqlQuery("SELECT count AS `count`, stat AS day FROM data
 						WHERE tcsType = ? AND tcsName = ? AND statType = 'day'
 							ORDER BY stat", array($tcs, $tcsName));
         $sum = 0;
         $res = [];
         $res2 = [];
         while ($data = $this->databaseConnection->sqlFetch($req)) {
-            $res[$data["day"]] = (int)$data["Lignes"];
-            $sum += (int)$data["Lignes"];
+            $res[$data["day"]] = (int)$data["count"];
+            $sum += (int)$data["count"];
         }
 
-        $tr = array(
-            'Mon' => 'Monday',
-            'Tue' => 'Tuesday',
-            'Wed' => 'Wednesday',
-            'Thu' => 'Thursday',
-            'Fri' => 'Friday',
-            'Sat' => 'Saturday',
-            'Sun' => 'Sunday'
-        );
+        $tr = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
         $tmp = [];
-        foreach ($tr as $day => $num) {
-            $tmp[$num] = empty($res[$day]) ? 0 : $res[$day];
+        foreach ($tr as $num) {
+            $tmp[] = empty($res[$num]) ? 0 : $res[$num];
         }
 
         foreach ($tmp as $num => $c) {
             // if $sum is not set divide by 1 instead of 0
             $sum = $sum === 0 ? 1 : $sum;
-            $res2[] = array($num, round($c * 100 / $sum));
+            $res2[] = round($c * 100 / $sum);
         }
 
-        return array_merge([["Weekday", "Probability"]], $res2);
+        return $res2;
     }
 
     /**

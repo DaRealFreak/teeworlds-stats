@@ -38,57 +38,42 @@ class General extends AbstractController
      */
     public function run()
     {
-        $items = array(
-            array('text' => 'Game statistics',
-                'url' => $this->prettyUrl->buildPrettyUri("general"),
-                'class' => 'icon-globe'),
-            array('text' => 'Search',
-                'url' => $this->prettyUrl->buildPrettyUri(""),
-                'class' => 'icon-search')
-        );
-
-        $user = $this->facebook->getFacebookID();
-
-        if ($user) {
-            $page['logged'] = true;
-
-            $account = $this->facebook->getAccountDetails($user);
-            if (!empty($account["tee"])) {
-                $items[] = array('text' => $account['tee'],
-                    'url' => $this->prettyUrl->buildPrettyUri("tee", array("n" => $account['tee'])),
-                    'class' => 'icon-user');
-            }
-            if (!empty($account["clan"])) {
-                $items[] = array('text' => $account['clan'],
-                    'url' => $this->prettyUrl->buildPrettyUri("clan", array("n" => $account['clan'])),
-                    'class' => 'icon-home');
-            }
-
-            $items[] = array('text' => 'Account', 'url' => $this->prettyUrl->buildPrettyUri("account"), 'class' => 'icon-pencil');
-        } else {
-            $page['logged'] = false;
-        }
-
-        $items[] = array('text' => 'About', 'url' => $this->prettyUrl->buildPrettyUri("about"), 'class' => 'icon-info-sign');
-
-        $page['navigation'] = $this->frontendHandler->getTemplateHtml("views/navigation.twig", array("items" => $items));
-
         // Stats
-        $histogramMod = $this->statRepository->getglobalhisto("mod", 13);
-        $histogramCountry = $this->statRepository->getglobalhisto("country", 13);
+        $mods = $this->statRepository->getglobalhisto("mod", 13);
+        list($modNames, $modValues, $modHighestValue) = $this->extractChartValues($mods);
+        $page['modNames'] = $modNames;
+        $page['modValues'] = $modValues;
+        $page['modHighestValue'] = $modHighestValue;
 
-        $page['mods'] = $this->frontendHandler->getTemplateHtml("views/pie.twig",
-            array("id" => "piemods",
-                "name" => "Most played mods",
-                "histogram" => $histogramMod));
+        $countries = $this->statRepository->getglobalhisto("country", 13);
+        list($countryNames, $countryValues, $countryHighestValue) = $this->extractChartValues($countries);
+        $page['countryNames'] = $countryNames;
+        $page['countryValues'] = $countryValues;
+        $page['countryHighestValue'] = $countryHighestValue;
 
-        $page['countries'] = $this->frontendHandler->getTemplateHtml("views/pie.twig",
-            array("id" => "piecountries",
-                "name" => "Most playing countries",
-                "histogram" => $histogramCountry));
-
-        $page += $this->statRepository->generalCounts();
+        $page = array_merge($page, $this->statRepository->generalCounts());
 
         $this->frontendHandler->renderTemplate("general.twig", $page);
+    }
+
+    /**
+     * parse the return data from the StatRepository to a radar/pie-chart friendly format
+     *
+     * @param array $inputArray
+     * @return array
+     */
+    private function extractChartValues(array $inputArray)
+    {
+        $names = [];
+        $values = [];
+        $highestValue = 0;
+        foreach ($inputArray as $inputData) {
+            if ($inputData[1] > $highestValue) {
+                $highestValue = $inputData[1];
+            }
+            $names[] = $inputData[0];
+            $values[] = $inputData[1];
+        }
+        return [$names, $values, $highestValue];
     }
 }
