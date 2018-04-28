@@ -15,4 +15,12 @@ class Tee extends Model
     {
         return $this->belongsTo(Clan::class, 'clan_id');
     }
+
+    /**
+     * Get the stats record associated with the tee
+     */
+    public function stats()
+    {
+        return $this->hasOne(PlayerStatus::class, 'tee_id');
+    }
 }
