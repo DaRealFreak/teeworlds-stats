@@ -1,39 +1,24 @@
-# IntelliJ
+### IDEs ###
 /.idea
+/.vscode
 
-# npm & gulp
-.npm/
-.v8flags*.json
-node_modules
-npm_debug.log
-
-# mac crap
-.DS_Store
-
-# icon stuff
-Thumbs.db
-
-# old files
-*_old*
-
-# composer dependencies
+### Laravel ###
 /vendor
+node_modules/
+npm-debug.log
 
-# cache files
-/web/templates/cache
-
-# asset files from dependencies
-/web/assets/vendor/
-/web/assets/twstats/public/
-
-# environmental file
+# Laravel 5 & Lumen specific
+/public/hot
+/public/storage
+/storage/*.key
 .env
+Homestead.yaml
+Homestead.json
 
-# cron logs
-/log/*.log
+yarn-error.log
 
-# crawled url lists
-urls.txt
+# IDE Helper Plugin
+_ide_helper.php
 
-# symlinks from the core
-/web/index.php
+# Rocketeer PHP task runner and deployment package. https://github.com/rocketeers/rocketeer
+.rocketeer/

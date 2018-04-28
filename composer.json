@@ -1,46 +1,60 @@
 {
-  "repositories": [
-  ],
-  "name": "tw-stats-composer-installation",
-  "description": "Tw-Stats Website in Composer",
-  "license": "MIT",
-  "config": {
-    "preferred-install": "dist"
-  },
-  "require": {
-    "facebook/graph-sdk": "~5.0",
-    "guzzlehttp/guzzle": "~6.0",
-    "ezyang/htmlpurifier": "^4.9",
-    "twig/twig": "^2.4",
-    "components/jquery": "^3.2",
-    "twbs/bootstrap": "~4.0",
-    "vlucas/phpdotenv": "^2.4",
-    "helhum/dotenv-connector": "^2.0",
-    "js-cookie/js-cookie": "^2.1",
-    "jbroadway/urlify": "^1.1",
-    "wyrihaximus/html-compress": "^1.2",
-    "symfony/yaml": "^4.0",
-    "symfony/var-dumper": "^4.0"
-  },
-  "autoload": {
-    "psr-4": {
-      "TwStats\\Core\\": "web/core/",
-      "TwStats\\Ext\\": "web/twstats/",
-      "TwStats\\Cron\\": "cronjobs/"
-    }
-  },
-  "scripts": {
-    "post-root-package-install": [
-      "cp .env.example .env",
-      "cd ./web/ && ln -s ./core/Frontend/bin/index.php ./index.php"
-    ],
-    "pre-autoload-dump": [
-      "rm -rf ./web/assets/vendor && mkdir -p ./web/assets/vendor",
-      "cd ./web/assets/vendor && ln -s ../../../vendor/components/jquery ./jquery",
-      "cd ./web/assets/vendor && ln -s ../../../vendor/js-cookie/js-cookie/src ./js-cookie",
-      "cd ./web/assets/vendor && ln -s ../../../vendor/twbs/bootstrap/dist ./bootstrap"
-    ]
-  },
-  "minimum-stability": "dev",
-  "prefer-stable": true
+    "name": "laravel/laravel",
+    "description": "The Laravel Framework.",
+    "keywords": ["framework", "laravel"],
+    "license": "MIT",
+    "type": "project",
+    "require": {
+        "php": "^7.1.3",
+        "barryvdh/laravel-ide-helper": "^2.4",
+        "fideloper/proxy": "^4.0",
+        "laravel/framework": "5.6.*",
+        "laravel/tinker": "^1.0"
+    },
+    "require-dev": {
+        "filp/whoops": "^2.0",
+        "fzaninotto/faker": "^1.4",
+        "mockery/mockery": "^1.0",
+        "nunomaduro/collision": "^2.0",
+        "phpunit/phpunit": "^7.0"
+    },
+    "autoload": {
+        "classmap": [
+            "database/seeds",
+            "database/factories"
+        ],
+        "psr-4": {
+            "App\\": "app/"
+        }
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "Tests\\": "tests/"
+        }
+    },
+    "extra": {
+        "laravel": {
+            "dont-discover": [
+            ]
+        }
+    },
+    "scripts": {
+        "post-root-package-install": [
+            "@php -r \"file_exists('.env') || copy('.env.example', '.env');\""
+        ],
+        "post-create-project-cmd": [
+            "@php artisan key:generate"
+        ],
+        "post-autoload-dump": [
+            "Illuminate\\Foundation\\ComposerScripts::postAutoloadDump",
+            "@php artisan package:discover"
+        ]
+    },
+    "config": {
+        "preferred-install": "dist",
+        "sort-packages": true,
+        "optimize-autoloader": true
+    },
+    "minimum-stability": "dev",
+    "prefer-stable": true
 }

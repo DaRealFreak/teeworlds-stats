@@ -1,3 +1,0 @@
-*/5 * * * * php /app/web/core/Console/bin/cron_dispatcher.phpsh DataCommandController gatherData >> /app/log/gather-data.log 2>> /app/log/gather-data-err.log
-*/10 * * * * php /app/web/core/Console/bin/cron_dispatcher.phpsh DataCommandController deleteData >> /app/log/delete-data.log 2>> /app/log/delete-data-err.log
-2 * * * * php /app/web/core/Console/bin/cron_dispatcher.phpsh ServerCommandController gatherServers >> /app/log/gather-servers.log >> /app/log/gather-servers-err.log
