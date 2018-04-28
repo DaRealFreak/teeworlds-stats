@@ -1,8 +1,8 @@
 <?php
 
-use Illuminate\Support\Facades\Schema;
-use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Database\Migrations\Migration;
+use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\Schema;
 
 class CreateTeesTable extends Migration
 {
@@ -18,11 +18,9 @@ class CreateTeesTable extends Migration
             $table->timestamps();
 
             $table->string('name');
-
-            $table->unsignedInteger('country_id')->nullable()->default(null);
             $table->unsignedInteger('clan_id')->nullable()->default(null);
+            $table->string('country');
 
-            // ToDo: add index for country model which doesn't exist yet
             $table->foreign('clan_id')->references('id')->on('clans');
         });
     }
