@@ -4,7 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 
-class PlayerStatus extends Model
+class PlayerMaps extends Model
 {
     protected $guarded = ['id', 'created_at', 'updated_at'];
 

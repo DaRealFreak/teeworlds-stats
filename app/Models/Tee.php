@@ -23,4 +23,20 @@ class Tee extends Model
     {
         return $this->hasOne(PlayerStatus::class, 'tee_id');
     }
+
+    /**
+     * Get the stats record associated with the tee
+     */
+    public function mods()
+    {
+        return $this->hasMany(PlayerMods::class, 'tee_id');
+    }
+
+    /**
+     * Get the stats record associated with the tee
+     */
+    public function maps()
+    {
+        return $this->hasMany(PlayerMaps::class, 'tee_id');
+    }
 }

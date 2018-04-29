@@ -12,10 +12,14 @@ class DatabaseSeeder extends Seeder
     public function run()
     {
         $this->call([
-            ServersTableSeeder::class,
             ClansTableSeeder::class,
             TeesTableSeeder::class,
             PlayerStatusesTableSeeder::class,
+            PlayerMapsTableSeeder::class,
+            PlayerModsTableSeeder::class,
+            ServersTableSeeder::class,
+            ServerStatusesTableSeeder::class,
+            ServerMapsTableSeeder::class,
         ]);
     }
 }
