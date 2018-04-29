@@ -4,7 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 
-class Tee extends Model
+class Player extends Model
 {
     protected $guarded = ['id', 'created_at', 'updated_at'];
 
@@ -21,7 +21,7 @@ class Tee extends Model
      */
     public function stats()
     {
-        return $this->hasOne(PlayerStatus::class, 'tee_id');
+        return $this->hasOne(PlayerStatus::class, 'player_id');
     }
 
     /**
@@ -29,7 +29,7 @@ class Tee extends Model
      */
     public function mods()
     {
-        return $this->hasMany(PlayerMods::class, 'tee_id');
+        return $this->hasMany(PlayerMods::class, 'player_id');
     }
 
     /**
@@ -37,6 +37,6 @@ class Tee extends Model
      */
     public function maps()
     {
-        return $this->hasMany(PlayerMaps::class, 'tee_id');
+        return $this->hasMany(PlayerMaps::class, 'player_id');
     }
 }

@@ -11,9 +11,9 @@ class PlayerModsTableSeeder extends Seeder
      */
     public function run()
     {
-        factory(App\Models\Tee::class, 10)->create()->each(function ($tee) {
-            /** @var \App\Models\Tee $tee */
-            $tee->mods()->save(factory(App\Models\PlayerMods::class)->make());
+        factory(App\Models\Player::class, 10)->create()->each(function ($player) {
+            /** @var \App\Models\Player $player */
+            $player->mods()->save(factory(App\Models\PlayerMods::class)->make());
         });
     }
 }

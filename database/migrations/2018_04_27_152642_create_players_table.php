@@ -4,7 +4,7 @@ use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
 
-class CreateTeesTable extends Migration
+class CreatePlayersTable extends Migration
 {
     /**
      * Run the migrations.
@@ -13,7 +13,7 @@ class CreateTeesTable extends Migration
      */
     public function up()
     {
-        Schema::create('tees', function (Blueprint $table) {
+        Schema::create('players', function (Blueprint $table) {
             $table->increments('id');
             $table->timestamps();
 
@@ -32,6 +32,6 @@ class CreateTeesTable extends Migration
      */
     public function down()
     {
-        Schema::dropIfExists('tees');
+        Schema::dropIfExists('players');
     }
 }

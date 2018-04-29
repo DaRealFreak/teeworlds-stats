@@ -10,6 +10,6 @@ class PlayerMaps extends Model
 
     public function player()
     {
-        return $this->belongsTo(Tee::class);
+        return $this->belongsTo(Player::class);
     }
 }

@@ -13,7 +13,7 @@ class DatabaseSeeder extends Seeder
     {
         $this->call([
             ClansTableSeeder::class,
-            TeesTableSeeder::class,
+            PlayersTableSeeder::class,
             PlayerStatusesTableSeeder::class,
             PlayerMapsTableSeeder::class,
             PlayerModsTableSeeder::class,

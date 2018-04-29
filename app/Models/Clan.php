@@ -13,6 +13,6 @@ class Clan extends Model
      */
     public function players()
     {
-        return $this->hasMany(Tee::class);
+        return $this->hasMany(Player::class);
     }
 }

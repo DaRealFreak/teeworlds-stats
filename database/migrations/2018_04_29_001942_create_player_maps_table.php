@@ -17,11 +17,11 @@ class CreatePlayerMapsTable extends Migration
             $table->increments('id');
             $table->timestamps();
 
-            $table->unsignedInteger('tee_id')->unique();
+            $table->unsignedInteger('player_id')->unique();
             $table->string('map');
             $table->unsignedInteger('times')->default(0);
 
-            $table->foreign('tee_id')->references('id')->on('tees');
+            $table->foreign('player_id')->references('id')->on('players');
         });
     }
 

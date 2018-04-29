@@ -11,9 +11,9 @@ class PlayerStatusesTableSeeder extends Seeder
      */
     public function run()
     {
-        factory(App\Models\Tee::class, 10)->create()->each(function ($tee) {
-            /** @var \App\Models\Tee $tee */
-            $tee->stats()->save(factory(App\Models\PlayerStatus::class)->make());
+        factory(App\Models\Player::class, 10)->create()->each(function ($player) {
+            /** @var \App\Models\Player $player */
+            $player->stats()->save(factory(App\Models\PlayerStatus::class)->make());
         });
     }
 }

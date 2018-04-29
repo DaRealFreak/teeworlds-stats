@@ -17,7 +17,7 @@ class CreatePlayerStatusesTable extends Migration
             $table->increments('id');
             $table->timestamps();
 
-            $table->unsignedInteger('tee_id')->unique();
+            $table->unsignedInteger('player_id')->unique();
             $table->unsignedInteger('hour_0')->default(0);
             $table->unsignedInteger('hour_1')->default(0);
             $table->unsignedInteger('hour_2')->default(0);
@@ -50,7 +50,7 @@ class CreatePlayerStatusesTable extends Migration
             $table->unsignedInteger('saturday')->default(0);
             $table->unsignedInteger('sunday')->default(0);
 
-            $table->foreign('tee_id')->references('id')->on('tees');
+            $table->foreign('player_id')->references('id')->on('players');
         });
     }
 
