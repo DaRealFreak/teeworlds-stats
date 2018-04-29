@@ -18,8 +18,8 @@ Route::get('/', function () {
 Auth::routes();
 
 Route::get('/test', function () {
-    $user = (new App\Tee)->find(1);
-    $clan = (new App\Clan)->find(4);
+    $user = (new \App\Models\Player())->find(1);
+    $clan = (new \App\Models\Clan())->find(4);
     $user->name = "test";
     $clan->players()->save($user);
     $user->save();
