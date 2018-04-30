@@ -102,6 +102,32 @@
                 <li><a href="{{ url('search') }}"> <i class="icon-magnifying-glass-browser"></i>Search </a></li>
             </ul>
 
+            <!-- Clan Navigation Entry -->
+            @if(!empty($player->clan->name))
+                <span class="heading">Clan</span>
+                <ul class="list-unstyled">
+                    <li>
+                        <a href="{{ url('clan/' . $player->clan->name)}}">
+                            <i class="icon-chart"></i>
+                            {{ $player->clan->name }}
+                        </a>
+                    </li>
+                </ul>
+            @endif
+
+            <!-- Server Navigation Entry -->
+            @if(!empty($server))
+                <span class="heading">Server</span>
+                <ul class="list-unstyled">
+                    <li>
+                        <a href="{{ $server->name }}">
+                            <i class="icon-chart"></i>
+                            {{ $server->name }}
+                        </a>
+                    </li>
+                </ul>
+            @endif
+
             <span class="heading">Extras</span>
             <ul class="list-unstyled">
                 <li><a href="{{ url('about') }}"> <i class="icon-padnote"></i>About </a></li>
