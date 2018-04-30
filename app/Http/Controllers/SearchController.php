@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\Player;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Redirect;
+use TomLingham\Searchy\Facades\Searchy;
 
 class SearchController extends Controller
 {
@@ -43,18 +44,18 @@ class SearchController extends Controller
     public function searchTeeByName(Request $request, $tee_name)
     {
         if (!$player = (new Player)->where('name', $tee_name)->first()) {
-            $suggestedPlayers = (new Player)->select('name')
-                ->where('name', 'like', '%' . $tee_name . '%')
-                ->orderBy('name')
-                ->get();
-
-            $suggestedPlayerNames = array_map(function ($v) {
-                return $v['name'];
-            }, $suggestedPlayers->toArray());
+            $suggestedPlayers = Player::hydrate(
+                Searchy::search('players')
+                    ->fields('name')
+                    ->query($tee_name)->getQuery()
+                    ->having('relevance', '>', 20)
+                    ->limit(10)
+                    ->get()->toArray()
+            );
 
             return Redirect::to("search")
                 ->withErrors(['tee' => 'This player does not exist'])
-                ->with('teeSuggestions', $suggestedPlayerNames);
+                ->with('teeSuggestions', $suggestedPlayers);
         }
 
         return view('player')->with('player', $player);

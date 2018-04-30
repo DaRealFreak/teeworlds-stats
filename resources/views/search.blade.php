@@ -16,7 +16,6 @@
                             <strong>Player statistics</strong>
                         </div>
                         <div class="block-body">
-                            <!--suppress HtmlUnknownTarget -->
                             <form action="{{ url('tee') }}" method="get">
                                 <div class="form-group">
                                     <label class="form-control-label">Tee name</label>
@@ -29,7 +28,7 @@
                                                 <ul class="list-group">
                                                     @foreach (session('teeSuggestions') as $suggestion)
                                                         <li class="list-group-item list-group-item-transparent">
-                                                            <a href="{{ url("tee/$suggestion") }}">{{ $suggestion }}</a>
+                                                            <a href="{{ url("tee/" . $suggestion['name']) }}">{{ $suggestion['name'] }}</a>
                                                         </li>
                                                     @endforeach
                                                 </ul>
@@ -55,7 +54,6 @@
                             <strong>Clan statistics</strong>
                         </div>
                         <div class="block-body">
-                            <!--suppress HtmlUnknownTarget -->
                             <form action="{{ url('clan') }}" method="get">
                                 <div class="form-group">
                                     <label class="form-control-label">Clan name</label>
@@ -63,12 +61,12 @@
                                         <input name="clan_name" id="clan_name" placeholder="Clan name"
                                                class="form-control is-invalid" type="text">
                                         <div class="invalid-feedback">{{ $errors->get('clan')[0] }}
-                                            @if ($errors->has('clanSuggestions'))
+                                            @if (session('clanSuggestions'))
                                                 , try one of the following :
                                                 <ul class="list-group">
-                                                    @foreach ($errors->get('clanSuggestions') as $column => $suggestion)
+                                                    @foreach (session('clanSuggestions') as $suggestion)
                                                         <li class="list-group-item list-group-item-transparent">
-                                                            <a href="{{ url("clan/$suggestion") }}">{{ $suggestion }}</a>
+                                                            <a href="{{ url("clan/" . $suggestion['name']) }}">{{ $suggestion['name'] }}</a>
                                                         </li>
                                                     @endforeach
                                                 </ul>
@@ -94,7 +92,6 @@
                             <strong>Server statistics</strong>
                         </div>
                         <div class="block-body">
-                            <!--suppress HtmlUnknownTarget -->
                             <form action="{{ url('server') }}" method="get">
                                 <div class="form-group">
                                     <label class="form-control-label">Server name</label>
@@ -102,12 +99,12 @@
                                         <input name="server_name" id="server_name" placeholder="Server name"
                                                class="form-control is-invalid" type="text">
                                         <div class="invalid-feedback">{{ $errors->get('server')[0] }}
-                                            @if ($errors->has('serverSuggestions'))
+                                            @if (session('serverSuggestions'))
                                                 , try one of the following :
                                                 <ul class="list-group">
-                                                    @foreach ($errors->get('serverSuggestions') as $column => $suggestion)
+                                                    @foreach (session('serverSuggestions') as $suggestion)
                                                         <li class="list-group-item list-group-item-transparent">
-                                                            <a href="{{ url("server/$suggestion") }}">{{ $suggestion }}</a>
+                                                            <a href="{{ url("server/" . $suggestion['name']) }}">{{ $suggestion['name'] }}</a>
                                                         </li>
                                                     @endforeach
                                                 </ul>
