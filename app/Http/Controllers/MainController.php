@@ -9,7 +9,7 @@ class MainController extends Controller
      *
      * @return \Illuminate\Http\Response
      */
-    public function index()
+    public function general()
     {
         return view('main');
     }

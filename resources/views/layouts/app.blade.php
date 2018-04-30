@@ -33,6 +33,17 @@
 <div id="app">
     <header class="header">
         <nav class="navbar navbar-expand-lg">
+            <div class="search-panel">
+                <div class="search-inner d-flex align-items-center justify-content-center">
+                    <div class="close-btn">Close <i class="fa fa-close"></i></div>
+                    <form id="searchForm" action="#">
+                        <div class="form-group">
+                            <input name="search" placeholder="What are you searching for..." type="search">
+                            <button type="submit" class="submit">Search</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
             <div class="container-fluid d-flex align-items-center justify-content-between">
                 <div class="navbar-header">
                     <!-- Navbar Header-->
@@ -47,37 +58,36 @@
                     <!-- Sidebar Toggle Btn-->
                     <button class="sidebar-toggle"><i class="fa fa-long-arrow-left"></i></button>
                 </div>
-            </div>
-            <div class="right-menu list-inline no-margin-bottom">
-                <!-- Authentication Links -->
-                @guest
-                    <div class="list-inline-item">
-                        <a class="nav-link" href="{{ route('login') }}">{{ __('Login') }}</a>
-                    </div>
-                    <div class="list-inline-item">
-                        <a class="nav-link" href="{{ route('register') }}">{{ __('Register') }}</a>
-                    </div>
-                @else
-                    <li class="nav-item dropdown">
-                        <a id="navbarDropdown" class="nav-link dropdown-toggle" href="#" role="button"
-                           data-toggle="dropdown" aria-haspopup="true" aria-expanded="false" v-pre>
-                            {{ Auth::user()->name }} <span class="caret"></span>
-                        </a>
-
-                        <div class="dropdown-menu" aria-labelledby="navbarDropdown">
-                            <a class="dropdown-item" href="{{ route('logout') }}"
-                               onclick="event.preventDefault();
-                                                     document.getElementById('logout-form').submit();">
-                                {{ __('Logout') }}
+                <div class="right-menu list-inline no-margin-bottom">
+                    @guest
+                        <div class="list-inline-item">
+                            <a class="nav-link" href="{{ route('login') }}">{{ __('Login') }}</a>
+                        </div>
+                        <div class="list-inline-item">
+                            <a class="nav-link" href="{{ route('register') }}">{{ __('Register') }}</a>
+                        </div>
+                    @else
+                        <li class="nav-item dropdown">
+                            <a id="navbarDropdown" class="nav-link dropdown-toggle" href="#" role="button"
+                               data-toggle="dropdown" aria-haspopup="true" aria-expanded="false" v-pre>
+                                {{ Auth::user()->name }} <span class="caret"></span>
                             </a>
 
-                            <form id="logout-form" action="{{ route('logout') }}" method="POST"
-                                  style="display: none;">
-                                @csrf
-                            </form>
-                        </div>
-                    </li>
-                @endguest
+                            <div class="dropdown-menu" aria-labelledby="navbarDropdown">
+                                <a class="dropdown-item" href="{{ route('logout') }}"
+                                   onclick="event.preventDefault();
+                                                     document.getElementById('logout-form').submit();">
+                                    {{ __('Logout') }}
+                                </a>
+
+                                <form id="logout-form" action="{{ route('logout') }}" method="POST"
+                                      style="display: none;">
+                                    @csrf
+                                </form>
+                            </div>
+                        </li>
+                    @endguest
+                </div>
             </div>
         </nav>
     </header>
@@ -89,7 +99,7 @@
             <ul class="list-unstyled">
                 <li><a href="{{ url('/') }}"> <i class="icon-home"></i>Home </a></li>
                 <li><a href="{{ url('general') }}"> <i class="fa fa-bar-chart"></i>Game Statistics </a></li>
-                <li><a href="{{ url('/') }}"> <i class="icon-magnifying-glass-browser"></i>Search </a></li>
+                <li><a href="{{ url('search') }}"> <i class="icon-magnifying-glass-browser"></i>Search </a></li>
             </ul>
 
             <span class="heading">Extras</span>
