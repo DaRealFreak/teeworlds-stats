@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Model;
 
 /**
@@ -16,6 +17,16 @@ use Illuminate\Database\Eloquent\Model;
 class Player extends Model
 {
     protected $guarded = ['id', 'created_at', 'updated_at'];
+
+    /**
+     * check if the player was seen in the last 10 minutes
+     *
+     * @return bool
+     */
+    public function online()
+    {
+        return $this->where('updated_at', '>=', Carbon::now()->subMinutes(10))->count() > 0;
+    }
 
     /**
      * Get the clan record associated with the tee.
