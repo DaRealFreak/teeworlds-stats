@@ -2,6 +2,9 @@
 
 namespace App\Http\Controllers;
 
+use Carbon\Carbon;
+use Illuminate\Support\Facades\DB;
+
 class MainController extends Controller
 {
     /**
@@ -18,13 +21,13 @@ class MainController extends Controller
     public function general()
     {
         return view('general')->with('general', [
-            'online' => 0,
-            'players' => 0,
-            'servers' => 0,
-            'clans' => 0,
-            'countries' => 0,
-            'maps' => 0,
-            'mods' => 0
+            'online' => DB::table('players')->where('updated_at', '>=', Carbon::now()->subMinutes(5))->count(),
+            'players' => DB::table('players')->count(),
+            'servers' => DB::table('servers')->count(),
+            'clans' => DB::table('clans')->count(),
+            'countries' => count(DB::table('players')->distinct('country')->get()),
+            'maps' => count(DB::table('player_maps')->distinct('map')->get()),
+            'mods' => count(DB::table('player_mods')->distinct('mod')->get()),
         ]);
     }
 
