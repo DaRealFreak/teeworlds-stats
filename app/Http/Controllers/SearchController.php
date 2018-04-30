@@ -2,7 +2,9 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Clan;
 use App\Models\Player;
+use App\Models\Server;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Redirect;
 use TomLingham\Searchy\Facades\Searchy;
@@ -79,13 +81,27 @@ class SearchController extends Controller
 
     /**
      * @param Request $request
-     * @param $tee_name
-     * @return \Illuminate\Contracts\View\Factory|\Illuminate\View\View
+     * @param $clan_name
+     * @return \Illuminate\Contracts\View\Factory|\Illuminate\Http\RedirectResponse|\Illuminate\View\View
      */
-    public function searchClanByName(Request $request, $tee_name)
+    public function searchClanByName(Request $request, $clan_name)
     {
-        dd($tee_name);
-        return view('down');
+        if (!$clan = (new Clan)->where('name', $clan_name)->first()) {
+            $clanSuggestions = Clan::hydrate(
+                Searchy::search('clans')
+                    ->fields('name')
+                    ->query($clan_name)->getQuery()
+                    ->having('relevance', '>', 20)
+                    ->limit(10)
+                    ->get()->toArray()
+            );
+
+            return Redirect::to("search")
+                ->withErrors(['clan' => 'This clan does not exist'])
+                ->with('clanSuggestions', $clanSuggestions);
+        }
+
+        return view('clan')->with('clan', $clan);
     }
 
     /**
@@ -106,12 +122,26 @@ class SearchController extends Controller
 
     /**
      * @param Request $request
-     * @param $tee_name
-     * @return \Illuminate\Contracts\View\Factory|\Illuminate\View\View
+     * @param $server_name
+     * @return \Illuminate\Contracts\View\Factory|\Illuminate\Http\RedirectResponse|\Illuminate\View\View
      */
-    public function searchServerByName(Request $request, $tee_name)
+    public function searchServerByName(Request $request, $server_name)
     {
-        dd($tee_name);
-        return view('down');
+        if (!$server = (new Server)->where('name', $server_name)->first()) {
+            $serverSuggestions = Server::hydrate(
+                Searchy::search('servers')
+                    ->fields('name')
+                    ->query($server_name)->getQuery()
+                    ->having('relevance', '>', 20)
+                    ->limit(10)
+                    ->get()->toArray()
+            );
+
+            return Redirect::to("search")
+                ->withErrors(['server' => 'This server does not exist'])
+                ->with('serverSuggestions', $serverSuggestions);
+        }
+
+        return view('server')->with('server', $server);
     }
 }
