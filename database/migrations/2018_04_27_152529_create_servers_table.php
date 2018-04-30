@@ -20,6 +20,8 @@ class CreateServersTable extends Migration
             $table->string('name');
             $table->string('ip');
             $table->unsignedInteger('port');
+
+            $table->unique(['ip', 'port']);
         });
     }
 
