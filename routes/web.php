@@ -12,17 +12,23 @@
 */
 
 # Navigation general routes
-Route::get('/', 'MainController@general')->name('general');
+Route::get('/', 'MainController@home')->name('general');
+Route::get('/about', 'MainController@about')->name('about');
+Route::get('/general', 'MainController@general')->name('general');
+Route::get('/home', 'MainController@home')->name('home');
 Route::get('/search', 'SearchController@main')->name('search');
-Route::get('/home', 'HomeController@index')->name('home');
+
+# Navigation if logged in routes
+Route::get('/tee/edit/{tee_name}', 'InformationController@editPlayer')->name('editPlayer');
+Route::get('/clan/edit/{clan_name}', 'InformationController@editClan')->name('editClan');
 
 # App specific routes
 Route::get('/tee', 'SearchController@searchTee')->name('tee');
-Route::get('/tee/{tee_id}/', ['as' => 'searchTeeByName', 'uses' => 'SearchController@searchTeeByName']);
+Route::get('/tee/{tee_name}/', ['as' => 'searchTeeByName', 'uses' => 'SearchController@searchTeeByName']);
 Route::get('/clan', 'SearchController@searchClan')->name('clan');
-Route::get('/clan/{clan_id}/', ['as' => 'searchClanByName', 'uses' => 'SearchController@searchClanByName']);
+Route::get('/clan/{clan_name}/', ['as' => 'searchClanByName', 'uses' => 'SearchController@searchClanByName']);
 Route::get('/server', 'SearchController@searchServer')->name('server');
-Route::get('/server/{server_id}/', ['as' => 'searchServerByName', 'uses' => 'SearchController@searchServerByName']);
+Route::get('/server/{server_name}/', ['as' => 'searchServerByName', 'uses' => 'SearchController@searchServerByName']);
 
 # Authentication routes
 Auth::routes();

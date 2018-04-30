@@ -2,7 +2,7 @@
 
 namespace App\Http\Controllers;
 
-class HomeController extends Controller
+class InformationController extends Controller
 {
     /**
      * Create a new controller instance.
@@ -14,13 +14,14 @@ class HomeController extends Controller
         $this->middleware('auth');
     }
 
-    /**
-     * Show the application dashboard.
-     *
-     * @return \Illuminate\Http\Response
-     */
-    public function index()
+    public function editClan()
     {
-        return view('main');
+        return view('down');
     }
+
+    public function editPlayer()
+    {
+        return view('down');
+    }
+
 }
