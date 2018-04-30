@@ -24,10 +24,10 @@
                                         <input name="tee_name" id="tee_name" placeholder="Tee name"
                                                class="form-control is-invalid" type="text">
                                         <div class="invalid-feedback">{{ $errors->get('tee')[0] }}
-                                            @if ($errors->has('teeSuggestions'))
+                                            @if (session('teeSuggestions'))
                                                 , try one of the following :
                                                 <ul class="list-group">
-                                                    @foreach ($errors->get('teeSuggestions') as $suggestion)
+                                                    @foreach (session('teeSuggestions') as $suggestion)
                                                         <li class="list-group-item list-group-item-transparent">
                                                             <a href="{{ url("tee/$suggestion") }}">{{ $suggestion }}</a>
                                                         </li>
@@ -66,7 +66,7 @@
                                             @if ($errors->has('clanSuggestions'))
                                                 , try one of the following :
                                                 <ul class="list-group">
-                                                    @foreach ($errors->get('clanSuggestions') as $suggestion)
+                                                    @foreach ($errors->get('clanSuggestions') as $column => $suggestion)
                                                         <li class="list-group-item list-group-item-transparent">
                                                             <a href="{{ url("clan/$suggestion") }}">{{ $suggestion }}</a>
                                                         </li>
@@ -105,7 +105,7 @@
                                             @if ($errors->has('serverSuggestions'))
                                                 , try one of the following :
                                                 <ul class="list-group">
-                                                    @foreach ($errors->get('serverSuggestions') as $suggestion)
+                                                    @foreach ($errors->get('serverSuggestions') as $column => $suggestion)
                                                         <li class="list-group-item list-group-item-transparent">
                                                             <a href="{{ url("server/$suggestion") }}">{{ $suggestion }}</a>
                                                         </li>

@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Player;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Redirect;
 
@@ -26,21 +27,10 @@ class SearchController extends Controller
     {
         $name = $request->input('tee_name');
         if (!$name) {
-            /*
-            return $request->validate([
-                'name' => 'required',
-            ]);
-            */
             return Redirect::back()->withErrors([
                 'tee' => 'The name field is required'
             ]);
         } else {
-            if ($name == "test") {
-                return Redirect::back()->withErrors([
-                    'tee' => 'This player does not exist',
-                    'teeSuggestions' => ['aaa', 'bbb']
-                ]);
-            }
             return Redirect::to('tee/' . $name);
         }
     }
@@ -48,12 +38,26 @@ class SearchController extends Controller
     /**
      * @param Request $request
      * @param $tee_name
-     * @return \Illuminate\Contracts\View\Factory|\Illuminate\View\View
+     * @return \Illuminate\Contracts\View\Factory|\Illuminate\Http\RedirectResponse|\Illuminate\View\View
      */
     public function searchTeeByName(Request $request, $tee_name)
     {
-        dd($tee_name);
-        return view('down');
+        if (!$player = (new Player)->where('name', $tee_name)->first()) {
+            $suggestedPlayers = (new Player)->select('name')
+                ->where('name', 'like', '%' . $tee_name . '%')
+                ->orderBy('name')
+                ->get();
+
+            $suggestedPlayerNames = array_map(function ($v) {
+                return $v['name'];
+            }, $suggestedPlayers->toArray());
+
+            return Redirect::to("search")
+                ->withErrors(['tee' => 'This player does not exist'])
+                ->with('teeSuggestions', $suggestedPlayerNames);
+        }
+
+        return view('player')->with('player', $player);
     }
 
     /**
