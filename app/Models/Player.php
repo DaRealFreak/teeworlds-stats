@@ -19,13 +19,14 @@ class Player extends Model
     protected $guarded = ['id', 'created_at', 'updated_at'];
 
     /**
-     * check if the player was seen in the last 10 minutes
+     * check if the player was seen in the passed time span
      *
+     * @param int $amount
      * @return bool
      */
-    public function online()
+    public function online($amount = 10)
     {
-        return $this->where('updated_at', '>=', Carbon::now()->subMinutes(10))->count() > 0;
+        return $this->where('updated_at', '>=', Carbon::now()->subMinutes($amount))->count() > 0;
     }
 
     /**
