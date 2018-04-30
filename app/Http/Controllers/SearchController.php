@@ -26,8 +26,21 @@ class SearchController extends Controller
     {
         $name = $request->input('tee_name');
         if (!$name) {
-            return Redirect::back();
+            /*
+            return $request->validate([
+                'name' => 'required',
+            ]);
+            */
+            return Redirect::back()->withErrors([
+                'tee' => 'The name field is required'
+            ]);
         } else {
+            if ($name == "test") {
+                return Redirect::back()->withErrors([
+                    'tee' => 'This player does not exist',
+                    'teeSuggestions' => ['aaa', 'bbb']
+                ]);
+            }
             return Redirect::to('tee/' . $name);
         }
     }
@@ -51,7 +64,9 @@ class SearchController extends Controller
     {
         $name = $request->input('clan_name');
         if (!$name) {
-            return Redirect::back();
+            return Redirect::back()->withErrors([
+                'clan' => 'The name field is required'
+            ]);
         } else {
             return Redirect::to('clan/' . $name);
         }
@@ -76,7 +91,9 @@ class SearchController extends Controller
     {
         $name = $request->input('server_name');
         if (!$name) {
-            return Redirect::back();
+            return Redirect::back()->withErrors([
+                'server' => 'The name field is required'
+            ]);
         } else {
             return Redirect::to('server/' . $name);
         }
