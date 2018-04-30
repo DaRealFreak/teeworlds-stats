@@ -19,7 +19,7 @@
                                 <a href="{{ url("tee/" . $player->name) }}" class="message d-flex align-items-center">
                                     <div class="profile">
                                         <img src="{{ asset('images/user.png') }}" alt="{{ $player->name }}" class="img-fluid">
-                                        @if ($player->online)
+                                        @if ($player->online())
                                             <div class="status online"></div>
                                         @else
                                             <div class="status offline"></div>
