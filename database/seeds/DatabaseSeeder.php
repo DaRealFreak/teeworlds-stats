@@ -14,9 +14,6 @@ class DatabaseSeeder extends Seeder
         $this->call([
             ClansTableSeeder::class,
             PlayersTableSeeder::class,
-            PlayerStatusesTableSeeder::class,
-            PlayerMapsTableSeeder::class,
-            PlayerModsTableSeeder::class,
             ServersTableSeeder::class,
             ServerStatusesTableSeeder::class,
             ServerMapsTableSeeder::class,
