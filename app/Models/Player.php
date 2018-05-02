@@ -30,6 +30,35 @@ class Player extends Model
     }
 
     /**
+     * build an array of the played maps for Chart.js in the frontend
+     *
+     * @return array
+     */
+    public function chartPlayedMaps()
+    {
+        $results = [];
+        foreach ($this->maps as $map) {
+            $results[$map->getAttribute('map')] = $map->getAttribute('times') * 5;
+        }
+        return $results;
+    }
+
+    /**
+     * build an array of the played mods for Chart.js in the frontend
+
+     *
+     * @return array
+     */
+    public function chartPlayedMods()
+    {
+        $results = [];
+        foreach ($this->mods as $mod) {
+            $results[$mod->getAttribute('mod')] = $mod->getAttribute('times') * 5;
+        }
+        return $results;
+    }
+
+    /**
      * Get the clan record associated with the tee.
      */
     public function clan()
