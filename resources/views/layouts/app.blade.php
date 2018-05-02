@@ -16,6 +16,12 @@
     <link rel="icon" href="{{ asset('images/favicon.ico') }}" type="image/x-icon">
 
     <!-- Scripts -->
+    <script src="{{ asset('vendor/jquery/jquery.min.js') }}"></script>
+    <script src="{{ asset('vendor/popper.js/umd/popper.min.js') }}" defer></script>
+    <script src="{{ asset('vendor/bootstrap/js/bootstrap.min.js') }}" defer></script>
+    <script src="{{ asset('vendor/jquery.cookie/jquery.cookie.js') }}" defer></script>
+    <script src="{{ asset('vendor/chart.js/Chart.min.js') }}" defer></script>
+    <script src="{{ asset('vendor/jquery-validation/jquery.validate.min.js') }}" defer></script>
     <script src="{{ asset('js/app.js') }}" defer></script>
     <script src="{{ asset('js/bundle/bundle.js') }}" defer></script>
 
@@ -149,5 +155,6 @@
         <!-- Sidebar Navigation end-->
     </div>
 </div>
+@yield('scripts')
 </body>
 </html>
