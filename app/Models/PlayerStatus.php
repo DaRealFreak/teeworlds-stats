@@ -25,6 +25,17 @@ class PlayerStatus extends Model
     }
 
     /**
+     * @return \Generator
+     */
+    public function chartOnlineHours()
+    {
+        $max = max(iterator_to_array($this->onlineHours()));
+        foreach ($this->onlineHours() as $hour) {
+            yield round($hour/$max*100, 2);
+        }
+    }
+
+    /**
      * @return array
      */
     public function onlineDays()
@@ -38,6 +49,17 @@ class PlayerStatus extends Model
             $this->getAttribute('saturday'),
             $this->getAttribute('sunday'),
         ];
+    }
+
+    /**
+     * @return \Generator
+     */
+    public function chartOnlineDays()
+    {
+        $max = max($this->onlineDays());
+        foreach ($this->onlineDays() as $day) {
+            yield round($day/$max*100, 2);
+        }
     }
 
     public function player()
