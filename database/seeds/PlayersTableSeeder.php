@@ -17,8 +17,8 @@ class PlayersTableSeeder extends Seeder
         factory(App\Models\Player::class, 25)->create()->each(function ($player) {
             /** @var \App\Models\Player $player */
             $player->maps()->save(factory(App\Models\PlayerMaps::class)->make());
-            $player->maps()->save(factory(App\Models\PlayerMods::class)->make());
-            $player->maps()->save(factory(App\Models\PlayerStatus::class)->make());
+            $player->mods()->save(factory(App\Models\PlayerMods::class)->make());
+            $player->stats()->save(factory(App\Models\PlayerStatus::class)->make());
         });
     }
 }
