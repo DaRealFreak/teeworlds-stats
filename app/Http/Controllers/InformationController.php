@@ -34,6 +34,14 @@ class InformationController extends Controller
     }
 
     /**
+     * @return \Illuminate\Contracts\View\Factory|\Illuminate\View\View
+     */
+    public function editServer()
+    {
+        return view('down');
+    }
+
+    /**
      * @param Request $request
      * @param $user
      * @return \Illuminate\Http\RedirectResponse
