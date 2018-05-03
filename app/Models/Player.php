@@ -32,28 +32,47 @@ class Player extends Model
     /**
      * build an array of the played maps for Chart.js in the frontend
      *
+     * @param int $amount
+     * @param bool $displayOthers
      * @return array
      */
-    public function chartPlayedMaps()
+    public function chartPlayedMaps($amount=31, $displayOthers=True)
     {
         $results = [];
-        foreach ($this->maps as $map) {
-            $results[$map->getAttribute('map')] = $map->getAttribute('times') * 5;
+        foreach ($this->maps->sortByDesc('times') as $map) {
+            /** @var PlayerMaps $map */
+            $mapName = $map->getAttribute('map');
+            if (count($results) >= $amount) {
+                if (!$displayOthers) {
+                    break;
+                }
+                $mapName = "others";
+            }
+            $results[$mapName] = $map->getAttribute('times') * 5;
         }
         return $results;
     }
 
     /**
      * build an array of the played mods for Chart.js in the frontend
-
      *
+     * @param int $amount
+     * @param bool $displayOthers
      * @return array
      */
-    public function chartPlayedMods()
+    public function chartPlayedMods($amount=31, $displayOthers=True)
     {
         $results = [];
-        foreach ($this->mods as $mod) {
-            $results[$mod->getAttribute('mod')] = $mod->getAttribute('times') * 5;
+        foreach ($this->mods->sortByDesc('times') as $mod) {
+            /** @var PlayerMods $mod */
+            $modName = $mod->getAttribute('mod');
+            if (count($results) >= $amount) {
+                if (!$displayOthers) {
+                    break;
+                }
+                $modName = "others";
+            }
+            $results[$modName] = $mod->getAttribute('times') * 5;
         }
         return $results;
     }
