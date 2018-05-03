@@ -110,7 +110,7 @@
                             pointHoverBorderWidth: 2,
                             pointRadius: 1,
                             pointHitRadius: 10,
-                            data: {{ json_encode(iterator_to_array($player->stats()->first()->chartOnlineDays())) }},
+                            data: {!! json_encode(iterator_to_array($player->stats()->first()->chartOnlineDays())) !!},
                             spanGaps: false
                         }
                     ]
@@ -149,7 +149,8 @@
                     },
                 },
                 data: {
-                    labels: ["0", "1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12", "13", "14", "15", "16", "17", "18", "19", "20", "21", "22", "23"],
+                    labels: ["12 AM", "1 AM", "2 AM", "3 AM", "4 AM", "5 AM", "6 AM", "7 AM", "8 AM", "9 AM", "10 AM", "11 AM",
+                        "12 PM", "13 PM", "14 PM", "15 PM", "16 PM", "17 PM", "18 PM", "19 PM", "20 PM", "21 PM", "22 PM", "23 PM"],
                     datasets: [
                         {
                             label: "Weekday Online Probability",
@@ -171,12 +172,189 @@
                             pointHoverBorderWidth: 2,
                             pointRadius: 1,
                             pointHitRadius: 10,
-                            data: {{ json_encode(iterator_to_array($player->stats()->first()->chartOnlineHours())) }},
+                            data: {!! json_encode(iterator_to_array($player->stats()->first()->chartOnlineHours())) !!},
                             spanGaps: false
                         }
                     ]
                 }
             });
+
+            let playedMods = $('#playedModsChart');
+            @if (count($player->chartPlayedMods()) >= 3)
+                // ------------------------------------------------------- //
+                // Played mods radar chart
+                // ------------------------------------------------------ //
+                new Chart(playedMods, {
+                    type: 'radar',
+                    options: {
+                        scale: {
+                            gridLines: {
+                                color: '#3f4145'
+                            },
+                            ticks: {
+                                beginAtZero: true,
+                                min: 0,
+                                max: {!! json_encode(max($player->chartPlayedMods())) !!},
+                                stepSize: 20
+                            },
+                            pointLabels: {
+                                fontSize: 12
+                            }
+                        },
+                        legend: {
+                            position: 'left'
+                        }
+                    },
+                    data: {
+                        labels: {!! json_encode(array_keys($player->chartPlayedMods())) !!},
+                        datasets: [
+                            {
+                                label: "Played mods",
+                                backgroundColor: "rgba(113, 39, 172, 0.4)",
+                                borderWidth: 2,
+                                borderColor: "#7127AC",
+                                pointBackgroundColor: "#7127AC",
+                                pointBorderColor: "#fff",
+                                pointHoverBackgroundColor: "#fff",
+                                pointHoverBorderColor: "#7127AC",
+                                data: {!! json_encode(array_values($player->chartPlayedMods())) !!}
+                            }
+                        ]
+                    }
+                });
+            @else
+                // ------------------------------------------------------- //
+                // Played mods pie chart for less than 3 played mods
+                // ------------------------------------------------------ //
+                new Chart(playedMods, {
+                    type: 'pie',
+                    options: {
+                        legend: {
+                            display: true,
+                            position: "left"
+                        },
+                        tooltips: {
+                            callbacks: {
+                                title: function (tooltipItem, data) {
+                                    return data['labels'][tooltipItem[0]['index']];
+                                },
+                                label: function (tooltipItem, data) {
+                                    let dataset = data['datasets'][0];
+                                    let percent = Math.round((dataset['data'][tooltipItem['index']] / dataset["_meta"][Object.keys(dataset["_meta"])[0]]['total']) * 100);
+                                    return percent + '% (' + humanizeDuration(dataset['data'][tooltipItem['index']]*60*1000) + ')';
+                                },
+                            },
+                        }
+                    },
+                    data: {
+                        labels: {!! json_encode(array_keys($player->chartPlayedMods())) !!},
+                        datasets: [
+                            {
+                                data: {!! json_encode(array_values($player->chartPlayedMods())) !!},
+                                borderWidth: 0,
+                                backgroundColor: [
+                                    '#723ac3',
+                                    "#864DD9",
+                                    "#9762e6",
+                                ],
+                                hoverBackgroundColor: [
+                                    '#723ac3',
+                                    "#864DD9",
+                                    "#9762e6",
+                                ]
+                            }]
+                    }
+                });
+            @endif
+
+            let playedMaps = $('#playedMapsChart');
+            @if (count($player->chartPlayedMaps()) >= 3)
+                // ------------------------------------------------------- //
+                // Played maps radar chart
+                // ------------------------------------------------------ //
+                new Chart(playedMaps, {
+                    type: 'radar',
+                    options: {
+                        scale: {
+                            gridLines: {
+                                color: '#3f4145'
+                            },
+                            ticks: {
+                                beginAtZero: true,
+                                min: 0,
+                                max: {!! max($player->chartPlayedMaps()) !!},
+                                stepSize: 20
+                            },
+                            pointLabels: {
+                                fontSize: 12
+                            }
+                        },
+                        legend: {
+                            position: 'left'
+                        }
+                    },
+                    data: {
+                        labels: {!! json_encode(array_keys($player->chartPlayedMaps())) !!},
+                        datasets: [
+                            {
+                                label: "Played mods",
+                                backgroundColor: "rgba(113, 39, 172, 0.4)",
+                                borderWidth: 2,
+                                borderColor: "#7127AC",
+                                pointBackgroundColor: "#7127AC",
+                                pointBorderColor: "#fff",
+                                pointHoverBackgroundColor: "#fff",
+                                pointHoverBorderColor: "#7127AC",
+                                data: {!! json_encode(array_values($player->chartPlayedMaps())) !!}
+                            }
+                        ]
+                    }
+                });
+            @else
+                // ------------------------------------------------------- //
+                // Played maps pie chart for less than 3 played maps
+                // ------------------------------------------------------ //
+                new Chart(playedMaps, {
+                    type: 'pie',
+                    options: {
+                        legend: {
+                            display: true,
+                            position: "left"
+                        },
+                        tooltips: {
+                            callbacks: {
+                                title: function (tooltipItem, data) {
+                                    return data['labels'][tooltipItem[0]['index']];
+                                },
+                                label: function (tooltipItem, data) {
+                                    let dataset = data['datasets'][0];
+                                    let percent = Math.round((dataset['data'][tooltipItem['index']] / dataset["_meta"][Object.keys(dataset["_meta"])[0]]['total']) * 100);
+                                    return percent + '% (' + humanizeDuration(dataset['data'][tooltipItem['index']]*60*1000) + ')';
+                                },
+                            },
+                        }
+                    },
+                    data: {
+                        labels: {!! json_encode(array_keys($player->chartPlayedMaps())) !!},
+                        datasets: [
+                            {
+                                data: {!! json_encode(array_values($player->chartPlayedMaps()))  !!},
+                                borderWidth: 0,
+                                backgroundColor: [
+                                    '#723ac3',
+                                    "#864DD9",
+                                    "#9762e6",
+                                ],
+                                hoverBackgroundColor: [
+                                    '#723ac3',
+                                    "#864DD9",
+                                    "#9762e6",
+                                ]
+                            }]
+                    }
+                });
+            @endif
+
         });
 
     </script>

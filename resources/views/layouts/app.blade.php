@@ -17,6 +17,7 @@
 
     <!-- Scripts -->
     <script src="{{ asset('vendor/jquery/jquery.min.js') }}"></script>
+    <script src="{{ asset('vendor/humanize-duration/humanize-duration.js') }}" defer></script>
     <script src="{{ asset('vendor/popper.js/umd/popper.min.js') }}" defer></script>
     <script src="{{ asset('vendor/bootstrap/js/bootstrap.min.js') }}" defer></script>
     <script src="{{ asset('vendor/jquery.cookie/jquery.cookie.js') }}" defer></script>
