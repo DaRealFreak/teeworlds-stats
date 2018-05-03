@@ -21,6 +21,7 @@ Route::get('/search', 'SearchController@main')->name('search');
 # Navigation if logged in routes
 Route::get('/tee/edit/{tee_name}', 'InformationController@editPlayer')->name('editPlayer');
 Route::get('/clan/edit/{clan_name}', 'InformationController@editClan')->name('editClan');
+Route::get('/server/edit/{clan_name}', 'InformationController@editServer')->name('editServer');
 
 # App specific routes
 Route::get('/tee', 'SearchController@searchTee')->name('tee');
@@ -36,10 +37,8 @@ Auth::routes();
 # Test routes
 Route::get('/test', function () {
     $user = (new \App\Models\Player)->find(15);
-    $newUser = (new App\Models\Player)->where('name', '=', $user->name)->firstOrFail();
-    dd($newUser->getAttributes());
     $clan = (new \App\Models\Clan())->find(4);
-    $user->name = "test";
+    $user->setAttribute('name', 'test2');
     $clan->players()->save($user);
     $user->save();
     return 'hello world';
