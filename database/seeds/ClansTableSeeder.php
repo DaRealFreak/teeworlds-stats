@@ -11,10 +11,10 @@ class ClansTableSeeder extends Seeder
      */
     public function run()
     {
-        // 10 clans with each 3 player each
+        // 10 clans with each between 1 and 15 players
         factory(App\Models\Clan::class, 10)->create()->each(function ($clan) {
             /** @var \App\Models\Clan $clan */
-            $clan->players()->saveMany(factory(App\Models\Player::class, 3)->create()->each(function ($player) {
+            $clan->players()->saveMany(factory(App\Models\Player::class, random_int(1, 15))->create()->each(function ($player) {
                 /** @var \App\Models\Player $player */
                 $player->maps()->save(factory(App\Models\PlayerMaps::class)->make());
                 $player->mods()->save(factory(App\Models\PlayerMods::class)->make());
