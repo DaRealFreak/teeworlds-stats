@@ -16,8 +16,8 @@ class PlayersTableSeeder extends Seeder
         // PlayerStatusesTableSeeder will create players with create Players with Status Records
         factory(App\Models\Player::class, 25)->create()->each(function ($player) {
             /** @var \App\Models\Player $player */
-            $player->maps()->save(factory(App\Models\PlayerMaps::class)->make());
-            $player->mods()->save(factory(App\Models\PlayerMods::class)->make());
+            $player->maps()->saveMany(factory(App\Models\PlayerMaps::class, random_int(1, 25))->make());
+            $player->mods()->saveMany(factory(App\Models\PlayerMods::class, random_int(1, 25))->make());
             $player->stats()->save(factory(App\Models\PlayerStatus::class)->make());
         });
     }
