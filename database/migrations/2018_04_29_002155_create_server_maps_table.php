@@ -17,11 +17,12 @@ class CreateServerMapsTable extends Migration
             $table->increments('id');
             $table->timestamps();
 
-            $table->unsignedInteger('server_id')->unique();
+            $table->unsignedInteger('server_id');
             $table->string('map');
             $table->unsignedInteger('times')->default(0);
 
             $table->foreign('server_id')->references('id')->on('servers');
+            $table->unique(['server_id', 'map']);
         });
     }
 
