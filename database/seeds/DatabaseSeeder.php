@@ -15,8 +15,6 @@ class DatabaseSeeder extends Seeder
             ClansTableSeeder::class,
             PlayersTableSeeder::class,
             ServersTableSeeder::class,
-            ServerStatusesTableSeeder::class,
-            ServerMapsTableSeeder::class,
         ]);
     }
 }
