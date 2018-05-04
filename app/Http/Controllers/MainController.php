@@ -48,20 +48,17 @@ class MainController extends Controller
     public function chartPlayedMaps($amount = 16, $displayOthers = True)
     {
         $results = [];
-        foreach (PlayerMaps::orderBy('times')->get() as $map) {
+        foreach (PlayerMaps::all() as $map) {
             $mapName = $map->getAttribute('map');
-            if (count($results) >= $amount) {
-                if (!$displayOthers) {
-                    break;
-                }
-                $mapName = "others";
-            }
+
             if (array_key_exists($mapName, $results)) {
                 $results[$mapName] += $map->getAttribute('times') * 5;
             } else {
                 $results[$mapName] = $map->getAttribute('times') * 5;
             }
         }
+        $this->applyLimits($results, $amount, $displayOthers);
+
         return $results;
     }
 
@@ -75,42 +72,66 @@ class MainController extends Controller
     public function chartPlayedMods($amount = 16, $displayOthers = False)
     {
         $results = [];
-        foreach (PlayerMods::orderBy('times')->get() as $mod) {
+        foreach (PlayerMods::all() as $mod) {
             $modName = $mod->getAttribute('mod');
-            if (count($results) >= $amount) {
-                if (!$displayOthers) {
-                    break;
-                }
-                $modName = "others";
-            }
+
             if (array_key_exists($modName, $results)) {
                 $results[$modName] += $mod->getAttribute('times') * 5;
             } else {
                 $results[$modName] = $mod->getAttribute('times') * 5;
             }
         }
+        $this->applyLimits($results, $amount, $displayOthers);
+
         return $results;
     }
 
     public function chartPlayedCountries($amount = 31, $displayOthers = True)
     {
         $results = [];
-        foreach (Player::all()->sortByDesc('count(country)') as $player) {
+        foreach (Player::all() as $player) {
             /** @var Player $player */
             $playerName = $player->getAttribute('country');
-            if (count($results) >= $amount) {
-                if (!$displayOthers) {
-                    break;
-                }
-                $playerName = "others";
-            }
             if (array_key_exists($playerName, $results)) {
                 $results[$playerName] += 1;
             } else {
                 $results[$playerName] = 1;
             }
         }
+        $this->applyLimits($results, $amount, $displayOthers);
+
         return $results;
+    }
+
+    /**
+     * function to apply the amount and displayOthers limitation and sort the
+     * results by value
+     *
+     * @param $results
+     * @param $amount
+     * @param $displayOthers
+     */
+    private function applyLimits(&$results, $amount, $displayOthers)
+    {
+        if ($amount && count($results) > $amount) {
+            arsort($results, true);
+            $i = 0;
+            foreach ($results as $map => $times) {
+                if ($i >= $amount) {
+                    if (isset($results['others'])) {
+                        $results['others'] += $times;
+                    } else {
+                        $results['others'] = $times;
+                    }
+                    unset($results[$map]);
+                }
+                $i++;
+            }
+            if (!$displayOthers) {
+                unset($results['others']);
+            }
+        }
+        arsort($results, true);
     }
 
     /**
