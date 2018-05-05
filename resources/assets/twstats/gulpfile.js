@@ -67,7 +67,7 @@ gulp.task('browserify', ['scripts'], function() {
         .bundle()
         .pipe(source('bundle.js'))
         .pipe(buffer())
-        //.pipe(uglify()) /*Did not worked */
+        .pipe(uglify())
         .pipe(gulp.dest(basePath  + '/js/bundle'));
 });
 
