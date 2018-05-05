@@ -13,7 +13,7 @@ class ServerMapsTableSeeder extends Seeder
     {
         factory(App\Models\Server::class, 10)->create()->each(function ($server) {
             /** @var \App\Models\Server $server */
-            $server->maps()->save(factory(App\Models\ServerMaps::class)->make());
+            $server->maps()->save(factory(App\Models\ServerMap::class)->make());
         });
     }
 }

@@ -3,8 +3,8 @@
 namespace App\Http\Controllers;
 
 use App\Models\Player;
-use App\Models\PlayerMaps;
-use App\Models\PlayerMods;
+use App\Models\PlayerMap;
+use App\Models\PlayerMod;
 use App\Utility\ChartUtility;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
@@ -56,7 +56,7 @@ class MainController extends Controller
      */
     public function chartPlayedMaps($amount = 16, $displayOthers = True)
     {
-        return ChartUtility::chartValues(PlayerMaps::all(), 'map', 'times', 5, $amount, $displayOthers);
+        return ChartUtility::chartValues(PlayerMap::all(), 'map', 'times', 5, $amount, $displayOthers);
     }
 
     /**
@@ -68,7 +68,7 @@ class MainController extends Controller
      */
     public function chartPlayedMods($amount = 16, $displayOthers = False)
     {
-        return ChartUtility::chartValues(PlayerMods::all(), 'mod', 'times', 5, $amount, $displayOthers);
+        return ChartUtility::chartValues(PlayerMod::all(), 'mod', 'times', 5, $amount, $displayOthers);
     }
 
     /**

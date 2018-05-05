@@ -10,7 +10,7 @@ use Illuminate\Database\Eloquent\Model;
  * @property-read \App\Models\Player $player
  * @mixin \Eloquent
  */
-class PlayerMods extends Model
+class PlayerMod extends Model
 {
     protected $guarded = ['id', 'created_at', 'updated_at'];
 

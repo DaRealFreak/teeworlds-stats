@@ -7,7 +7,7 @@ use Illuminate\Database\Eloquent\Model;
 /**
  * App\Models\Server
  *
- * @property-read \Illuminate\Database\Eloquent\Collection|\App\Models\ServerMaps[] $maps
+ * @property-read \Illuminate\Database\Eloquent\Collection|\App\Models\ServerMap[] $maps
  * @property-read \App\Models\ServerStatus $stats
  * @mixin \Eloquent
  */
@@ -28,6 +28,6 @@ class Server extends Model
      */
     public function maps()
     {
-        return $this->hasMany(ServerMaps::class, 'server_id');
+        return $this->hasMany(ServerMap::class, 'server_id');
     }
 }

@@ -13,7 +13,7 @@ class PlayerModsTableSeeder extends Seeder
     {
         factory(App\Models\Player::class, 10)->create()->each(function ($player) {
             /** @var \App\Models\Player $player */
-            $player->mods()->save(factory(App\Models\PlayerMods::class)->make());
+            $player->mods()->save(factory(App\Models\PlayerMod::class)->make());
         });
     }
 }

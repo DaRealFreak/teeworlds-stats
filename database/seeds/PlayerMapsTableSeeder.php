@@ -13,7 +13,7 @@ class PlayerMapsTableSeeder extends Seeder
     {
         factory(App\Models\Player::class, 10)->create()->each(function ($player) {
             /** @var \App\Models\Player $player */
-            $player->maps()->save(factory(App\Models\PlayerMaps::class)->make());
+            $player->maps()->save(factory(App\Models\PlayerMap::class)->make());
         });
     }
 }

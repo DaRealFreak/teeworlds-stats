@@ -10,8 +10,8 @@ use Illuminate\Database\Eloquent\Model;
  * App\Models\Player
  *
  * @property-read \App\Models\Clan $clan
- * @property-read \Illuminate\Database\Eloquent\Collection|\App\Models\PlayerMaps[] $maps
- * @property-read \Illuminate\Database\Eloquent\Collection|\App\Models\PlayerMods[] $mods
+ * @property-read \Illuminate\Database\Eloquent\Collection|\App\Models\PlayerMap[] $maps
+ * @property-read \Illuminate\Database\Eloquent\Collection|\App\Models\PlayerMod[] $mods
  * @property-read \App\Models\PlayerStatus $stats
  * @mixin \Eloquent
  */
@@ -75,7 +75,7 @@ class Player extends Model
      */
     public function mods()
     {
-        return $this->hasMany(PlayerMods::class, 'player_id');
+        return $this->hasMany(PlayerMod::class, 'player_id');
     }
 
     /**
@@ -83,6 +83,6 @@ class Player extends Model
      */
     public function maps()
     {
-        return $this->hasMany(PlayerMaps::class, 'player_id');
+        return $this->hasMany(PlayerMap::class, 'player_id');
     }
 }

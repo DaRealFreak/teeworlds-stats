@@ -10,7 +10,7 @@ use Illuminate\Database\Eloquent\Model;
  * @property-read \App\Models\Server $server
  * @mixin \Eloquent
  */
-class ServerMaps extends Model
+class ServerMap extends Model
 {
     protected $guarded = ['id', 'created_at', 'updated_at'];
 
