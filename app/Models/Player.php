@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Utility\ChartUtility;
 use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Model;
 
@@ -38,19 +39,7 @@ class Player extends Model
      */
     public function chartPlayedMaps($amount=31, $displayOthers=True)
     {
-        $results = [];
-        foreach ($this->maps->sortByDesc('times') as $map) {
-            /** @var PlayerMaps $map */
-            $mapName = $map->getAttribute('map');
-            if (count($results) >= $amount) {
-                if (!$displayOthers) {
-                    break;
-                }
-                $mapName = "others";
-            }
-            $results[$mapName] = $map->getAttribute('times') * 5;
-        }
-        return $results;
+        return ChartUtility::chartValues($this->maps, 'map', 'times', 5, $amount, $displayOthers);
     }
 
     /**
@@ -62,19 +51,7 @@ class Player extends Model
      */
     public function chartPlayedMods($amount=31, $displayOthers=True)
     {
-        $results = [];
-        foreach ($this->mods->sortByDesc('times') as $mod) {
-            /** @var PlayerMods $mod */
-            $modName = $mod->getAttribute('mod');
-            if (count($results) >= $amount) {
-                if (!$displayOthers) {
-                    break;
-                }
-                $modName = "others";
-            }
-            $results[$modName] = $mod->getAttribute('times') * 5;
-        }
-        return $results;
+        return ChartUtility::chartValues($this->mods, 'mod', 'times', 5, $amount, $displayOthers);
     }
 
     /**

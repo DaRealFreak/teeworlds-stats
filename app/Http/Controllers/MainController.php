@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\Player;
 use App\Models\PlayerMaps;
 use App\Models\PlayerMods;
+use App\Utility\ChartUtility;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
 
@@ -39,6 +40,14 @@ class MainController extends Controller
     }
 
     /**
+     * @return \Illuminate\Contracts\View\Factory|\Illuminate\View\View
+     */
+    public function home()
+    {
+        return view('main');
+    }
+
+    /**
      * build an array of the played maps for Chart.js in the frontend
      *
      * @param int $amount
@@ -47,19 +56,7 @@ class MainController extends Controller
      */
     public function chartPlayedMaps($amount = 16, $displayOthers = True)
     {
-        $results = [];
-        foreach (PlayerMaps::all() as $map) {
-            $mapName = $map->getAttribute('map');
-
-            if (array_key_exists($mapName, $results)) {
-                $results[$mapName] += $map->getAttribute('times') * 5;
-            } else {
-                $results[$mapName] = $map->getAttribute('times') * 5;
-            }
-        }
-        $this->applyLimits($results, $amount, $displayOthers);
-
-        return $results;
+        return ChartUtility::chartValues(PlayerMaps::all(), 'map', 'times', 5, $amount, $displayOthers);
     }
 
     /**
@@ -71,74 +68,18 @@ class MainController extends Controller
      */
     public function chartPlayedMods($amount = 16, $displayOthers = False)
     {
-        $results = [];
-        foreach (PlayerMods::all() as $mod) {
-            $modName = $mod->getAttribute('mod');
-
-            if (array_key_exists($modName, $results)) {
-                $results[$modName] += $mod->getAttribute('times') * 5;
-            } else {
-                $results[$modName] = $mod->getAttribute('times') * 5;
-            }
-        }
-        $this->applyLimits($results, $amount, $displayOthers);
-
-        return $results;
+        return ChartUtility::chartValues(PlayerMods::all(), 'mod', 'times', 5, $amount, $displayOthers);
     }
 
+    /**
+     * build an array of the playing countries for Chart.js in the frontend
+     *
+     * @param int $amount
+     * @param bool $displayOthers
+     * @return array
+     */
     public function chartPlayedCountries($amount = 31, $displayOthers = True)
     {
-        $results = [];
-        foreach (Player::all() as $player) {
-            /** @var Player $player */
-            $playerName = $player->getAttribute('country');
-            if (array_key_exists($playerName, $results)) {
-                $results[$playerName] += 1;
-            } else {
-                $results[$playerName] = 1;
-            }
-        }
-        $this->applyLimits($results, $amount, $displayOthers);
-
-        return $results;
-    }
-
-    /**
-     * function to apply the amount and displayOthers limitation and sort the
-     * results by value
-     *
-     * @param $results
-     * @param $amount
-     * @param $displayOthers
-     */
-    private function applyLimits(&$results, $amount, $displayOthers)
-    {
-        if ($amount && count($results) > $amount) {
-            arsort($results, true);
-            $i = 0;
-            foreach ($results as $map => $times) {
-                if ($i >= $amount) {
-                    if (isset($results['others'])) {
-                        $results['others'] += $times;
-                    } else {
-                        $results['others'] = $times;
-                    }
-                    unset($results[$map]);
-                }
-                $i++;
-            }
-            if (!$displayOthers) {
-                unset($results['others']);
-            }
-        }
-        arsort($results, true);
-    }
-
-    /**
-     * @return \Illuminate\Contracts\View\Factory|\Illuminate\View\View
-     */
-    public function home()
-    {
-        return view('main');
+        return ChartUtility::chartValues(Player::all(), 'country', null, 1, $amount, $displayOthers);
     }
 }
