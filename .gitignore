@@ -22,3 +22,9 @@ _ide_helper.php
 
 # Rocketeer PHP task runner and deployment package. https://github.com/rocketeers/rocketeer
 .rocketeer/
+
+# generated files from assets
+/public/js/all.js
+/public/js/all.min.js
+/public/*/bundle/*
+/public/css/fonts/*
