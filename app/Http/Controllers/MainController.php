@@ -30,9 +30,9 @@ class MainController extends Controller
                 'players' => DB::table('players')->count(),
                 'servers' => DB::table('servers')->count(),
                 'clans' => DB::table('clans')->count(),
-                'countries' => count(DB::table('players')->distinct('country')->get()),
-                'maps' => count(DB::table('player_maps')->distinct('map')->get()),
-                'mods' => count(DB::table('player_mods')->distinct('mod')->get()),
+                'countries' => count(DB::table('players')->groupBy(['country'])->get()),
+                'maps' => count(DB::table('player_maps')->groupBy(['map'])->get()),
+                'mods' => count(DB::table('player_mods')->groupBy(['mod'])->get()),
             ])
             ->with('chartPlayedMaps', $this->chartPlayedMaps())
             ->with('chartPlayedCountries', $this->chartPlayedCountries())
