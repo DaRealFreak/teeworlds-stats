@@ -108,7 +108,7 @@ class Clan extends Model
      */
     public static function humanizeDuration($minutes)
     {
-        return (new Duration($minutes * 5 * 60))->humanize();
+        return (new Duration($minutes * env('CRONTASK_INTERVAL') * 60))->humanize();
     }
 
     /**
