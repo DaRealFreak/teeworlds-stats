@@ -93,11 +93,11 @@ class Clan extends Model
     /**
      * function to retrieve the most played map of the guild
      *
-     * @return Model|\Illuminate\Database\Eloquent\Relations\HasManyThrough|\Illuminate\Database\Query\Builder|mixed|null|object
+     * @return \Illuminate\Database\Eloquent\Collection|\Illuminate\Support\Collection
      */
-    public function statsMostPlayedMap()
+    public function chartMostPlayedMaps()
     {
-        return $this->hasManyThrough(PlayerMap::class, Player::class)->selectRaw('`player_maps`.*, SUM(times) as `sum_times`')->groupBy(['map'])->orderByRaw('SUM(times) DESC')->first();
+        return $this->hasManyThrough(PlayerMap::class, Player::class)->selectRaw('`player_maps`.*, SUM(times) as `sum_times`')->groupBy(['map'])->orderByRaw('SUM(times) DESC')->get();
     }
 
     /**

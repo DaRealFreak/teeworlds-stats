@@ -100,13 +100,13 @@
                                 <div class="order">Most played map:</div>
                             </div>
                             <div class="col-lg-4 d-flex align-items-center">
-                                <div class="avatar"><img src="{{ asset('images/user.png') }}" alt="..." class="img-fluid"></div>
+                                <div class="avatar"><img src="{{ asset('images/teehut.png') }}" alt="..." class="img-fluid"></div>
                                 <a href="#" class="name">
-                                    <strong class="d-block">{{ $clan->statsMostPlayedMap()->map }}</strong>
+                                    <strong class="d-block">{{ $clan->chartMostPlayedMaps()->first()->map }}</strong>
                                 </a>
                             </div>
                             <div class="col-lg-6 text-center">
-                                <div class="contributions">Played: {{ $clan->humanizeDuration($clan->statsMostPlayedMap()->sum_times) }}</div>
+                                <div class="contributions">Played: {{ $clan->humanizeDuration($clan->chartMostPlayedMaps()->first()->sum_times) }}</div>
                             </div>
                         </div>
                     </div>
