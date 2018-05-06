@@ -5,6 +5,7 @@ namespace App\Models;
 use App\Utility\ChartUtility;
 use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Model;
+use Khill\Duration\Duration;
 
 /**
  * App\Models\Clan
@@ -20,7 +21,7 @@ class Clan extends Model
      * return collection of players who are online
      *
      * @param int $amount
-     * @return bool
+     * @return \Illuminate\Database\Eloquent\Collection
      */
     public function online($amount = 10)
     {
@@ -53,16 +54,31 @@ class Clan extends Model
         return ChartUtility::chartValues($clanPlayedMods, 'mod', 'times', 5, $amount, $displayOthers);
     }
 
+    /**
+     * function to retrieve the oldest player of the guild
+     *
+     * @return Model|\Illuminate\Database\Eloquent\Relations\HasOne|null|object
+     */
     public function statsOldestPlayer()
     {
         return $this->hasOne(Player::class, 'clan_id')->orderBy('created_at')->first();
     }
 
+    /**
+     * function to retrieve the youngest player of the guild
+     *
+     * @return Model|\Illuminate\Database\Eloquent\Relations\HasOne|null|object
+     */
     public function statsYoungestPlayer()
     {
         return $this->hasOne(Player::class, 'clan_id')->orderByDesc('created_at')->first();
     }
 
+    /**
+     * function to retrieve the most active player of the guild
+     *
+     * @return Player
+     */
     public function statsMostActivePlayer()
     {
         return $this->hasManyThrough(PlayerStatus::class, Player::class)->orderByRaw('
@@ -71,16 +87,34 @@ class Clan extends Model
         `player_statuses`.`hour_8`+`player_statuses`.`hour_9`+`player_statuses`.`hour_10`+`player_statuses`.`hour_11`+
         `player_statuses`.`hour_12`+`player_statuses`.`hour_13`+`player_statuses`.`hour_14`+`player_statuses`.`hour_15`+
         `player_statuses`.`hour_16`+`player_statuses`.`hour_17`+`player_statuses`.`hour_18`+`player_statuses`.`hour_19`+
-        `player_statuses`.`hour_20`+`player_statuses`.`hour_21`+`player_statuses`.`hour_22`+`player_statuses`.`hour_23`) DESC')->groupBy(['player_id'])->toSql();
+        `player_statuses`.`hour_20`+`player_statuses`.`hour_21`+`player_statuses`.`hour_22`+`player_statuses`.`hour_23`) DESC')->groupBy(['player_id'])->first()->player;
     }
 
+    /**
+     * function to retrieve the most played map of the guild
+     *
+     * @return Model|\Illuminate\Database\Eloquent\Relations\HasManyThrough|\Illuminate\Database\Query\Builder|mixed|null|object
+     */
     public function statsMostPlayedMap()
     {
         return $this->hasManyThrough(PlayerMap::class, Player::class)->selectRaw('`player_maps`.*, SUM(times) as `sum_times`')->groupBy(['map'])->orderByRaw('SUM(times) DESC')->first();
     }
 
     /**
-     * Get the clan record associated with the tee.
+     * function to humanize the tracked minutes into a human time(h-m-s or if needed even d-h-m-s etc)
+     *
+     * @param $minutes
+     * @return string
+     */
+    public static function humanizeDuration($minutes)
+    {
+        return (new Duration($minutes * 60))->humanize();
+    }
+
+    /**
+     * Get the player records associated with the clan
+     *
+     * @return \Illuminate\Database\Eloquent\Relations\HasMany
      */
     public function players()
     {

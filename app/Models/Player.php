@@ -54,20 +54,10 @@ class Player extends Model
         return ChartUtility::chartValues($this->mods, 'mod', 'times', 5, $amount, $displayOthers);
     }
 
-    public function totalHoursPlayed()
-    {
-        return array_sum([$this->getAttribute('hour_0'), $this->getAttribute('hour_1'), $this->getAttribute('hour_2'),
-            $this->getAttribute('hour_3'), $this->getAttribute('hour_4'), $this->getAttribute('hour_5'),
-            $this->getAttribute('hour_6'), $this->getAttribute('hour_7'), $this->getAttribute('hour_8'),
-            $this->getAttribute('hour_9'), $this->getAttribute('hour_10'), $this->getAttribute('hour_11'),
-            $this->getAttribute('hour_12'), $this->getAttribute('hour_13'), $this->getAttribute('hour_14'),
-            $this->getAttribute('hour_15'), $this->getAttribute('hour_16'), $this->getAttribute('hour_17'),
-            $this->getAttribute('hour_18'), $this->getAttribute('hour_19'), $this->getAttribute('hour_20'),
-            $this->getAttribute('hour_21'), $this->getAttribute('hour_22'), $this->getAttribute('hour_23')]);
-    }
-
     /**
      * Get the clan record associated with the tee.
+     *
+     * @return \Illuminate\Database\Eloquent\Relations\BelongsTo
      */
     public function clan()
     {
@@ -76,6 +66,8 @@ class Player extends Model
 
     /**
      * Get the stats record associated with the tee
+     *
+     * @return \Illuminate\Database\Eloquent\Relations\HasOne
      */
     public function stats()
     {
@@ -83,7 +75,9 @@ class Player extends Model
     }
 
     /**
-     * Get the stats record associated with the tee
+     * Get the mod records associated with the tee
+     *
+     * @return \Illuminate\Database\Eloquent\Relations\HasMany
      */
     public function mods()
     {
@@ -91,7 +85,9 @@ class Player extends Model
     }
 
     /**
-     * Get the stats record associated with the tee
+     * Get the map records associated with the tee
+     *
+     * @return \Illuminate\Database\Eloquent\Relations\HasMany
      */
     public function maps()
     {

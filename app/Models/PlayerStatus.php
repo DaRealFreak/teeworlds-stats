@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use Khill\Duration\Duration;
 
 /**
  * App\Models\PlayerStatus
@@ -13,6 +14,20 @@ use Illuminate\Database\Eloquent\Model;
 class PlayerStatus extends Model
 {
     protected $guarded = ['id', 'created_at', 'updated_at'];
+
+    /**
+     * @param bool $formatted
+     * @return float|int
+     */
+    public function totalHoursPlayed($formatted = False)
+    {
+        $minutes = array_sum(iterator_to_array($this->onlineHours())) * 5;
+        if ($formatted) {
+            return (new Duration($minutes * 60))->humanize();
+        } else {
+            return $minutes;
+        }
+    }
 
     /**
      * @return \Generator
@@ -31,7 +46,7 @@ class PlayerStatus extends Model
     {
         $max = max(iterator_to_array($this->onlineHours()));
         foreach ($this->onlineHours() as $hour) {
-            yield round($hour/$max*100, 2);
+            yield round($hour / $max * 100, 2);
         }
     }
 
@@ -58,7 +73,7 @@ class PlayerStatus extends Model
     {
         $max = max($this->onlineDays());
         foreach ($this->onlineDays() as $day) {
-            yield round($day/$max*100, 2);
+            yield round($day / $max * 100, 2);
         }
     }
 

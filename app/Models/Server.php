@@ -16,7 +16,9 @@ class Server extends Model
     protected $guarded = ['id', 'created_at', 'updated_at'];
 
     /**
-     * Get the stats record associated with the tee
+     * Get the stats record associated with this server record
+     *
+     * @return \Illuminate\Database\Eloquent\Relations\HasOne
      */
     public function stats()
     {
@@ -24,7 +26,9 @@ class Server extends Model
     }
 
     /**
-     * Get the stats record associated with the tee
+     * Get the map records associated with this server record
+     *
+     * @return \Illuminate\Database\Eloquent\Relations\HasMany
      */
     public function maps()
     {
