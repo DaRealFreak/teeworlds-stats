@@ -55,6 +55,18 @@ class Clan extends Model
     }
 
     /**
+     * build an array of the played mods for Chart.js in the frontend
+     *
+     * @param int $amount
+     * @param bool $displayOthers
+     * @return array
+     */
+    public function chartPlayerCountries($amount = 31, $displayOthers = True)
+    {
+        return ChartUtility::chartValues($this->players, 'country', null, 1, $amount, $displayOthers);
+    }
+
+    /**
      * function to retrieve the oldest player of the guild
      *
      * @return Model|\Illuminate\Database\Eloquent\Relations\HasOne|null|object
