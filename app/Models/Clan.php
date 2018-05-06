@@ -67,6 +67,52 @@ class Clan extends Model
     }
 
     /**
+     * @return \Generator
+     */
+    public function chartOnlineHours()
+    {
+        $clanOnlineHours = [];
+        foreach ($this->players as $player) {
+            $playerOnlineStats = iterator_to_array($player->stats->onlineHours());
+            foreach ($playerOnlineStats as $playerOnlineHour => $playerOnlineTimes) {
+                if (!array_key_exists($playerOnlineHour, $clanOnlineHours)) {
+                    $clanOnlineHours[$playerOnlineHour] = $playerOnlineTimes;
+                } else {
+                    $clanOnlineHours[$playerOnlineHour] += $playerOnlineTimes;
+                }
+            }
+        }
+
+        $max = max($clanOnlineHours);
+        foreach ($clanOnlineHours as $clanOnlineHour) {
+            yield round($clanOnlineHour / $max * 100, 2);
+        }
+    }
+
+    /**
+     * @return \Generator
+     */
+    public function chartOnlineDays()
+    {
+        $clanOnlineDays = [];
+        foreach ($this->players as $player) {
+            $playerOnlineDayStats = $player->stats->onlineDays();
+            foreach ($playerOnlineDayStats as $playerOnlineDay => $playerOnlineTimes) {
+                if (!array_key_exists($playerOnlineDay, $clanOnlineDays)) {
+                    $clanOnlineDays[$playerOnlineDay] = $playerOnlineTimes;
+                } else {
+                    $clanOnlineDays[$playerOnlineDay] += $playerOnlineTimes;
+                }
+            }
+        }
+
+        $max = max($clanOnlineDays);
+        foreach ($clanOnlineDays as $clanOnlineDay) {
+            yield round($clanOnlineDay / $max * 100, 2);
+        }
+    }
+
+    /**
      * function to retrieve the oldest player of the guild
      *
      * @return Model|\Illuminate\Database\Eloquent\Relations\HasOne|null|object

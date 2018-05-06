@@ -55,7 +55,7 @@
                             <div class="col-lg-4 d-flex align-items-center">
                                 <div class="avatar"><img src="{{ asset('images/user.png') }}" alt="..."
                                                          class="img-fluid"></div>
-                                <a href="#" class="name">
+                                <a href="{{ url("tee/" . $clan->statsYoungestPlayer()->name) }}" class="name">
                                     <strong class="d-block">{{ $clan->statsYoungestPlayer()->name }}</strong>
                                 </a>
                             </div>
@@ -72,7 +72,7 @@
                             <div class="col-lg-4 d-flex align-items-center">
                                 <div class="avatar"><img src="{{ asset('images/user.png') }}" alt="..."
                                                          class="img-fluid"></div>
-                                <a href="#" class="name">
+                                <a href="{{ url("tee/" . $clan->statsOldestPlayer()->name) }}" class="name">
                                     <strong class="d-block">{{ $clan->statsOldestPlayer()->name }}</strong>
                                 </a>
                             </div>
@@ -89,7 +89,7 @@
                             <div class="col-lg-4 d-flex align-items-center">
                                 <div class="avatar"><img src="{{ asset('images/user.png') }}" alt="..."
                                                          class="img-fluid"></div>
-                                <a href="#" class="name">
+                                <a href="{{ url("tee/" . $clan->statsMostActivePlayer()->name) }}" class="name">
                                     <strong class="d-block">{{ $clan->statsMostActivePlayer()->name }}</strong>
                                 </a>
                             </div>
@@ -281,6 +281,130 @@
                         }]
                 }
             });
+
+            // ------------------------------------------------------- //
+            // Online probability days
+            // ------------------------------------------------------ //
+            new Chart($('#onlineLineChartDays'), {
+                type: 'line',
+                options: {
+                    legend: {
+                        labels: {
+                            fontColor: "#777",
+                            fontSize: 12
+                        }
+                    },
+                    scales: {
+                        xAxes: [{
+                            display: false,
+                            gridLines: {
+                                color: 'transparent'
+                            }
+                        }],
+                        yAxes: [{
+                            ticks: {
+                                max: 100,
+                                min: 0
+                            },
+                            display: true,
+                            gridLines: {
+                                color: 'transparent'
+                            }
+                        }]
+                    },
+                },
+                data: {
+                    labels: ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"],
+                    datasets: [
+                        {
+                            label: "Weekday Online Probability",
+                            fill: true,
+                            lineTension: 0.2,
+                            backgroundColor: "rgba(134, 77, 217, 0.88)",
+                            borderColor: "rgba(134, 77, 217, 088)",
+                            borderCapStyle: 'butt',
+                            borderDash: [],
+                            borderDashOffset: 0.0,
+                            borderJoinStyle: 'miter',
+                            borderWidth: 1,
+                            pointBorderColor: "rgba(134, 77, 217, 0.88)",
+                            pointBackgroundColor: "#fff",
+                            pointBorderWidth: 1,
+                            pointHoverRadius: 5,
+                            pointHoverBackgroundColor: "rgba(134, 77, 217, 0.88)",
+                            pointHoverBorderColor: "rgba(134, 77, 217, 0.88)",
+                            pointHoverBorderWidth: 2,
+                            pointRadius: 1,
+                            pointHitRadius: 10,
+                            data: {!! json_encode(iterator_to_array($clan->chartOnlineDays())) !!},
+                            spanGaps: false
+                        }
+                    ]
+                }
+            });
+
+            // ------------------------------------------------------- //
+            // Online probability hours
+            // ------------------------------------------------------ //
+            new Chart($('#onlineLineChartHours'), {
+                type: 'line',
+                options: {
+                    legend: {
+                        labels: {
+                            fontColor: "#777",
+                            fontSize: 12
+                        }
+                    },
+                    scales: {
+                        xAxes: [{
+                            display: false,
+                            gridLines: {
+                                color: 'transparent'
+                            }
+                        }],
+                        yAxes: [{
+                            ticks: {
+                                max: 100,
+                                min: 0
+                            },
+                            display: true,
+                            gridLines: {
+                                color: 'transparent'
+                            }
+                        }]
+                    },
+                },
+                data: {
+                    labels: ["12 AM", "1 AM", "2 AM", "3 AM", "4 AM", "5 AM", "6 AM", "7 AM", "8 AM", "9 AM", "10 AM", "11 AM",
+                        "12 PM", "13 PM", "14 PM", "15 PM", "16 PM", "17 PM", "18 PM", "19 PM", "20 PM", "21 PM", "22 PM", "23 PM"],
+                    datasets: [
+                        {
+                            label: "Weekday Online Probability",
+                            fill: true,
+                            lineTension: 0.2,
+                            backgroundColor: "rgba(134, 77, 217, 0.88)",
+                            borderColor: "rgba(134, 77, 217, 088)",
+                            borderCapStyle: 'butt',
+                            borderDash: [],
+                            borderDashOffset: 0.0,
+                            borderJoinStyle: 'miter',
+                            borderWidth: 1,
+                            pointBorderColor: "rgba(134, 77, 217, 0.88)",
+                            pointBackgroundColor: "#fff",
+                            pointBorderWidth: 1,
+                            pointHoverRadius: 5,
+                            pointHoverBackgroundColor: "rgba(134, 77, 217, 0.88)",
+                            pointHoverBorderColor: "rgba(134, 77, 217, 0.88)",
+                            pointHoverBorderWidth: 2,
+                            pointRadius: 1,
+                            pointHitRadius: 10,
+                            data: {!! json_encode(iterator_to_array($clan->chartOnlineHours())) !!},
+                            spanGaps: false
+                        }
+                    ]
+                }
+            });
+
 
             ChartHelper.chartColors(playedModsChart, {0: [117, 46, 224, 1], 100: [166, 120, 235, 1]});
             ChartHelper.chartColors(playedMapsChart, {0: [117, 46, 224, 1], 100: [166, 120, 235, 1]});
