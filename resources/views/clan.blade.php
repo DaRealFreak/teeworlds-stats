@@ -60,7 +60,7 @@
                                 </a>
                             </div>
                             <div class="col-lg-6 text-center">
-                                <div class="contributions">Joined: {{ $clan->statsYoungestPlayer()->created_at }}</div>
+                                <div class="contributions">Joined: {{ $clan->statsYoungestPlayer()->clan_joined_at }}</div>
                             </div>
                         </div>
                     </div>
@@ -77,7 +77,7 @@
                                 </a>
                             </div>
                             <div class="col-lg-6 text-center">
-                                <div class="contributions">Joined: {{ $clan->statsOldestPlayer()->created_at }}</div>
+                                <div class="contributions">Joined: {{ $clan->statsOldestPlayer()->clan_joined_at }}</div>
                             </div>
                         </div>
                     </div>

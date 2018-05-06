@@ -119,7 +119,7 @@ class Clan extends Model
      */
     public function statsOldestPlayer()
     {
-        return $this->hasOne(Player::class, 'clan_id')->orderBy('created_at')->first();
+        return $this->hasOne(Player::class, 'clan_id')->orderBy('clan_joined_at')->first();
     }
 
     /**
@@ -129,7 +129,7 @@ class Clan extends Model
      */
     public function statsYoungestPlayer()
     {
-        return $this->hasOne(Player::class, 'clan_id')->orderByDesc('created_at')->first();
+        return $this->hasOne(Player::class, 'clan_id')->orderByDesc('clan_joined_at')->first();
     }
 
     /**
