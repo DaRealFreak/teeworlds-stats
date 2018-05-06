@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#composer-lock-the-lock-file",
         "This file is @generated automatically"
     ],
-    "content-hash": "a740d35977bc501a6e7ceeeb2bdad855",
+    "content-hash": "62d61d5bd89a8165721050ac670a8284",
     "packages": [
         {
             "name": "barryvdh/laravel-ide-helper",
@@ -574,6 +574,56 @@
                 }
             ],
             "time": "2015-04-20T18:58:01+00:00"
+        },
+        {
+            "name": "khill/php-duration",
+            "version": "1.0.5",
+            "source": {
+                "type": "git",
+                "url": "https://github.com/kevinkhill/php-duration.git",
+                "reference": "9fbb2eaf584d0e04f9d49e008c6abe56e2915625"
+            },
+            "dist": {
+                "type": "zip",
+                "url": "https://api.github.com/repos/kevinkhill/php-duration/zipball/9fbb2eaf584d0e04f9d49e008c6abe56e2915625",
+                "reference": "9fbb2eaf584d0e04f9d49e008c6abe56e2915625",
+                "shasum": ""
+            },
+            "require-dev": {
+                "doctrine/instantiator": "1.0.4",
+                "phpunit/phpunit": "~4.8",
+                "satooshi/php-coveralls": "~1.0",
+                "symfony/config": "~2.0",
+                "symfony/console": "~2.0",
+                "symfony/filesystem": "~2.0",
+                "symfony/stopwatch": "~2.0",
+                "symfony/yaml": "~2.0"
+            },
+            "type": "library",
+            "autoload": {
+                "psr-4": {
+                    "Khill\\Duration\\": "src/"
+                }
+            },
+            "notification-url": "https://packagist.org/downloads/",
+            "license": [
+                "MIT"
+            ],
+            "authors": [
+                {
+                    "name": "Kevin Hill",
+                    "email": "kevinkhill@gmail.com",
+                    "role": "Creator"
+                }
+            ],
+            "description": "Converts between colon formatted time, human-readable time and seconds",
+            "keywords": [
+                "convert",
+                "duration",
+                "seconds",
+                "time"
+            ],
+            "time": "2018-04-07T15:02:43+00:00"
         },
         {
             "name": "laravel/framework",
