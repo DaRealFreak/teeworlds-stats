@@ -5,8 +5,8 @@
     <div class="page-header no-margin-bottom">
         <div class="container-fluid">
             <h2 class="h5 no-margin-bottom">{{ $player->name }}'s Statistics
-                @if ($player->clan())
-                    - [{{ $player->clan()->name }}]
+                @if ($player->clan)
+                    - [{{ $player->clan->name }}]
                 @endif
             </h2>
         </div>
@@ -66,12 +66,11 @@
                         labels: {
                             fontColor: "#777",
                             fontSize: 12
-                        },
-                        display: false
+                        }
                     },
                     scales: {
                         xAxes: [{
-                            display: true,
+                            display: false,
                             gridLines: {
                                 color: 'transparent'
                             }
@@ -87,16 +86,6 @@
                             }
                         }]
                     },
-                    tooltips: {
-                        callbacks: {
-                            title: function (tooltipItem, data) {
-                                return data['labels'][tooltipItem[0]['index']];
-                            },
-                            label: function (tooltipItem, data) {
-                                return 'Possibility: ' + data['datasets'][0]['data'][tooltipItem['index']] + '%';
-                            },
-                        },
-                    }
                 },
                 data: {
                     labels: ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"],
@@ -138,12 +127,11 @@
                         labels: {
                             fontColor: "#777",
                             fontSize: 12
-                        },
-                        display: false
+                        }
                     },
                     scales: {
                         xAxes: [{
-                            display: true,
+                            display: false,
                             gridLines: {
                                 color: 'transparent'
                             }
@@ -159,16 +147,6 @@
                             }
                         }]
                     },
-                    tooltips: {
-                        callbacks: {
-                            title: function (tooltipItem, data) {
-                                return data['labels'][tooltipItem[0]['index']];
-                            },
-                            label: function (tooltipItem, data) {
-                                return 'Possibility: ' + data['datasets'][0]['data'][tooltipItem['index']] + '%';
-                            },
-                        },
-                    }
                 },
                 data: {
                     labels: ["12 AM", "1 AM", "2 AM", "3 AM", "4 AM", "5 AM", "6 AM", "7 AM", "8 AM", "9 AM", "10 AM", "11 AM",
@@ -214,33 +192,18 @@
                                 color: '#3f4145'
                             },
                             ticks: {
-                                beginAtZero: true,
+                                maxTicksLimit: 3,
                                 display: false,
                                 userCallback: function (value, index, values) {
-                                    return humanizeDuration(value * 60 * 100);
-                                },
-                                max: {!! max(array_values($player->chartPlayedMods())) !!}
+                                    return humanizeDuration(value*5*60*100);
+                                }
                             },
                             pointLabels: {
                                 fontSize: 12
                             }
                         },
                         legend: {
-                            display: false
-                        },
-                        tooltips: {
-                            callbacks: {
-                                title: function (tooltipItem, data) {
-                                    return data['labels'][tooltipItem[0]['index']];
-                                },
-                                label: function (tooltipItem, data) {
-                                    let dataset = data['datasets'][0];
-                                    let percent = Math.round((dataset['data'][tooltipItem['index']] / dataset['data'].reduce(function (a, b) {
-                                        return a + b;
-                                    }, 0)) * 10000) / 100;
-                                    return percent + '% (' + humanizeDuration(dataset['data'][tooltipItem['index']] * 60 * 1000) + ')';
-                                },
-                            },
+                            position: 'right'
                         }
                     },
                     data: {
@@ -278,7 +241,7 @@
                                 },
                                 label: function (tooltipItem, data) {
                                     let dataset = data['datasets'][0];
-                                    let percent = Math.round((dataset['data'][tooltipItem['index']] / dataset["_meta"][Object.keys(dataset["_meta"])[0]]['total']) * 10000) / 100;
+                                    let percent = Math.round((dataset['data'][tooltipItem['index']] / dataset["_meta"][Object.keys(dataset["_meta"])[0]]['total']) * 100);
                                     return percent + '% (' + humanizeDuration(dataset['data'][tooltipItem['index']] * 60 * 1000) + ')';
                                 },
                             },
@@ -295,7 +258,11 @@
                                     "#864DD9",
                                     "#9762e6",
                                 ],
-                                hoverBackgroundColor: '#4313a0',
+                                hoverBackgroundColor: [
+                                    '#723ac3',
+                                    "#864DD9",
+                                    "#9762e6",
+                                ]
                             }]
                     }
                 });
@@ -318,7 +285,7 @@
                             },
                             label: function (tooltipItem, data) {
                                 let dataset = data['datasets'][0];
-                                let percent = Math.round((dataset['data'][tooltipItem['index']] / dataset["_meta"][Object.keys(dataset["_meta"])[0]]['total']) * 10000) / 100;
+                                let percent = Math.round((dataset['data'][tooltipItem['index']] / dataset["_meta"][Object.keys(dataset["_meta"])[0]]['total']) * 100);
                                 return percent + '% (' + humanizeDuration(dataset['data'][tooltipItem['index']] * 60 * 1000) + ')';
                             },
                         },
@@ -335,11 +302,17 @@
                                 "#864DD9",
                                 "#9762e6",
                             ],
-                            hoverBackgroundColor: '#4313a0',
+                            hoverBackgroundColor: [
+                                '#723ac3',
+                                "#864DD9",
+                                "#9762e6",
+                            ]
                         }]
                 }
             });
             ChartHelper.chartColors(playedMaps, {0: [117, 46, 224, 1], 100: [166, 120, 235, 1]});
+
+
         });
 
     </script>
