@@ -66,11 +66,12 @@
                         labels: {
                             fontColor: "#777",
                             fontSize: 12
-                        }
+                        },
+                        display: false
                     },
                     scales: {
                         xAxes: [{
-                            display: false,
+                            display: true,
                             gridLines: {
                                 color: 'transparent'
                             }
@@ -86,6 +87,16 @@
                             }
                         }]
                     },
+                    tooltips: {
+                        callbacks: {
+                            title: function (tooltipItem, data) {
+                                return data['labels'][tooltipItem[0]['index']];
+                            },
+                            label: function (tooltipItem, data) {
+                                return 'Possibility: ' + data['datasets'][0]['data'][tooltipItem['index']] + '%';
+                            },
+                        },
+                    }
                 },
                 data: {
                     labels: ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"],
@@ -127,11 +138,12 @@
                         labels: {
                             fontColor: "#777",
                             fontSize: 12
-                        }
+                        },
+                        display: false
                     },
                     scales: {
                         xAxes: [{
-                            display: false,
+                            display: true,
                             gridLines: {
                                 color: 'transparent'
                             }
@@ -147,6 +159,16 @@
                             }
                         }]
                     },
+                    tooltips: {
+                        callbacks: {
+                            title: function (tooltipItem, data) {
+                                return data['labels'][tooltipItem[0]['index']];
+                            },
+                            label: function (tooltipItem, data) {
+                                return 'Possibility: ' + data['datasets'][0]['data'][tooltipItem['index']] + '%';
+                            },
+                        },
+                    }
                 },
                 data: {
                     labels: ["12 AM", "1 AM", "2 AM", "3 AM", "4 AM", "5 AM", "6 AM", "7 AM", "8 AM", "9 AM", "10 AM", "11 AM",
@@ -204,7 +226,7 @@
                             }
                         },
                         legend: {
-                            position: 'right'
+                            display: false
                         },
                         tooltips: {
                             callbacks: {
@@ -254,7 +276,7 @@
                                 },
                                 label: function (tooltipItem, data) {
                                     let dataset = data['datasets'][0];
-                                    let percent = Math.round((dataset['data'][tooltipItem['index']] / dataset["_meta"][Object.keys(dataset["_meta"])[0]]['total']) * 100);
+                                    let percent = Math.round((dataset['data'][tooltipItem['index']] / dataset["_meta"][Object.keys(dataset["_meta"])[0]]['total']) * 10000) / 100;
                                     return percent + '% (' + humanizeDuration(dataset['data'][tooltipItem['index']] * 60 * 1000) + ')';
                                 },
                             },
@@ -271,11 +293,7 @@
                                     "#864DD9",
                                     "#9762e6",
                                 ],
-                                hoverBackgroundColor: [
-                                    '#723ac3',
-                                    "#864DD9",
-                                    "#9762e6",
-                                ]
+                                hoverBackgroundColor: '#4313a0',
                             }]
                     }
                 });
@@ -298,7 +316,7 @@
                             },
                             label: function (tooltipItem, data) {
                                 let dataset = data['datasets'][0];
-                                let percent = Math.round((dataset['data'][tooltipItem['index']] / dataset["_meta"][Object.keys(dataset["_meta"])[0]]['total']) * 100);
+                                let percent = Math.round((dataset['data'][tooltipItem['index']] / dataset["_meta"][Object.keys(dataset["_meta"])[0]]['total']) * 10000) / 100;
                                 return percent + '% (' + humanizeDuration(dataset['data'][tooltipItem['index']] * 60 * 1000) + ')';
                             },
                         },
@@ -315,11 +333,7 @@
                                 "#864DD9",
                                 "#9762e6",
                             ],
-                            hoverBackgroundColor: [
-                                '#723ac3',
-                                "#864DD9",
-                                "#9762e6",
-                            ]
+                            hoverBackgroundColor: '#4313a0',
                         }]
                 }
             });
