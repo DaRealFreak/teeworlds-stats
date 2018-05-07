@@ -109,17 +109,18 @@
                             color: '#3f4145'
                         },
                         ticks: {
-                            beginAtZero: true,
-                            min: 0,
-                            max: {!! json_encode(max($chartPlayedMods)) !!},
-                            stepSize: 20
+                            maxTicksLimit: 3,
+                            display: false,
+                            userCallback: function (value, index, values) {
+                                return humanizeDuration(value*5*60*100);
+                            }
                         },
                         pointLabels: {
                             fontSize: 12
                         }
                     },
                     legend: {
-                        position: 'left'
+                        position: 'right'
                     },
                     tooltips: {
                         callbacks: {

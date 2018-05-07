@@ -192,17 +192,18 @@
                                 color: '#3f4145'
                             },
                             ticks: {
-                                beginAtZero: true,
-                                min: 0,
-                                max: {!! json_encode(max($player->chartPlayedMods())) !!},
-                                stepSize: 20
+                                maxTicksLimit: 3,
+                                display: false,
+                                userCallback: function (value, index, values) {
+                                    return humanizeDuration(value*5*60*100);
+                                }
                             },
                             pointLabels: {
                                 fontSize: 12
                             }
                         },
                         legend: {
-                            position: 'left'
+                            position: 'right'
                         }
                     },
                     data: {
@@ -241,7 +242,7 @@
                                 label: function (tooltipItem, data) {
                                     let dataset = data['datasets'][0];
                                     let percent = Math.round((dataset['data'][tooltipItem['index']] / dataset["_meta"][Object.keys(dataset["_meta"])[0]]['total']) * 100);
-                                    return percent + '% (' + humanizeDuration(dataset['data'][tooltipItem['index']]*60*1000) + ')';
+                                    return percent + '% (' + humanizeDuration(dataset['data'][tooltipItem['index']] * 60 * 1000) + ')';
                                 },
                             },
                         }
@@ -267,93 +268,50 @@
                 });
             @endif
 
-            let playedMaps = $('#playedMapsChart');
-            @if (count($player->chartPlayedMaps()) >= 3)
-                // ------------------------------------------------------- //
-                // Played maps radar chart
-                // ------------------------------------------------------ //
-                new Chart(playedMaps, {
-                    type: 'radar',
-                    options: {
-                        scale: {
-                            gridLines: {
-                                color: '#3f4145'
-                            },
-                            ticks: {
-                                beginAtZero: true,
-                                min: 0,
-                                max: {!! max($player->chartPlayedMaps()) !!},
-                                stepSize: 20
-                            },
-                            pointLabels: {
-                                fontSize: 12
-                            }
-                        },
-                        legend: {
-                            position: 'left'
-                        }
+            // ------------------------------------------------------- //
+            // Played maps pie chart for less than 3 played maps
+            // ------------------------------------------------------ //
+            let playedMaps = new Chart($('#playedMapsChart'), {
+                type: 'pie',
+                options: {
+                    legend: {
+                        display: true,
+                        position: "right"
                     },
-                    data: {
-                        labels: {!! json_encode(array_keys($player->chartPlayedMaps())) !!},
-                        datasets: [
-                            {
-                                label: "Played mods",
-                                backgroundColor: "rgba(113, 39, 172, 0.4)",
-                                borderWidth: 2,
-                                borderColor: "#7127AC",
-                                pointBackgroundColor: "#7127AC",
-                                pointBorderColor: "#fff",
-                                pointHoverBackgroundColor: "#fff",
-                                pointHoverBorderColor: "#7127AC",
-                                data: {!! json_encode(array_values($player->chartPlayedMaps())) !!}
-                            }
-                        ]
-                    }
-                });
-            @else
-                // ------------------------------------------------------- //
-                // Played maps pie chart for less than 3 played maps
-                // ------------------------------------------------------ //
-                new Chart(playedMaps, {
-                    type: 'pie',
-                    options: {
-                        legend: {
-                            display: true,
-                            position: "left"
-                        },
-                        tooltips: {
-                            callbacks: {
-                                title: function (tooltipItem, data) {
-                                    return data['labels'][tooltipItem[0]['index']];
-                                },
-                                label: function (tooltipItem, data) {
-                                    let dataset = data['datasets'][0];
-                                    let percent = Math.round((dataset['data'][tooltipItem['index']] / dataset["_meta"][Object.keys(dataset["_meta"])[0]]['total']) * 100);
-                                    return percent + '% (' + humanizeDuration(dataset['data'][tooltipItem['index']]*60*1000) + ')';
-                                },
+                    tooltips: {
+                        callbacks: {
+                            title: function (tooltipItem, data) {
+                                return data['labels'][tooltipItem[0]['index']];
                             },
-                        }
-                    },
-                    data: {
-                        labels: {!! json_encode(array_keys($player->chartPlayedMaps())) !!},
-                        datasets: [
-                            {
-                                data: {!! json_encode(array_values($player->chartPlayedMaps()))  !!},
-                                borderWidth: 0,
-                                backgroundColor: [
-                                    '#723ac3',
-                                    "#864DD9",
-                                    "#9762e6",
-                                ],
-                                hoverBackgroundColor: [
-                                    '#723ac3',
-                                    "#864DD9",
-                                    "#9762e6",
-                                ]
-                            }]
+                            label: function (tooltipItem, data) {
+                                let dataset = data['datasets'][0];
+                                let percent = Math.round((dataset['data'][tooltipItem['index']] / dataset["_meta"][Object.keys(dataset["_meta"])[0]]['total']) * 100);
+                                return percent + '% (' + humanizeDuration(dataset['data'][tooltipItem['index']] * 60 * 1000) + ')';
+                            },
+                        },
                     }
-                });
-            @endif
+                },
+                data: {
+                    labels: {!! json_encode(array_keys($player->chartPlayedMaps())) !!},
+                    datasets: [
+                        {
+                            data: {!! json_encode(array_values($player->chartPlayedMaps()))  !!},
+                            borderWidth: 0,
+                            backgroundColor: [
+                                '#723ac3',
+                                "#864DD9",
+                                "#9762e6",
+                            ],
+                            hoverBackgroundColor: [
+                                '#723ac3',
+                                "#864DD9",
+                                "#9762e6",
+                            ]
+                        }]
+                }
+            });
+            ChartHelper.chartColors(playedMaps, {0: [117, 46, 224, 1], 100: [166, 120, 235, 1]});
+
 
         });
 

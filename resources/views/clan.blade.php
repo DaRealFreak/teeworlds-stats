@@ -162,26 +162,70 @@
 
             Chart.defaults.global.defaultFontColor = '#75787c';
 
+            let playedMods = $('#playedModsChart');
+            @if (count($player->chartPlayedMods()) >= 3)
             // ------------------------------------------------------- //
-            // Clan played maps pie chart
+            // Played mods radar chart
             // ------------------------------------------------------ //
-            let playedModsChart = new Chart($('#playedModsChart'), {
+            new Chart(playedMods, {
+                type: 'radar',
+                options: {
+                    scale: {
+                        gridLines: {
+                            color: '#3f4145'
+                        },
+                        ticks: {
+                            maxTicksLimit: 3,
+                            display: false,
+                            userCallback: function (value, index, values) {
+                                return humanizeDuration(value*5*60*100);
+                            }
+                        },
+                        pointLabels: {
+                            fontSize: 12
+                        }
+                    },
+                    legend: {
+                        position: 'right'
+                    }
+                },
+                data: {
+                    labels: {!! json_encode(array_keys($clan->chartPlayedMods())) !!},
+                    datasets: [
+                        {
+                            label: "Played mods",
+                            backgroundColor: "rgba(113, 39, 172, 0.4)",
+                            borderWidth: 2,
+                            borderColor: "#7127AC",
+                            pointBackgroundColor: "#7127AC",
+                            pointBorderColor: "#fff",
+                            pointHoverBackgroundColor: "#fff",
+                            pointHoverBorderColor: "#7127AC",
+                            data: {!! json_encode(array_values($clan->chartPlayedMods())) !!}
+                        }
+                    ]
+                }
+            });
+            @else
+            // ------------------------------------------------------- //
+            // Played mods pie chart for less than 3 played mods
+            // ------------------------------------------------------ //
+            new Chart(playedMods, {
                 type: 'pie',
                 options: {
                     legend: {
                         display: true,
-                        position: "right",
-                        responsive: false
+                        position: "left"
                     },
                     tooltips: {
                         callbacks: {
-                            title: function(tooltipItem, data) {
+                            title: function (tooltipItem, data) {
                                 return data['labels'][tooltipItem[0]['index']];
                             },
-                            label: function(tooltipItem, data) {
+                            label: function (tooltipItem, data) {
                                 let dataset = data['datasets'][0];
                                 let percent = Math.round((dataset['data'][tooltipItem['index']] / dataset["_meta"][Object.keys(dataset["_meta"])[0]]['total']) * 100);
-                                return percent + '%';
+                                return percent + '% (' + humanizeDuration(dataset['data'][tooltipItem['index']] * 60 * 1000) + ')';
                             },
                         },
                     }
@@ -197,10 +241,16 @@
                                 "#864DD9",
                                 "#9762e6",
                             ],
-                            hoverBackgroundColor: '#4313a0',
+                            hoverBackgroundColor: [
+                                '#723ac3',
+                                "#864DD9",
+                                "#9762e6",
+                            ]
                         }]
                 }
             });
+            @endif
+
 
             // ------------------------------------------------------- //
             // Clan played mods pie chart
@@ -405,8 +455,6 @@
                 }
             });
 
-
-            ChartHelper.chartColors(playedModsChart, {0: [117, 46, 224, 1], 100: [166, 120, 235, 1]});
             ChartHelper.chartColors(playedMapsChart, {0: [117, 46, 224, 1], 100: [166, 120, 235, 1]});
             ChartHelper.chartColors(playerCountriesChart, {0: [117, 46, 224, 1], 100: [166, 120, 235, 1]});
         });

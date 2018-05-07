@@ -28,7 +28,7 @@
     <script src="{{ asset('vendor/chart.js/Chart.min.js') }}" defer></script>
     <script src="{{ asset('vendor/jquery-validation/jquery.validate.min.js') }}" defer></script>
     <script src="{{ asset('js/app.js') }}" defer></script>
-    <script src="{{ asset('js/bundle/bundle.js') }}" defer></script>
+    <script src="{{ asset('js/bundle/bundle.js') }}"></script>
 
     <!-- Fonts -->
     <link rel="dns-prefetch" href="https://fonts.gstatic.com">
