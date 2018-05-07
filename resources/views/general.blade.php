@@ -121,7 +121,7 @@
                         }
                     },
                     legend: {
-                        position: 'right'
+                        display: false
                     },
                     tooltips: {
                         callbacks: {
@@ -171,7 +171,7 @@
                             },
                             label: function(tooltipItem, data) {
                                 let dataset = data['datasets'][0];
-                                let percent = Math.round((dataset['data'][tooltipItem['index']] / dataset["_meta"][Object.keys(dataset["_meta"])[0]]['total']) * 100);
+                                let percent = Math.round((dataset['data'][tooltipItem['index']] / dataset["_meta"][Object.keys(dataset["_meta"])[0]]['total']) * 10000) / 100;
                                 return percent + '%';
                             },
                         },
@@ -217,7 +217,7 @@
                             },
                             label: function(tooltipItem, data) {
                                 let dataset = data['datasets'][0];
-                                let percent = Math.round((dataset['data'][tooltipItem['index']] / dataset["_meta"][Object.keys(dataset["_meta"])[0]]['total']) * 100);
+                                let percent = Math.round((dataset['data'][tooltipItem['index']] / dataset["_meta"][Object.keys(dataset["_meta"])[0]]['total']) * 10000) / 100;
                                 return percent + '%';
                             },
                         },
