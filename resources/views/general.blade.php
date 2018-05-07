@@ -109,6 +109,7 @@
                             color: '#3f4145'
                         },
                         ticks: {
+                            beginAtZero: true,
                             maxTicksLimit: 3,
                             display: false,
                             userCallback: function (value, index, values) {
@@ -124,14 +125,13 @@
                     },
                     tooltips: {
                         callbacks: {
-                            title: function(tooltipItem, data) {
+                            title: function (tooltipItem, data) {
                                 return data['labels'][tooltipItem[0]['index']];
                             },
-                            label: function(tooltipItem, data) {
+                            label: function (tooltipItem, data) {
                                 let dataset = data['datasets'][0];
-                                let sum = dataset['data'].reduce(function(a, b) { return a + b; }, 0);
-                                let percent = Math.round((dataset['data'][tooltipItem['index']] / sum) * 100);
-                                return percent + '%';
+                                let percent = Math.round((dataset['data'][tooltipItem['index']] / dataset['data'].reduce(function(a, b) { return a + b; }, 0)) * 10000) / 100;
+                                return percent + '% (' + humanizeDuration(dataset['data'][tooltipItem['index']] * 60 * 1000) + ')';
                             },
                         },
                     }
