@@ -2,15 +2,12 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\Clan;
-use App\Models\DailySummary;
-use App\Models\Map;
-use App\Models\Mod;
 use App\Models\Player;
-use App\Models\Server;
-use App\Models\PlayerHistory;
+use App\Models\PlayerMap;
+use App\Models\PlayerMod;
 use App\Utility\ChartUtility;
 use Carbon\Carbon;
+use Illuminate\Support\Facades\DB;
 
 class MainController extends Controller
 {
@@ -29,16 +26,17 @@ class MainController extends Controller
     {
         return view('general')
             ->with('general', [
-                'online' => Player::where('last_seen', '>=', Carbon::now()->subMinutes(env('CRONTASK_INTERVAL') * 1.5))->count(),
-                'players' => Player::count(),
-                'servers' => Server::count(),
-                'clans' => Clan::count(),
-                'countries' => count(Player::groupBy(['country'])->get()),
-                'maps' => count(Map::groupBy(['map'])->get()),
-                'mods' => count(Mod::groupBy(['mod'])->get()),
+                'online' => DB::table('players')->where('updated_at', '>=', Carbon::now()->subMinutes(10))->count(),
+                'players' => DB::table('players')->count(),
+                'servers' => DB::table('servers')->count(),
+                'clans' => DB::table('clans')->count(),
+                'countries' => count(DB::table('players')->groupBy(['country'])->get()),
+                'maps' => count(DB::table('player_maps')->groupBy(['map'])->get()),
+                'mods' => count(DB::table('player_mods')->groupBy(['mod'])->get()),
             ])
-            ->with('dailySummary', DailySummary::firstOrCreate(['date' => Carbon::today()]))
-            ->with('controller', $this);
+            ->with('chartPlayedMaps', $this->chartPlayedMaps())
+            ->with('chartPlayedCountries', $this->chartPlayedCountries())
+            ->with('chartPlayedMods', $this->chartPlayedMods());
     }
 
     /**
@@ -58,17 +56,7 @@ class MainController extends Controller
      */
     public function chartPlayedMaps($amount = 10, $displayOthers = True)
     {
-        $playedMaps = PlayerHistory::selectRaw('`' . (new PlayerHistory)->getTable() . '`.*, SUM(`' . (new PlayerHistory)->getTable() . '`.`minutes`) as `sum_minutes`')
-            ->groupBy('map_id')
-            ->orderByDesc('sum_minutes')->get();
-
-        /** @var PlayerHistory $playedMap */
-        foreach ($playedMaps as $playedMap) {
-            $results[$playedMap->map->getAttribute('map')] = (int)$playedMap->getAttribute('sum_minutes');
-        }
-        ChartUtility::applyLimits($results, $amount, $displayOthers);
-
-        return $results;
+        return ChartUtility::chartValues(PlayerMap::all(), 'map', 'times', 5, $amount, $displayOthers);
     }
 
     /**
@@ -80,22 +68,7 @@ class MainController extends Controller
      */
     public function chartPlayedMods($amount = 10, $displayOthers = False)
     {
-        $playedMods = PlayerHistory::selectRaw('`player_histories`.*, SUM(`player_histories`.`minutes`) as `sum_minutes`')
-            ->groupBy('mod_id')
-            ->orderByDesc('sum_minutes')->get();
-
-        /** @var PlayerHistory $playedMod */
-        foreach ($playedMods as $playedMod) {
-            $results[$playedMod->mod->getAttribute('mod')] = (int)$playedMod->getAttribute('sum_minutes');
-        }
-        ChartUtility::applyLimits($results, $amount, $displayOthers);
-
-        // sort by key if radar chart is used(>= 3 mods), else it looks pretty bad normally
-        if (count($results) >= 3) {
-            ksort($results);
-        }
-
-        return $results;
+        return ChartUtility::chartValues(PlayerMod::all(), 'mod', 'times', 5, $amount, $displayOthers);
     }
 
     /**
@@ -107,32 +80,6 @@ class MainController extends Controller
      */
     public function chartPlayedCountries($amount = 10, $displayOthers = True)
     {
-        $players = Player::selectRaw('`players`.*, COUNT(`players`.`country`) as `count_countries`')
-            ->groupBy('country')
-            ->orderByRaw('COUNT(`players`.`country`) DESC')->get();
-
-        /** @var Player $player */
-        foreach ($players as $player) {
-            $results[$player->getAttribute('country')] = (int)$player->getAttribute('count_countries');
-        }
-        ChartUtility::applyLimits($results, $amount, $displayOthers);
-
-        return $results;
-    }
-
-    /**
-     * @return Player[]|\Illuminate\Database\Eloquent\Collection
-     */
-    public function playersCreatedLast24Hours()
-    {
-        return Player::where('created_at', '>=', Carbon::now()->subDay())->get();
-    }
-
-    /**
-     * @return Player[]|\Illuminate\Database\Eloquent\Collection
-     */
-    public function playersSeenLast24Hours()
-    {
-        return Player::where('last_seen', '>=', Carbon::now()->subDay())->get();
+        return ChartUtility::chartValues(Player::all(), 'country', null, 1, $amount, $displayOthers);
     }
 }

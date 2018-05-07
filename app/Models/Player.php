@@ -9,8 +9,9 @@ use Illuminate\Database\Eloquent\Model;
 /**
  * App\Models\Player
  *
- * @property-read \Illuminate\Database\Eloquent\Collection|\App\Models\PlayerClanHistory[] $clanRecords
- * @property-read \Illuminate\Database\Eloquent\Collection|\App\Models\PlayerHistory[] $playRecords
+ * @property-read \App\Models\Clan $clan
+ * @property-read \Illuminate\Database\Eloquent\Collection|\App\Models\PlayerMap[] $maps
+ * @property-read \Illuminate\Database\Eloquent\Collection|\App\Models\PlayerMod[] $mods
  * @property-read \App\Models\PlayerStatus $stats
  * @mixin \Eloquent
  */
@@ -21,44 +22,46 @@ class Player extends Model
     /**
      * check if the player was seen in the passed time span
      *
+     * @param int $amount
      * @return bool
      */
-    public function online()
+    public function online($amount = 10)
     {
-        return $this->getAttribute('last_seen') >= Carbon::now()->subMinutes(env('CRONTASK_INTERVAL') * 1.5);
+        return $this->where('updated_at', '>=', Carbon::now()->subMinutes($amount))->count() > 0;
+    }
+
+    /**
+     * build an array of the played maps for Chart.js in the frontend
+     *
+     * @param int $amount
+     * @param bool $displayOthers
+     * @return array
+     */
+    public function chartPlayedMaps($amount = 10, $displayOthers = True)
+    {
+        return ChartUtility::chartValues($this->maps, 'map', 'times', 5, $amount, $displayOthers);
+    }
+
+    /**
+     * build an array of the played mods for Chart.js in the frontend
+     *
+     * @param int $amount
+     * @param bool $displayOthers
+     * @return array
+     */
+    public function chartPlayedMods($amount = 10, $displayOthers = True)
+    {
+        return ChartUtility::chartValues($this->mods, 'mod', 'times', 5, $amount, $displayOthers);
     }
 
     /**
      * Get the clan record associated with the tee.
      *
-     * @return Model|\Illuminate\Database\Eloquent\Relations\HasMany
+     * @return \Illuminate\Database\Eloquent\Relations\BelongsTo
      */
     public function clan()
     {
-        /** @var PlayerClanHistory $clanRecord */
-        if ($clanRecord = $this->currentClanRecord()) {
-            return $clanRecord->clan;
-        } else {
-            return null;
-        }
-    }
-
-    /**
-     * @return Model|\Illuminate\Database\Eloquent\Relations\HasMany|null
-     */
-    public function currentClanRecord()
-    {
-        return $this->clanRecords()->where('left_at', null)->first();
-    }
-
-    /**
-     * Get the player clan records associated with the tee
-     *
-     * @return \Illuminate\Database\Eloquent\Relations\HasMany
-     */
-    public function clanRecords()
-    {
-        return $this->hasMany(PlayerClanHistory::class);
+        return $this->belongsTo(Clan::class, 'clan_id');
     }
 
     /**
@@ -72,63 +75,22 @@ class Player extends Model
     }
 
     /**
-     * Get the server play records associated with the tee
+     * Get the mod records associated with the tee
      *
      * @return \Illuminate\Database\Eloquent\Relations\HasMany
      */
-    public function playRecords()
+    public function mods()
     {
-        return $this->hasMany(PlayerHistory::class);
+        return $this->hasMany(PlayerMod::class, 'player_id');
     }
 
     /**
-     * build an array of the played maps for Chart.js in the frontend
+     * Get the map records associated with the tee
      *
-     * @param int $amount
-     * @param bool $displayOthers
-     * @return array
+     * @return \Illuminate\Database\Eloquent\Relations\HasMany
      */
-    public function chartPlayedMaps($amount = 10, $displayOthers = True)
+    public function maps()
     {
-        $playerMaps = $this->playRecords()
-            ->selectRaw('`' . (new PlayerHistory)->getTable() . '`.*, SUM(`' . (new PlayerHistory)->getTable() . '`.`minutes`) as `sum_minutes`')
-            ->groupBy('map_id')
-            ->orderByDesc('sum_minutes')->get();
-
-        /** @var PlayerHistory $playedMap */
-        foreach ($playerMaps as $playedMap) {
-            $results[$playedMap->map->getAttribute('map')] = (int)$playedMap->getAttribute('sum_minutes');
-        }
-        ChartUtility::applyLimits($results, $amount, $displayOthers);
-
-        return $results;
-    }
-
-    /**
-     * build an array of the played mods for Chart.js in the frontend
-     *
-     * @param int $amount
-     * @param bool $displayOthers
-     * @return array
-     */
-    public function chartPlayedMods($amount = 10, $displayOthers = True)
-    {
-        $playerMods = $this->playRecords()
-            ->selectRaw('`' . (new PlayerHistory)->getTable() . '`.*, SUM(`' . (new PlayerHistory)->getTable() . '`.`minutes`) as `sum_minutes`')
-            ->groupBy('mod_id')
-            ->orderByDesc('sum_minutes')->get();
-
-        /** @var PlayerHistory $playedMod */
-        foreach ($playerMods as $playedMod) {
-            $results[$playedMod->mod->getAttribute('mod')] = (int)$playedMod->getAttribute('sum_minutes');
-        }
-        ChartUtility::applyLimits($results, $amount, $displayOthers);
-
-        // sort by key if radar chart is used(>= 3 mods), else it looks pretty bad normally
-        if (count($results) >= 3) {
-            ksort($results);
-        }
-
-        return $results;
+        return $this->hasMany(PlayerMap::class, 'player_id');
     }
 }
