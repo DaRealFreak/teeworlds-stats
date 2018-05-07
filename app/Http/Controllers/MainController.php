@@ -54,7 +54,7 @@ class MainController extends Controller
      * @param bool $displayOthers
      * @return array
      */
-    public function chartPlayedMaps($amount = 16, $displayOthers = True)
+    public function chartPlayedMaps($amount = 10, $displayOthers = True)
     {
         return ChartUtility::chartValues(PlayerMap::all(), 'map', 'times', 5, $amount, $displayOthers);
     }
@@ -66,7 +66,7 @@ class MainController extends Controller
      * @param bool $displayOthers
      * @return array
      */
-    public function chartPlayedMods($amount = 16, $displayOthers = False)
+    public function chartPlayedMods($amount = 10, $displayOthers = False)
     {
         return ChartUtility::chartValues(PlayerMod::all(), 'mod', 'times', 5, $amount, $displayOthers);
     }
@@ -78,7 +78,7 @@ class MainController extends Controller
      * @param bool $displayOthers
      * @return array
      */
-    public function chartPlayedCountries($amount = 31, $displayOthers = True)
+    public function chartPlayedCountries($amount = 10, $displayOthers = True)
     {
         return ChartUtility::chartValues(Player::all(), 'country', null, 1, $amount, $displayOthers);
     }

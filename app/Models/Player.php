@@ -37,7 +37,7 @@ class Player extends Model
      * @param bool $displayOthers
      * @return array
      */
-    public function chartPlayedMaps($amount = 31, $displayOthers = True)
+    public function chartPlayedMaps($amount = 10, $displayOthers = True)
     {
         return ChartUtility::chartValues($this->maps, 'map', 'times', 5, $amount, $displayOthers);
     }
@@ -49,7 +49,7 @@ class Player extends Model
      * @param bool $displayOthers
      * @return array
      */
-    public function chartPlayedMods($amount = 31, $displayOthers = True)
+    public function chartPlayedMods($amount = 10, $displayOthers = True)
     {
         return ChartUtility::chartValues($this->mods, 'mod', 'times', 5, $amount, $displayOthers);
     }

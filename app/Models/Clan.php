@@ -35,7 +35,7 @@ class Clan extends Model
      * @param bool $displayOthers
      * @return array
      */
-    public function chartPlayedMaps($amount = 31, $displayOthers = True)
+    public function chartPlayedMaps($amount = 10, $displayOthers = False)
     {
         $clanPlayedMaps = $this->hasManyThrough(PlayerMap::class, Player::class)->get();
         return ChartUtility::chartValues($clanPlayedMaps, 'map', 'times', 5, $amount, $displayOthers);
@@ -48,7 +48,7 @@ class Clan extends Model
      * @param bool $displayOthers
      * @return array
      */
-    public function chartPlayedMods($amount = 31, $displayOthers = True)
+    public function chartPlayedMods($amount = 10, $displayOthers = False)
     {
         $clanPlayedMods = $this->hasManyThrough(PlayerMod::class, Player::class)->get();
         return ChartUtility::chartValues($clanPlayedMods, 'mod', 'times', 5, $amount, $displayOthers);
@@ -61,7 +61,7 @@ class Clan extends Model
      * @param bool $displayOthers
      * @return array
      */
-    public function chartPlayerCountries($amount = 31, $displayOthers = True)
+    public function chartPlayerCountries($amount = 10, $displayOthers = True)
     {
         return ChartUtility::chartValues($this->players, 'country', null, 1, $amount, $displayOthers);
     }
