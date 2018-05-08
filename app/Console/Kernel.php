@@ -2,6 +2,8 @@
 
 namespace App\Console;
 
+use App\Console\Commands\UpdatePlayerData;
+use App\Console\Commands\UpdateServerData;
 use Illuminate\Console\Scheduling\Schedule;
 use Illuminate\Foundation\Console\Kernel as ConsoleKernel;
 
@@ -13,7 +15,8 @@ class Kernel extends ConsoleKernel
      * @var array
      */
     protected $commands = [
-        //
+        UpdatePlayerData::class,
+        UpdateServerData::class
     ];
 
     /**
@@ -24,8 +27,8 @@ class Kernel extends ConsoleKernel
      */
     protected function schedule(Schedule $schedule)
     {
-        // $schedule->command('inspire')
-        //          ->hourly();
+        $schedule->command('data:servers')->everyFiveMinutes();
+        $schedule->command('data:players')->everyFiveMinutes();
     }
 
     /**
