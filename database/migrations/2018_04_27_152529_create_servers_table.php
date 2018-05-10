@@ -18,8 +18,10 @@ class CreateServersTable extends Migration
             $table->timestamps();
 
             $table->string('name');
+            $table->string('version');
             $table->string('ip');
             $table->unsignedInteger('port');
+            $table->string('mod');
 
             $table->unique(['ip', 'port']);
         });

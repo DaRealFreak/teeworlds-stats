@@ -19,7 +19,7 @@ class CreatePlayerModsTable extends Migration
 
             $table->unsignedInteger('player_id');
             $table->string('mod');
-            $table->unsignedInteger('times')->default(0);
+            $table->unsignedInteger('times')->default(1);
 
             $table->foreign('player_id')->references('id')->on('players');
             $table->unique(['player_id', 'mod']);

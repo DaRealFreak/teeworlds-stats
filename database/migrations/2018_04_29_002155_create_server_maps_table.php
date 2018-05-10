@@ -19,7 +19,7 @@ class CreateServerMapsTable extends Migration
 
             $table->unsignedInteger('server_id');
             $table->string('map');
-            $table->unsignedInteger('times')->default(0);
+            $table->unsignedInteger('times')->default(1);
 
             $table->foreign('server_id')->references('id')->on('servers');
             $table->unique(['server_id', 'map']);

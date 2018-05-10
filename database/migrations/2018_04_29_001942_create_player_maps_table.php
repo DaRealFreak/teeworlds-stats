@@ -19,7 +19,7 @@ class CreatePlayerMapsTable extends Migration
 
             $table->unsignedInteger('player_id');
             $table->string('map');
-            $table->unsignedInteger('times')->default(0);
+            $table->unsignedInteger('times')->default(1);
 
             $table->foreign('player_id')->references('id')->on('players');
             $table->unique(['player_id', 'map']);
