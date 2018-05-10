@@ -47,7 +47,7 @@ class TwRequest
         array("master1.teeworlds.com", 8300),
         array("master2.teeworlds.com", 8300),
         array("master3.teeworlds.com", 8300),
-        array("master4.teeworlds.com", 8300)
+		array("master4.teeworlds.com", 8300)
     );
 
     /* servers */
@@ -713,6 +713,7 @@ class TwRequest
     /* loads the information of the server */
     public function loadServerInfo()
     {
+
         /* define variables */
         $connections = array(); // to store the active connections
         $numConnections = 0; // number of connections (number of elements in $connections)
@@ -884,7 +885,7 @@ class TwRequest
         while ($failedServers && $depth <= $maxRetries) {
             $this->emptyServers();
             foreach ($failedServers as $failedServer) {
-                $this->addServer($failedServer[0], $failedServer[1], $failedServer[2]);
+                $this->addServer($failedServer[0],$failedServer[1], $failedServer[2]);
             }
             $failedServers = [];
             $this->loadServerInfo();
@@ -897,130 +898,11 @@ class TwRequest
                 }
             }
             // sleep a bit
-            sleep(count($failedServers) / 2);
+            sleep(count($failedServers)/2);
             ++$depth;
         }
         $this->servers = $workingServers;
         return $workingServers;
-    }
-
-    /**
-     * ddnet defined a new packet with which we can extract up to 64 player information
-     * https://github.com/ddnet/ddnet/blob/0377c020f23f7a85d61c32c55a6811c5dfea73eb/src/mastersrv/mastersrv.h
-     */
-    public function loadServerExtendedInfo()
-    {
-        /* define variables */
-        $connections = array(); // to store the active connections
-        $numConnections = 0; // number of connections (number of elements in $connections)
-        $curServer = 0; // next position in the server array to handle
-
-        /* loop as long as there are master servers to wait for */
-        while ($numConnections > 0 || isset($this->servers[$curServer])) {
-
-            /* build up connections until limit is reached */
-            for (; isset($this->servers[$curServer]) && $numConnections < self::MAX_CONNECTIONS_SERVER; $curServer++) {
-
-                switch ($this->servers[$curServer][2]) {
-                    case self::VERSION_06:
-                        $data = "\xff\xff\xff\xff\xff\xff\xff\xff\xff\xfffstd\x05";
-                        break;
-                    default:
-                        continue 2;
-                }
-
-                $authority = $this->servers[$curServer][0] . ':' . $this->servers[$curServer][1];
-                $connection = self::establishConnection($authority, $data);
-
-                /* add to connection if not failed */
-                if ($connection) {
-                    $connections[$curServer] = array($connection, &$this->servers[$curServer], self::getTimeInMs());
-                    $numConnections++;
-                }
-
-                /* save memory */
-                unset($authority, $connection);
-            }
-
-            /* check for responses */
-            foreach ($connections as $n => $connection) {
-
-                /* read data */
-                switch ($connection[1][2]) {
-                    case self::VERSION_06:
-                        $data = fread($connection[0], 2048); // by my calc the max size is 850, but trying to read more doesn't harm
-                        $data2 = fread($connection[0], 2048); // by my calc the max size is 850, but trying to read more doesn't harm
-                        break;
-                    default:
-                        $data = fread($connection[0], 2048); // by my calc the max size is 850, but trying to read more doesn't harm
-                        $data2 = fread($connection[0], 2048); // by my calc the max size is 850, but trying to read more doesn't harm
-                        break;
-                }
-
-                /* packet length */
-                $datalen = strlen($data);
-                // var_dump($datalen);
-
-                /* check if data is usable, otherwise skip */
-                switch ($connection[1][2]) {
-                    case self::VERSION_06:
-                        if (($data === false || $datalen < 15 || substr($data, 0, 15) !== "\xff\xff\xff\xff\xff\xff\xff\xff\xff\xffdtsf5")
-                            || ($data2 === false || $datalen < 15 || substr($data2, 0, 15) !== "\xff\xff\xff\xff\xff\xff\xff\xff\xff\xffdtsf5")) {
-                            continue 2;
-                        }
-                        break;
-                }
-
-                /* analyse data */
-                switch ($connection[1][2]) {
-                    case self::VERSION_06:
-                        foreach ([$data, $data2] as $informationPacket) {
-                            $informationPacket = explode("\x00", $informationPacket);
-
-                            $connection[1]['version'] = (string)$informationPacket[1];
-                            $connection[1]['name'] = (string)$informationPacket[2];
-                            $connection[1]['map'] = (string)$informationPacket[3];
-                            $connection[1]['gametype'] = (string)$informationPacket[4];
-                            $flags = (int)$informationPacket[5];
-                            $connection[1]['password'] = (($flags & self::SERVER_FLAG_PASSWORD) === self::SERVER_FLAG_PASSWORD);
-                            $connection[1]['num_players'] = (int)$informationPacket[8];
-                            $connection[1]['max_players'] = (int)$informationPacket[9];
-                            $connection[1]['num_players_ingame'] = (int)$informationPacket[6];
-                            $connection[1]['max_players_ingame'] = (int)$informationPacket[7];
-                            $connection[1]['ping'] = (int)(self::getTimeInMs() - $connection[2]);
-
-                            for ($i = 11; isset($informationPacket[$i + 4]); $i += 5) {
-                                $player['name'] = (string)$informationPacket[$i];
-                                $player['clan'] = (string)$informationPacket[$i + 1];
-                                $player['country'] = (int)$informationPacket[$i + 2];
-                                $player['score'] = (int)$informationPacket[$i + 3];
-                                $player['ingame'] = (bool)$informationPacket[$i + 4];
-                                $connection[1]['players'][] = $player;
-                            }
-                        }
-                        break;
-                    default:
-                        break;
-                }
-
-                /* drop it, because there comes only one packet to analyse */
-                unset($connections[$n]);
-
-            }
-
-            /* drop connections that have timed out */
-            foreach ($connections as $n => $connection) {
-                if ((self::getTimeInMs() - $connection[2]) >= self::TIMEOUT_SERVER) {
-                    unset($connections[$n]);
-                }
-            }
-
-            /* renew connection counter */
-            $numConnections = count($connections);
-
-            /* sleep a bit */
-            usleep(self::REQUEST_SLEEP * 1000);
-        }
     }
 
     /* return an array with the country code and name */
