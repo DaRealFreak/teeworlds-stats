@@ -1,0 +1,1 @@
+window.CRONTAB_INTERVALL = 10;
