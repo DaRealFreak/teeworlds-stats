@@ -98,104 +98,106 @@
 
             let playedMods = $('#playedMods');
             @if (count($chartPlayedMods) >= 3)
-            // ------------------------------------------------------- //
-            // Played mods radar chart
-            // ------------------------------------------------------ //
-            new Chart(playedMods, {
-                type: 'radar',
-                options: {
-                    scale: {
-                        gridLines: {
-                            color: '#3f4145'
-                        },
-                        ticks: {
-                            beginAtZero: true,
-                            maxTicksLimit: 3,
-                            display: false,
-                            userCallback: function (value, index, values) {
-                                return humanizeDuration(value*5*60*100);
+                // ------------------------------------------------------- //
+                // Played mods radar chart
+                // ------------------------------------------------------ //
+                new Chart(playedMods, {
+                    type: 'radar',
+                    options: {
+                        scale: {
+                            gridLines: {
+                                color: '#3f4145'
+                            },
+                            ticks: {
+                                beginAtZero: true,
+                                maxTicksLimit: 3,
+                                display: false,
+                                userCallback: function (value, index, values) {
+                                    return humanizeDuration(value * window.CRONTAB_INTERVALL * 60 * 100);
+                                }
+                            },
+                            pointLabels: {
+                                fontSize: 12
                             }
                         },
-                        pointLabels: {
-                            fontSize: 12
-                        }
-                    },
-                    legend: {
-                        display: false
-                    },
-                    tooltips: {
-                        callbacks: {
-                            title: function (tooltipItem, data) {
-                                return data['labels'][tooltipItem[0]['index']];
-                            },
-                            label: function (tooltipItem, data) {
-                                let dataset = data['datasets'][0];
-                                let percent = Math.round((dataset['data'][tooltipItem['index']] / dataset['data'].reduce(function(a, b) { return a + b; }, 0)) * 10000) / 100;
-                                return percent + '% (' + humanizeDuration(dataset['data'][tooltipItem['index']] * 60 * 1000) + ')';
-                            },
+                        legend: {
+                            display: false
                         },
-                    }
-                },
-                data: {
-                    labels: {!! json_encode(array_keys($chartPlayedMods)) !!},
-                    datasets: [
-                        {
-                            label: "Played mods",
-                            backgroundColor: "rgba(113, 39, 172, 0.4)",
-                            borderWidth: 2,
-                            borderColor: "#7127AC",
-                            pointBackgroundColor: "#7127AC",
-                            pointBorderColor: "#fff",
-                            pointHoverBackgroundColor: "#fff",
-                            pointHoverBorderColor: "#7127AC",
-                            data: {!! json_encode(array_values($chartPlayedMods)) !!}
+                        tooltips: {
+                            callbacks: {
+                                title: function (tooltipItem, data) {
+                                    return data['labels'][tooltipItem[0]['index']];
+                                },
+                                label: function (tooltipItem, data) {
+                                    let dataset = data['datasets'][0];
+                                    let percent = Math.round((dataset['data'][tooltipItem['index']] / dataset['data'].reduce(function (a, b) {
+                                        return a + b;
+                                    }, 0)) * 10000) / 100;
+                                    return percent + '% (' + humanizeDuration(dataset['data'][tooltipItem['index']] * window.CRONTAB_INTERVALL * 60 * 1000) + ')';
+                                },
+                            },
                         }
-                    ]
-                }
-            });
+                    },
+                    data: {
+                        labels: {!! json_encode(array_keys($chartPlayedMods)) !!},
+                        datasets: [
+                            {
+                                label: "Played mods",
+                                backgroundColor: "rgba(113, 39, 172, 0.4)",
+                                borderWidth: 2,
+                                borderColor: "#7127AC",
+                                pointBackgroundColor: "#7127AC",
+                                pointBorderColor: "#fff",
+                                pointHoverBackgroundColor: "#fff",
+                                pointHoverBorderColor: "#7127AC",
+                                data: {!! json_encode(array_values($chartPlayedMods)) !!}
+                            }
+                        ]
+                    }
+                });
             @else
-            // ------------------------------------------------------- //
-            // Played mods pie chart for less than 3 played mods
-            // ------------------------------------------------------ //
-            new Chart(playedMods, {
-                type: 'pie',
-                options: {
-                    legend: {
-                        display: true,
-                        position: "left"
-                    },
-                    tooltips: {
-                        callbacks: {
-                            title: function(tooltipItem, data) {
-                                return data['labels'][tooltipItem[0]['index']];
-                            },
-                            label: function(tooltipItem, data) {
-                                let dataset = data['datasets'][0];
-                                let percent = Math.round((dataset['data'][tooltipItem['index']] / dataset["_meta"][Object.keys(dataset["_meta"])[0]]['total']) * 10000) / 100;
-                                return percent + '%';
-                            },
+                // ------------------------------------------------------- //
+                // Played mods pie chart for less than 3 played mods
+                // ------------------------------------------------------ //
+                new Chart(playedMods, {
+                    type: 'pie',
+                    options: {
+                        legend: {
+                            display: true,
+                            position: "left"
                         },
+                        tooltips: {
+                            callbacks: {
+                                title: function (tooltipItem, data) {
+                                    return data['labels'][tooltipItem[0]['index']];
+                                },
+                                label: function (tooltipItem, data) {
+                                    let dataset = data['datasets'][0];
+                                    let percent = Math.round((dataset['data'][tooltipItem['index']] / dataset["_meta"][Object.keys(dataset["_meta"])[0]]['total']) * 10000) / 100;
+                                    return percent + '%';
+                                },
+                            },
+                        }
+                    },
+                    data: {
+                        labels: {!! json_encode(array_keys($chartPlayedMods)) !!},
+                        datasets: [
+                            {
+                                data: {!! json_encode(array_values($chartPlayedMods)) !!},
+                                borderWidth: 0,
+                                backgroundColor: [
+                                    '#723ac3',
+                                    "#864DD9",
+                                    "#9762e6",
+                                ],
+                                hoverBackgroundColor: [
+                                    '#723ac3',
+                                    "#864DD9",
+                                    "#9762e6",
+                                ]
+                            }]
                     }
-                },
-                data: {
-                    labels: {!! json_encode(array_keys($chartPlayedMods)) !!},
-                    datasets: [
-                        {
-                            data: {!! json_encode(array_values($chartPlayedMods)) !!},
-                            borderWidth: 0,
-                            backgroundColor: [
-                                '#723ac3',
-                                "#864DD9",
-                                "#9762e6",
-                            ],
-                            hoverBackgroundColor: [
-                                '#723ac3',
-                                "#864DD9",
-                                "#9762e6",
-                            ]
-                        }]
-                }
-            });
+                });
             @endif
 
             // ------------------------------------------------------- //
@@ -212,10 +214,10 @@
                     },
                     tooltips: {
                         callbacks: {
-                            title: function(tooltipItem, data) {
+                            title: function (tooltipItem, data) {
                                 return data['labels'][tooltipItem[0]['index']];
                             },
-                            label: function(tooltipItem, data) {
+                            label: function (tooltipItem, data) {
                                 let dataset = data['datasets'][0];
                                 let percent = Math.round((dataset['data'][tooltipItem['index']] / dataset["_meta"][Object.keys(dataset["_meta"])[0]]['total']) * 10000) / 100;
                                 return percent + '%';
