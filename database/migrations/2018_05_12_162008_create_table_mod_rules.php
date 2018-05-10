@@ -4,7 +4,7 @@ use Illuminate\Support\Facades\Schema;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Database\Migrations\Migration;
 
-class CreateTableModRules extends Migration
+class CreatePlayerModsTable extends Migration
 {
     /**
      * Run the migrations.
@@ -13,17 +13,16 @@ class CreateTableModRules extends Migration
      */
     public function up()
     {
-        Schema::create('mod_rules', function (Blueprint $table) {
+        Schema::create('player_mods', function (Blueprint $table) {
             $table->increments('id');
             $table->timestamps();
 
-            $table->string('decider');
-            $table->string('rule');
-            $table->unsignedInteger('mod_id');
-            $table->unsignedInteger('priority')->default(0);
+            $table->unsignedInteger('player_id');
+            $table->string('mod');
+            $table->unsignedInteger('times')->default(1);
 
-            $table->foreign('mod_id')->references('id')->on('mods');
-
+            $table->foreign('player_id')->references('id')->on('players');
+            $table->unique(['player_id', 'mod']);
         });
     }
 
@@ -34,6 +33,6 @@ class CreateTableModRules extends Migration
      */
     public function down()
     {
-        Schema::dropIfExists('mod_rules');
+        Schema::dropIfExists('player_mods');
     }
 }
