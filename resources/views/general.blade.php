@@ -113,7 +113,7 @@
                                 maxTicksLimit: 3,
                                 display: false,
                                 userCallback: function (value, index, values) {
-                                    return humanizeDuration(value * window.CRONTAB_INTERVALL * 60 * 100);
+                                    return humanizeDuration(value * 60 * 100);
                                 }
                             },
                             pointLabels: {
@@ -133,7 +133,7 @@
                                     let percent = Math.round((dataset['data'][tooltipItem['index']] / dataset['data'].reduce(function (a, b) {
                                         return a + b;
                                     }, 0)) * 10000) / 100;
-                                    return percent + '% (' + humanizeDuration(dataset['data'][tooltipItem['index']] * window.CRONTAB_INTERVALL * 60 * 1000) + ')';
+                                    return percent + '% (' + humanizeDuration(dataset['data'][tooltipItem['index']] * 60 * 1000) + ')';
                                 },
                             },
                         }

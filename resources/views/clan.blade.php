@@ -115,7 +115,7 @@
                             </div>
                             <div class="col-lg-6 text-center">
                                 <div class="contributions">
-                                    Played: {{ $clan->humanizeDuration($clan->chartMostPlayedMaps()->first()->sum_times) }}</div>
+                                    Played: {{ $clan->humanizeDuration($clan->chartMostPlayedMaps()->first()->sum_minutes) }}</div>
                             </div>
                         </div>
                     </div>
@@ -181,7 +181,7 @@
                                 maxTicksLimit: 3,
                                 display: false,
                                 userCallback: function (value, index, values) {
-                                    return humanizeDuration(value * window.CRONTAB_INTERVALL * 60 * 100);
+                                    return humanizeDuration(value * 60 * 100);
                                 }
                             },
                             pointLabels: {
@@ -201,7 +201,7 @@
                                     let percent = Math.round((dataset['data'][tooltipItem['index']] / dataset['data'].reduce(function (a, b) {
                                         return a + b;
                                     }, 0)) * 10000) / 100;
-                                    return percent + '% (' + humanizeDuration(dataset['data'][tooltipItem['index']] * window.CRONTAB_INTERVALL * 60 * 1000) + ')';
+                                    return percent + '% (' + humanizeDuration(dataset['data'][tooltipItem['index']] * 60 * 1000) + ')';
                                 },
                             },
                         }
@@ -242,7 +242,7 @@
                                 label: function (tooltipItem, data) {
                                     let dataset = data['datasets'][0];
                                     let percent = Math.round((dataset['data'][tooltipItem['index']] / dataset["_meta"][Object.keys(dataset["_meta"])[0]]['total']) * 10000) / 100;
-                                    return percent + '% (' + humanizeDuration(dataset['data'][tooltipItem['index']] * window.CRONTAB_INTERVALL * 60 * 1000) + ')';
+                                    return percent + '% (' + humanizeDuration(dataset['data'][tooltipItem['index']] * 60 * 1000) + ')';
                                 },
                             },
                         }
@@ -288,7 +288,7 @@
                             label: function (tooltipItem, data) {
                                 let dataset = data['datasets'][0];
                                 let percent = Math.round((dataset['data'][tooltipItem['index']] / dataset["_meta"][Object.keys(dataset["_meta"])[0]]['total']) * 10000) / 100;
-                                return percent + '% (' + humanizeDuration(dataset['data'][tooltipItem['index']] * window.CRONTAB_INTERVALL * 60 * 1000) + ')';
+                                return percent + '% (' + humanizeDuration(dataset['data'][tooltipItem['index']] * 60 * 1000) + ')';
                             },
                         },
                     }

@@ -22,12 +22,11 @@ class Player extends Model
     /**
      * check if the player was seen in the passed time span
      *
-     * @param int $amount
      * @return bool
      */
-    public function online($amount = 10)
+    public function online()
     {
-        return $this->where('updated_at', '>=', Carbon::now()->subMinutes($amount))->count() > 0;
+        return $this->getAttribute('last_seen') >= Carbon::now()->subMinutes(env('CRONTASK_INTERVAL') + 1);
     }
 
     /**
@@ -39,7 +38,21 @@ class Player extends Model
      */
     public function chartPlayedMaps($amount = 10, $displayOthers = True)
     {
-        return ChartUtility::chartValues($this->mapRecords, 'map', 'minutes', $amount, $displayOthers);
+        $results = [];
+        /** @var PlayerMapRecord $mapRecord */
+        foreach ($this->mapRecords as $mapRecord) {
+            $mapName = $mapRecord->map->getAttribute('map');
+            $value = $mapRecord->getAttribute('minutes');
+
+            if (array_key_exists($mapName, $results)) {
+                $results[$mapName] += $value;
+            } else {
+                $results[$mapName] = $value;
+            }
+        }
+        ChartUtility::applyLimits($results, $amount, $displayOthers);
+
+        return $results;
     }
 
     /**
@@ -51,7 +64,21 @@ class Player extends Model
      */
     public function chartPlayedMods($amount = 10, $displayOthers = True)
     {
-        return ChartUtility::chartValues($this->modRecords, 'mod', 'minutes', $amount, $displayOthers);
+        $results = [];
+        /** @var PlayerModRecord $modRecord */
+        foreach ($this->modRecords as $modRecord) {
+            $modName = $modRecord->mod->getAttribute('mod');
+            $value = $modRecord->getAttribute('minutes');
+
+            if (array_key_exists($modName, $results)) {
+                $results[$modName] += $value;
+            } else {
+                $results[$modName] = $value;
+            }
+        }
+        ChartUtility::applyLimits($results, $amount, $displayOthers);
+
+        return $results;
     }
 
     /**

@@ -26,7 +26,7 @@ class MainController extends Controller
     {
         return view('general')
             ->with('general', [
-                'online' => DB::table('players')->where('updated_at', '>=', Carbon::now()->subMinutes(10))->count(),
+                'online' => DB::table('players')->where('updated_at', '>=', Carbon::now()->subMinutes(env('CRONTASK_INTERVAL') + 1))->count(),
                 'players' => DB::table('players')->count(),
                 'servers' => DB::table('servers')->count(),
                 'clans' => DB::table('clans')->count(),
