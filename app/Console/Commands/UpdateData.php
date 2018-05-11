@@ -83,6 +83,7 @@ class UpdateData extends Command
         );
         $serverModel->setAttribute('name', $server['name']);
         $serverModel->setAttribute('version', $server['version']);
+        $serverModel->setAttribute('last_seen', Carbon::now());
 
         if (!$serverModel->stats()->first()) {
             $serverModel->stats()->create();
@@ -141,6 +142,9 @@ class UpdateData extends Command
                 $currentDay => $playerModel->stats()->first()->getAttribute($currentDay) + env('CRONTASK_INTERVAL')
             ]);
 
+            // update player last seen stat
+            $playerModel->setAttribute('last_seen', Carbon::now());
+
             // update player clan stat
             // if clan is set and player has no clan or different clan
             if ($player['clan'] && (!$playerModel->clan()->first() || $playerModel->clan()->first()->getAttribute('name') != $player['clan'])) {
@@ -153,7 +157,7 @@ class UpdateData extends Command
                 $playerModel->clan()->associate($clanModel);
                 $playerModel->setAttribute('clan_joined_at', Carbon::now());
             } elseif (!$player['clan'] && $playerModel->clan()->first()) {
-                $playerModel->clan()->first()->delete();
+                $playerModel->clan()->dissociate();
             }
 
             // update player map stat
