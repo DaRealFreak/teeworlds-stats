@@ -36,18 +36,14 @@ class Clan extends Model
      */
     public function chartPlayedMaps($amount = 10, $displayOthers = False)
     {
-        $clanPlayedMaps = $this->hasManyThrough(PlayerMapRecord::class, Player::class)->get();
-        $results = [];
-        /** @var PlayerMapRecord $mapRecord */
-        foreach ($clanPlayedMaps as $mapRecord) {
-            $mapName = $mapRecord->map->getAttribute('map');
-            $value = $mapRecord->getAttribute('minutes');
+        $clanPlayedMaps = $this->hasManyThrough(PlayerMapRecord::class, Player::class)
+            ->selectRaw('`player_map_records`.*, SUM(`player_map_records`.`minutes`) as `sum_minutes`')
+            ->groupBy('map_id')
+            ->orderByRaw('SUM(`player_map_records`.`minutes`) DESC')->get();
 
-            if (array_key_exists($mapName, $results)) {
-                $results[$mapName] += $value;
-            } else {
-                $results[$mapName] = $value;
-            }
+        /** @var PlayerMapRecord $playedMap */
+        foreach ($clanPlayedMaps as $playedMap) {
+            $results[$playedMap->map->getAttribute('map')] = (int)$playedMap->getAttribute('sum_minutes');
         }
         ChartUtility::applyLimits($results, $amount, $displayOthers);
 
@@ -63,18 +59,14 @@ class Clan extends Model
      */
     public function chartPlayedMods($amount = 10, $displayOthers = False)
     {
-        $clanPlayedMods = $this->hasManyThrough(PlayerModRecord::class, Player::class)->get();
-        $results = [];
-        /** @var PlayerModRecord $modRecord */
-        foreach ($clanPlayedMods as $modRecord) {
-            $modName = $modRecord->mod->getAttribute('mod');
-            $value = $modRecord->getAttribute('minutes');
+        $clanPlayedMods = $this->hasManyThrough(PlayerModRecord::class, Player::class)
+            ->selectRaw('`player_mod_records`.*, SUM(`player_mod_records`.`minutes`) as `sum_minutes`')
+            ->groupBy('mod_id')
+            ->orderByDesc('sum_minutes')->get();
 
-            if (array_key_exists($modName, $results)) {
-                $results[$modName] += $value;
-            } else {
-                $results[$modName] = $value;
-            }
+        /** @var PlayerModRecord $playedMod */
+        foreach ($clanPlayedMods as $playedMod) {
+            $results[$playedMod->mod->getAttribute('mod')] = (int)$playedMod->getAttribute('sum_minutes');
         }
         ChartUtility::applyLimits($results, $amount, $displayOthers);
 
@@ -95,15 +87,13 @@ class Clan extends Model
      */
     public function chartPlayerCountries($amount = 10, $displayOthers = True)
     {
-        $results = [];
-        foreach ($this->players as $player) {
-            $country = $player->getAttribute('country');
+        $clanPlayers = $this->players()->selectRaw('`players`.*, COUNT(`players`.`country`) as `count_countries`')
+            ->groupBy('country')
+            ->orderByRaw('COUNT(`players`.`country`) DESC')->get();
 
-            if (array_key_exists($country, $results)) {
-                $results[$country] += 1;
-            } else {
-                $results[$country] = 1;
-            }
+        /** @var Player $player */
+        foreach ($clanPlayers as $player) {
+            $results[$player->getAttribute('country')] = (int)$player->getAttribute('count_countries');
         }
         ChartUtility::applyLimits($results, $amount, $displayOthers);
 

@@ -11,7 +11,6 @@ use App\Models\PlayerModRecord;
 use App\Models\Server;
 use App\Utility\ChartUtility;
 use Carbon\Carbon;
-use Illuminate\Support\Facades\DB;
 
 class MainController extends Controller
 {
@@ -60,17 +59,13 @@ class MainController extends Controller
      */
     public function chartPlayedMaps($amount = 10, $displayOthers = True)
     {
-        $results = [];
-        /** @var PlayerMapRecord $mapRecord */
-        foreach (PlayerMapRecord::all() as $mapRecord) {
-            $mapName = $mapRecord->map->getAttribute('map');
-            $value = $mapRecord->getAttribute('minutes');
+        $playedMaps = PlayerMapRecord::selectRaw('`player_map_records`.*, SUM(`player_map_records`.`minutes`) as `sum_minutes`')
+            ->groupBy('map_id')
+            ->orderByRaw('SUM(`player_map_records`.`minutes`) DESC')->get();
 
-            if (array_key_exists($mapName, $results)) {
-                $results[$mapName] += $value;
-            } else {
-                $results[$mapName] = $value;
-            }
+        /** @var PlayerMapRecord $playedMap */
+        foreach ($playedMaps as $playedMap) {
+            $results[$playedMap->map->getAttribute('map')] = (int)$playedMap->getAttribute('sum_minutes');
         }
         ChartUtility::applyLimits($results, $amount, $displayOthers);
 
@@ -86,17 +81,13 @@ class MainController extends Controller
      */
     public function chartPlayedMods($amount = 10, $displayOthers = False)
     {
-        $results = [];
-        /** @var PlayerModRecord $modRecord */
-        foreach (PlayerModRecord::all() as $modRecord) {
-            $modName = $modRecord->mod->getAttribute('mod');
-            $value = $modRecord->getAttribute('minutes');
+        $playedMods = PlayerModRecord::selectRaw('`player_mod_records`.*, SUM(`player_mod_records`.`minutes`) as `sum_minutes`')
+            ->groupBy('mod_id')
+            ->orderByDesc('sum_minutes')->get();
 
-            if (array_key_exists($modName, $results)) {
-                $results[$modName] += $value;
-            } else {
-                $results[$modName] = $value;
-            }
+        /** @var PlayerModRecord $playedMod */
+        foreach ($playedMods as $playedMod) {
+            $results[$playedMod->mod->getAttribute('mod')] = (int)$playedMod->getAttribute('sum_minutes');
         }
         ChartUtility::applyLimits($results, $amount, $displayOthers);
 
@@ -117,15 +108,13 @@ class MainController extends Controller
      */
     public function chartPlayedCountries($amount = 10, $displayOthers = True)
     {
-        $results = [];
-        foreach (Player::all() as $player) {
-            $country = $player->getAttribute('country');
+        $players = Player::selectRaw('`players`.*, COUNT(`players`.`country`) as `count_countries`')
+            ->groupBy('country')
+            ->orderByRaw('COUNT(`players`.`country`) DESC')->get();
 
-            if (array_key_exists($country, $results)) {
-                $results[$country] += 1;
-            } else {
-                $results[$country] = 1;
-            }
+        /** @var Player $player */
+        foreach ($players as $player) {
+            $results[$player->getAttribute('country')] = (int)$player->getAttribute('count_countries');
         }
         ChartUtility::applyLimits($results, $amount, $displayOthers);
 
