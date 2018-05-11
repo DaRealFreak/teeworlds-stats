@@ -7,7 +7,7 @@ use Illuminate\Database\Eloquent\Model;
 /**
  * App\Models\ServerModRecord
  *
- * @property-read \App\Models\Mod $map
+ * @property-read \App\Models\Mod $mod
  * @property-read \App\Models\Server $server
  * @mixin \Eloquent
  */
