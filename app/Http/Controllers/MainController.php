@@ -2,11 +2,9 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\Map;
-use App\Models\Mod;
 use App\Models\Player;
-use App\Models\PlayerMap;
-use App\Models\PlayerMod;
+use App\Models\PlayerMapRecord;
+use App\Models\PlayerModRecord;
 use App\Utility\ChartUtility;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
@@ -33,8 +31,8 @@ class MainController extends Controller
                 'servers' => DB::table('servers')->count(),
                 'clans' => DB::table('clans')->count(),
                 'countries' => count(DB::table('players')->groupBy(['country'])->get()),
-                'maps' => count(DB::table('player_maps')->groupBy(['map'])->get()),
-                'mods' => count(DB::table('player_mods')->groupBy(['mod'])->get()),
+                'maps' => count(DB::table('maps')->groupBy(['map'])->get()),
+                'mods' => count(DB::table('mods')->groupBy(['mod'])->get()),
             ])
             ->with('chartPlayedMaps', $this->chartPlayedMaps())
             ->with('chartPlayedCountries', $this->chartPlayedCountries())
@@ -58,7 +56,21 @@ class MainController extends Controller
      */
     public function chartPlayedMaps($amount = 10, $displayOthers = True)
     {
-        return ChartUtility::chartValues(Map::all(), 'map', 'minutes', $amount, $displayOthers);
+        $results = [];
+        /** @var PlayerMapRecord $mapRecord */
+        foreach (PlayerMapRecord::all() as $mapRecord) {
+            $mapName = $mapRecord->map->getAttribute('map');
+            $value = $mapRecord->getAttribute('minutes');
+
+            if (array_key_exists($mapName, $results)) {
+                $results[$mapName] += $value;
+            } else {
+                $results[$mapName] = $value;
+            }
+        }
+        ChartUtility::applyLimits($results, $amount, $displayOthers);
+
+        return $results;
     }
 
     /**
@@ -70,7 +82,21 @@ class MainController extends Controller
      */
     public function chartPlayedMods($amount = 10, $displayOthers = False)
     {
-        return ChartUtility::chartValues(Mod::all(), 'mod', 'minutes', $amount, $displayOthers);
+        $results = [];
+        /** @var PlayerModRecord $modRecord */
+        foreach (PlayerModRecord::all() as $modRecord) {
+            $mapName = $modRecord->mod->getAttribute('mod');
+            $value = $modRecord->getAttribute('minutes');
+
+            if (array_key_exists($mapName, $results)) {
+                $results[$mapName] += $value;
+            } else {
+                $results[$mapName] = $value;
+            }
+        }
+        ChartUtility::applyLimits($results, $amount, $displayOthers);
+
+        return $results;
     }
 
     /**
@@ -82,6 +108,18 @@ class MainController extends Controller
      */
     public function chartPlayedCountries($amount = 10, $displayOthers = True)
     {
-        return ChartUtility::chartValues(Player::all(), 'country', null, $amount, $displayOthers);
+        $results = [];
+        foreach (Player::all() as $player) {
+            $mapName = $player->getAttribute('country');
+
+            if (array_key_exists($mapName, $results)) {
+                $results[$mapName] += 1;
+            } else {
+                $results[$mapName] = 1;
+            }
+        }
+        ChartUtility::applyLimits($results, $amount, $displayOthers);
+
+        return $results;
     }
 }
