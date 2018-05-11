@@ -4,7 +4,7 @@ use Illuminate\Support\Facades\Schema;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Database\Migrations\Migration;
 
-class CreateServerMapsTable extends Migration
+class CreateServerPlayHistoriesTable extends Migration
 {
     /**
      * Run the migrations.
@@ -13,16 +13,18 @@ class CreateServerMapsTable extends Migration
      */
     public function up()
     {
-        Schema::create('server_maps', function (Blueprint $table) {
+        Schema::create('server_play_histories', function (Blueprint $table) {
             $table->increments('id');
             $table->timestamps();
 
             $table->unsignedInteger('server_id');
-            $table->string('map');
-            $table->unsignedInteger('times')->default(1);
+            $table->unsignedInteger('player_id');
+            $table->unsignedInteger('map_id');
+            $table->unsignedInteger('minutes');
 
             $table->foreign('server_id')->references('id')->on('servers');
-            $table->unique(['server_id', 'map']);
+            $table->foreign('player_id')->references('id')->on('players');
+            $table->foreign('map_id')->references('id')->on('maps');
         });
     }
 
@@ -33,6 +35,6 @@ class CreateServerMapsTable extends Migration
      */
     public function down()
     {
-        Schema::dropIfExists('server_maps');
+        Schema::dropIfExists('server_play_histories');
     }
 }
