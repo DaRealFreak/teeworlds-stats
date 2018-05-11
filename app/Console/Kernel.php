@@ -2,9 +2,11 @@
 
 namespace App\Console;
 
+use App\Console\Commands\UpdateDailySummary;
 use App\Console\Commands\UpdateData;
 use Illuminate\Console\Scheduling\Schedule;
 use Illuminate\Foundation\Console\Kernel as ConsoleKernel;
+use Illuminate\Support\Facades\Artisan;
 
 class Kernel extends ConsoleKernel
 {
@@ -14,7 +16,8 @@ class Kernel extends ConsoleKernel
      * @var array
      */
     protected $commands = [
-        UpdateData::class
+        UpdateData::class,
+        UpdateDailySummary::class
     ];
 
     /**
@@ -25,7 +28,9 @@ class Kernel extends ConsoleKernel
      */
     protected function schedule(Schedule $schedule)
     {
-        $schedule->command('data:update')->everyTenMinutes();
+        $schedule->command(UpdateData::class)->everyTenMinutes()->after(function () {
+            Artisan::call(UpdateDailySummary::class);
+        });
     }
 
     /**
