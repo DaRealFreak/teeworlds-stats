@@ -83,7 +83,7 @@ class UpdateData extends Command
         );
         $serverModel->setAttribute('name', $server['name']);
         $serverModel->setAttribute('version', $server['version']);
-        $serverModel->setAttribute('mod', $server['gametype']);
+
         if (!$serverModel->stats()->first()) {
             $serverModel->stats()->create();
         }
@@ -108,6 +108,9 @@ class UpdateData extends Command
         );
         $modRecord->setAttribute('minutes', $modRecord->getAttribute('minutes') + env('CRONTASK_INTERVAL'));
         $serverModel->modRecords()->save($modRecord);
+
+        // persist our changes
+        $serverModel->save();
     }
 
     /**
