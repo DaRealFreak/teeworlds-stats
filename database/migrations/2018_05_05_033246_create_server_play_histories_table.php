@@ -16,6 +16,15 @@ class CreateServerPlayHistoriesTable extends Migration
         Schema::create('server_play_histories', function (Blueprint $table) {
             $table->increments('id');
             $table->timestamps();
+
+            $table->unsignedInteger('server_id');
+            $table->unsignedInteger('player_id');
+            $table->unsignedInteger('map_id');
+            $table->unsignedInteger('minutes');
+
+            $table->foreign('server_id')->references('id')->on('servers');
+            $table->foreign('player_id')->references('id')->on('players');
+            $table->foreign('map_id')->references('id')->on('maps');
         });
     }
 
