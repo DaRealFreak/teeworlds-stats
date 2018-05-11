@@ -2,40 +2,8 @@
 
 namespace App\Utility;
 
-use Illuminate\Database\Eloquent\Collection;
-
 class ChartUtility
 {
-
-    /**
-     * @param Collection $collection
-     * @param string $keyAttribute
-     * @param null|string $valueAttribute
-     * @param int $amount
-     * @param bool $displayOthers
-     * @return array
-     */
-    public static function chartValues(Collection $collection, string $keyAttribute, ?string $valueAttribute, int $amount = 16, bool $displayOthers = True)
-    {
-        $results = [];
-        foreach ($collection as $item) {
-            $mapName = $item->getAttribute($keyAttribute);
-
-            if ($valueAttribute) {
-                $value = $item->getAttribute($valueAttribute);
-            } else {
-                $value = 1;
-            }
-            if (array_key_exists($mapName, $results)) {
-                $results[$mapName] += $value;
-            } else {
-                $results[$mapName] = $value;
-            }
-        }
-        ChartUtility::applyLimits($results, $amount, $displayOthers);
-
-        return $results;
-    }
 
     /**
      * function to apply the amount and displayOthers limitation and sort the

@@ -39,17 +39,14 @@ class Player extends Model
      */
     public function chartPlayedMaps($amount = 10, $displayOthers = True)
     {
-        $results = [];
-        /** @var PlayerMapRecord $mapRecord */
-        foreach ($this->mapRecords as $mapRecord) {
-            $mapName = $mapRecord->map->getAttribute('map');
-            $value = $mapRecord->getAttribute('minutes');
+        $playerMaps = $this->mapRecords()
+            ->selectRaw('`player_map_records`.*, SUM(`player_map_records`.`minutes`) as `sum_minutes`')
+            ->groupBy('map_id')
+            ->orderByRaw('SUM(`player_map_records`.`minutes`) DESC')->get();
 
-            if (array_key_exists($mapName, $results)) {
-                $results[$mapName] += $value;
-            } else {
-                $results[$mapName] = $value;
-            }
+        /** @var PlayerMapRecord $playedMap */
+        foreach ($playerMaps as $playedMap) {
+            $results[$playedMap->map->getAttribute('map')] = (int)$playedMap->getAttribute('sum_minutes');
         }
         ChartUtility::applyLimits($results, $amount, $displayOthers);
 
@@ -65,19 +62,15 @@ class Player extends Model
      */
     public function chartPlayedMods($amount = 10, $displayOthers = True)
     {
-        $results = [];
-        /** @var PlayerModRecord $modRecord */
-        foreach ($this->modRecords as $modRecord) {
-            $modName = $modRecord->mod->getAttribute('mod');
-            $value = $modRecord->getAttribute('minutes');
+        $playerMods = $this->modRecords()
+            ->selectRaw('`player_mod_records`.*, SUM(`player_mod_records`.`minutes`) as `sum_minutes`')
+            ->groupBy('mod_id')
+            ->orderByDesc('sum_minutes')->get();
 
-            if (array_key_exists($modName, $results)) {
-                $results[$modName] += $value;
-            } else {
-                $results[$modName] = $value;
-            }
+        /** @var PlayerModRecord $playedMod */
+        foreach ($playerMods as $playedMod) {
+            $results[$playedMod->mod->getAttribute('mod')] = (int)$playedMod->getAttribute('sum_minutes');
         }
-
         ChartUtility::applyLimits($results, $amount, $displayOthers);
 
         // sort by key if radar chart is used(>= 3 mods), else it looks pretty bad normally
