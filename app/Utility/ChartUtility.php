@@ -45,7 +45,7 @@ class ChartUtility
      * @param $amount
      * @param $displayOthers
      */
-    private static function applyLimits(&$results, $amount, $displayOthers)
+    public static function applyLimits(&$results, $amount, $displayOthers)
     {
         if ($amount && count($results) > $amount) {
             arsort($results, true);
