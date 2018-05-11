@@ -18,11 +18,11 @@ class PlayerMapRecord extends Model
     /**
      * Get the stats record associated with the tee
      *
-     * @return \Illuminate\Database\Eloquent\Relations\HasOne
+     * @return \Illuminate\Database\Eloquent\Relations\BelongsTo
      */
     public function map()
     {
-        return $this->hasOne(Map::class, 'map_id');
+        return $this->belongsTo(Map::class, 'map_id');
     }
 
     /**
