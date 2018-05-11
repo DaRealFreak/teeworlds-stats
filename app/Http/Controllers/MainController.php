@@ -2,9 +2,13 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Clan;
+use App\Models\Map;
+use App\Models\Mod;
 use App\Models\Player;
 use App\Models\PlayerMapRecord;
 use App\Models\PlayerModRecord;
+use App\Models\Server;
 use App\Utility\ChartUtility;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
@@ -26,13 +30,13 @@ class MainController extends Controller
     {
         return view('general')
             ->with('general', [
-                'online' => DB::table('players')->where('updated_at', '>=', Carbon::now()->subMinutes(env('CRONTASK_INTERVAL') + 1))->count(),
-                'players' => DB::table('players')->count(),
-                'servers' => DB::table('servers')->count(),
-                'clans' => DB::table('clans')->count(),
-                'countries' => count(DB::table('players')->groupBy(['country'])->get()),
-                'maps' => count(DB::table('maps')->groupBy(['map'])->get()),
-                'mods' => count(DB::table('mods')->groupBy(['mod'])->get()),
+                'online' => Player::where('last_seen', '>=', Carbon::now()->subMinutes(env('CRONTASK_INTERVAL') + 1))->count(),
+                'players' => Player::count(),
+                'servers' => Server::count(),
+                'clans' => Clan::count(),
+                'countries' => count(Player::groupBy(['country'])->get()),
+                'maps' => count(Map::groupBy(['map'])->get()),
+                'mods' => count(Mod::groupBy(['mod'])->get()),
             ])
             ->with('chartPlayedMaps', $this->chartPlayedMaps())
             ->with('chartPlayedCountries', $this->chartPlayedCountries())
@@ -95,6 +99,11 @@ class MainController extends Controller
             }
         }
         ChartUtility::applyLimits($results, $amount, $displayOthers);
+
+        // sort by key if radar chart is used(>= 3 mods), else it looks pretty bad normally
+        if (count($results) >= 3) {
+            ksort($results);
+        }
 
         return $results;
     }
