@@ -76,7 +76,13 @@ class Player extends Model
                 $results[$modName] = $value;
             }
         }
+
         ChartUtility::applyLimits($results, $amount, $displayOthers);
+
+        // sort by key if radar chart is used(>= 3 mods), else it looks pretty bad normally
+        if (count($results) >= 3) {
+            ksort($results);
+        }
 
         return $results;
     }
