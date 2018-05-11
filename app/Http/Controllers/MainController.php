@@ -85,13 +85,13 @@ class MainController extends Controller
         $results = [];
         /** @var PlayerModRecord $modRecord */
         foreach (PlayerModRecord::all() as $modRecord) {
-            $mapName = $modRecord->mod->getAttribute('mod');
+            $modName = $modRecord->mod->getAttribute('mod');
             $value = $modRecord->getAttribute('minutes');
 
-            if (array_key_exists($mapName, $results)) {
-                $results[$mapName] += $value;
+            if (array_key_exists($modName, $results)) {
+                $results[$modName] += $value;
             } else {
-                $results[$mapName] = $value;
+                $results[$modName] = $value;
             }
         }
         ChartUtility::applyLimits($results, $amount, $displayOthers);
@@ -110,12 +110,12 @@ class MainController extends Controller
     {
         $results = [];
         foreach (Player::all() as $player) {
-            $mapName = $player->getAttribute('country');
+            $country = $player->getAttribute('country');
 
-            if (array_key_exists($mapName, $results)) {
-                $results[$mapName] += 1;
+            if (array_key_exists($country, $results)) {
+                $results[$country] += 1;
             } else {
-                $results[$mapName] = 1;
+                $results[$country] = 1;
             }
         }
         ChartUtility::applyLimits($results, $amount, $displayOthers);
