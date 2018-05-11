@@ -20,12 +20,11 @@ class Clan extends Model
     /**
      * return collection of players who are online
      *
-     * @param int $amount
      * @return \Illuminate\Database\Eloquent\Collection
      */
-    public function online($amount = 10)
+    public function online()
     {
-        return $this->players()->where('updated_at', '>=', Carbon::now()->subMinutes($amount))->get();
+        return $this->players()->where('last_seen', '>=', Carbon::now()->subMinutes(env('CRONTASK_INTERVAL') + 1))->get();
     }
 
     /**
@@ -37,8 +36,22 @@ class Clan extends Model
      */
     public function chartPlayedMaps($amount = 10, $displayOthers = False)
     {
-        $clanPlayedMaps = $this->hasManyThrough(Map::class, Player::class)->get();
-        return ChartUtility::chartValues($clanPlayedMaps, 'map', 'minutes', $amount, $displayOthers);
+        $clanPlayedMaps = $this->hasManyThrough(PlayerMapRecord::class, Player::class)->get();
+        $results = [];
+        /** @var PlayerMapRecord $mapRecord */
+        foreach ($clanPlayedMaps as $mapRecord) {
+            $mapName = $mapRecord->map->getAttribute('map');
+            $value = $mapRecord->getAttribute('minutes');
+
+            if (array_key_exists($mapName, $results)) {
+                $results[$mapName] += $value;
+            } else {
+                $results[$mapName] = $value;
+            }
+        }
+        ChartUtility::applyLimits($results, $amount, $displayOthers);
+
+        return $results;
     }
 
     /**
@@ -50,8 +63,22 @@ class Clan extends Model
      */
     public function chartPlayedMods($amount = 10, $displayOthers = False)
     {
-        $clanPlayedMods = $this->hasManyThrough(Mod::class, Player::class)->get();
-        return ChartUtility::chartValues($clanPlayedMods, 'mod', 'minutes', $amount, $displayOthers);
+        $clanPlayedMods = $this->hasManyThrough(PlayerModRecord::class, Player::class)->get();
+        $results = [];
+        /** @var PlayerModRecord $modRecord */
+        foreach ($clanPlayedMods as $modRecord) {
+            $modName = $modRecord->mod->getAttribute('mod');
+            $value = $modRecord->getAttribute('minutes');
+
+            if (array_key_exists($modName, $results)) {
+                $results[$modName] += $value;
+            } else {
+                $results[$modName] = $value;
+            }
+        }
+        ChartUtility::applyLimits($results, $amount, $displayOthers);
+
+        return $results;
     }
 
     /**
@@ -63,7 +90,19 @@ class Clan extends Model
      */
     public function chartPlayerCountries($amount = 10, $displayOthers = True)
     {
-        return ChartUtility::chartValues($this->players, 'country', null, $amount, $displayOthers);
+        $results = [];
+        foreach ($this->players as $player) {
+            $country = $player->getAttribute('country');
+
+            if (array_key_exists($country, $results)) {
+                $results[$country] += 1;
+            } else {
+                $results[$country] = 1;
+            }
+        }
+        ChartUtility::applyLimits($results, $amount, $displayOthers);
+
+        return $results;
     }
 
     /**
@@ -155,7 +194,12 @@ class Clan extends Model
      */
     public function chartMostPlayedMaps()
     {
-        return $this->hasManyThrough(Map::class, Player::class)->selectRaw('`player_maps`.*, SUM(minutes) as `sum_minutes`')->groupBy(['map'])->orderByRaw('SUM(times) DESC')->get();
+        return $this->hasManyThrough(PlayerMapRecord::class, Player::class)
+            ->join((new Map)->getTable(), (new PlayerMapRecord())->getTable() . '.map_id', '=', (new Map())->getTable() . '.id')
+            ->selectRaw('`maps`.*, SUM(`player_map_records`.`minutes`) as `sum_minutes`')
+            ->groupBy(['map'])
+            ->orderByRaw('SUM(`player_map_records`.`minutes`) DESC')
+            ->get();
     }
 
     /**
@@ -166,7 +210,7 @@ class Clan extends Model
      */
     public static function humanizeDuration($minutes)
     {
-        return (new Duration($minutes * env('CRONTASK_INTERVAL') * 60))->humanize();
+        return (new Duration($minutes * 60))->humanize();
     }
 
     /**

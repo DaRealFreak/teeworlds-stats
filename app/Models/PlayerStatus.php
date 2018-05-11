@@ -21,7 +21,7 @@ class PlayerStatus extends Model
      */
     public function totalHoursPlayed($formatted = False)
     {
-        $minutes = array_sum(iterator_to_array($this->onlineHours())) * env('CRONTASK_INTERVAL');
+        $minutes = array_sum(iterator_to_array($this->onlineHours()));
         if ($formatted) {
             return (new Duration($minutes * 60))->humanize();
         } else {
