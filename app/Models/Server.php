@@ -9,6 +9,7 @@ use Illuminate\Database\Eloquent\Model;
  *
  * @property-read \Illuminate\Database\Eloquent\Collection|\App\Models\ServerMapRecord[] $mapRecords
  * @property-read \Illuminate\Database\Eloquent\Collection|\App\Models\ServerModRecord[] $modRecords
+ * @property-read \Illuminate\Database\Eloquent\Collection|\App\Models\ServerPlayHistory[] $playRecords
  * @property-read \App\Models\ServerStatus $stats
  * @mixin \Eloquent
  */
@@ -44,5 +45,15 @@ class Server extends Model
     public function modRecords()
     {
         return $this->hasMany(ServerModRecord::class);
+    }
+
+    /**
+     * Get the server play records associated with the server
+     *
+     * @return \Illuminate\Database\Eloquent\Relations\HasMany
+     */
+    public function playRecords()
+    {
+        return $this->hasMany(ServerPlayHistory::class);
     }
 }

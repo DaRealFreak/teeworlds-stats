@@ -7,6 +7,9 @@ use Illuminate\Database\Eloquent\Model;
 /**
  * App\Models\ServerPlayHistory
  *
+ * @property-read \App\Models\Map $map
+ * @property-read \App\Models\Player $player
+ * @property-read \App\Models\Server $server
  * @mixin \Eloquent
  */
 class ServerPlayHistory extends Model

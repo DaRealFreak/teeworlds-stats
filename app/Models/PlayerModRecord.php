@@ -7,10 +7,9 @@ use Illuminate\Database\Eloquent\Model;
 /**
  * App\Models\PlayerModRecord
  *
- * @property-read \App\Models\Mod $map
+ * @property-read \App\Models\Mod $mod
  * @property-read \App\Models\Player $player
  * @mixin \Eloquent
- * @property-read \App\Models\Mod $mod
  */
 class PlayerModRecord extends Model
 {

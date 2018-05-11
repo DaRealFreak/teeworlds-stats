@@ -12,6 +12,7 @@ use Illuminate\Database\Eloquent\Model;
  * @property-read \App\Models\Clan $clan
  * @property-read \Illuminate\Database\Eloquent\Collection|\App\Models\PlayerMapRecord[] $mapRecords
  * @property-read \Illuminate\Database\Eloquent\Collection|\App\Models\PlayerModRecord[] $modRecords
+ * @property-read \Illuminate\Database\Eloquent\Collection|\App\Models\ServerPlayHistory[] $playRecords
  * @property-read \App\Models\PlayerStatus $stats
  * @mixin \Eloquent
  */
@@ -125,5 +126,15 @@ class Player extends Model
     public function mapRecords()
     {
         return $this->hasMany(PlayerMapRecord::class);
+    }
+
+    /**
+     * Get the server play records associated with the tee
+     *
+     * @return \Illuminate\Database\Eloquent\Relations\HasMany
+     */
+    public function playRecords()
+    {
+        return $this->hasMany(ServerPlayHistory::class);
     }
 }
