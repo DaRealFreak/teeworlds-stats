@@ -11,6 +11,7 @@ use App\Models\PlayerModRecord;
 use App\Models\Server;
 use App\Models\ServerMapRecord;
 use App\Models\ServerModRecord;
+use App\Models\ServerPlayHistory;
 use App\TwRequest\TwRequest;
 use Carbon\Carbon;
 use Illuminate\Console\Command;
@@ -59,8 +60,8 @@ class UpdateData extends Command
         $servers = $this->twRequest->getServers();
 
         foreach ($servers as $server) {
-            $this->updateServer($server);
-            $this->updatePlayers($server);
+            $serverModel = $this->updateServer($server);
+            $this->updatePlayers($server, $serverModel);
         }
 
         $this->info('update server data');
@@ -71,6 +72,7 @@ class UpdateData extends Command
      * update the server data of the server we reached
      *
      * @param array $server
+     * @return Server
      */
     private function updateServer(array $server)
     {
@@ -112,14 +114,16 @@ class UpdateData extends Command
 
         // persist our changes
         $serverModel->save();
+        return $serverModel;
     }
 
     /**
      * update the player data with the data extracted from the server
      *
      * @param array $server
+     * @param Server $serverModel
      */
-    private function updatePlayers(array $server)
+    private function updatePlayers(array $server, Server $serverModel)
     {
         foreach ($server['players'] as $player) {
             /** @var Player $playerModel */
@@ -161,6 +165,7 @@ class UpdateData extends Command
             }
 
             // update player map stat
+            /** @var Map $map */
             $map = Map::firstOrCreate(['map' => $server['map']]);
             $mapRecord = PlayerMapRecord::firstOrCreate(
                 [
@@ -172,6 +177,7 @@ class UpdateData extends Command
             $playerModel->mapRecords()->save($mapRecord);
 
             // update player mod stat
+            /** @var Mod $mod */
             $mod = Mod::firstOrCreate(['mod' => $server['gametype']]);
             $modRecord = PlayerModRecord::firstOrCreate(
                 [
@@ -185,6 +191,51 @@ class UpdateData extends Command
             // update player country stat
             $playerModel->setAttribute('country', TwRequest::getCountryName($player['country']));
             $playerModel->save();
+
+            $this->updateServerPlayHistory($playerModel, $map, $serverModel);
         }
+    }
+
+    /**
+     * update or create a history entry for the player for the map and server
+     *
+     * @param Player $playerModel
+     * @param Map $mapModel
+     * @param Server $serverModel
+     */
+    private function updateServerPlayHistory(Player $playerModel, Map $mapModel, Server $serverModel)
+    {
+        // retrieve the latest history for the player
+        /** @var ServerPlayHistory $latestHistoryEntry */
+        $latestHistoryEntry = ServerPlayHistory::where(
+            [
+                'player_id' => $playerModel->getAttribute('id'),
+            ]
+        )->orderByDesc('updated_at')->first();
+
+        // retrieve the latest history for the player for the server and map
+        /** @var ServerPlayHistory $historyEntry */
+        $historyEntry = ServerPlayHistory::orderByDesc('updated_at')->where(
+            [
+                'player_id' => $playerModel->getAttribute('id'),
+                'server_id' => $serverModel->getAttribute('id'),
+                'map_id' => $mapModel->getAttribute('id')
+            ]
+        )->first();
+
+        // if no history for this server and map is set or it's not the latest history in general create a new one
+        if (!$historyEntry || ($latestHistoryEntry && $latestHistoryEntry->isNot($historyEntry))) {
+            $historyEntry = ServerPlayHistory::create(
+                [
+                    'player_id' => $playerModel->getAttribute('id'),
+                    'server_id' => $serverModel->getAttribute('id'),
+                    'map_id' => $mapModel->getAttribute('id')
+                ]
+            );
+        }
+
+        // update the history and persist the changes
+        $historyEntry->setAttribute('minutes', $historyEntry->getAttribute('minutes') + env('CRONTASK_INTERVAL'));
+        $historyEntry->save();
     }
 }
