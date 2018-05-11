@@ -16,7 +16,7 @@ class PlayerMapRecord extends Model
     protected $guarded = ['id', 'created_at', 'updated_at'];
 
     /**
-     * Get the stats record associated with the tee
+     * Get the map record associated with this record
      *
      * @return \Illuminate\Database\Eloquent\Relations\BelongsTo
      */
@@ -26,6 +26,8 @@ class PlayerMapRecord extends Model
     }
 
     /**
+     * Get the player record associated with this record
+     *
      * @return \Illuminate\Database\Eloquent\Relations\BelongsTo
      */
     public function player()
