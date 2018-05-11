@@ -23,7 +23,7 @@
                                         <input name="tee_name" id="tee_name" placeholder="Tee name"
                                                class="form-control is-invalid" type="text">
                                         <div class="invalid-feedback">{{ $errors->get('tee')[0] }}
-                                            @if (!session('teeSuggestions')->isEmpty())
+                                            @if (session('teeSuggestions') !== null && !session('teeSuggestions')->isEmpty())
                                                 , try one of the following :
                                                 <ul class="list-group">
                                                     @foreach (session('teeSuggestions') as $suggestion)
@@ -61,7 +61,7 @@
                                         <input name="clan_name" id="clan_name" placeholder="Clan name"
                                                class="form-control is-invalid" type="text">
                                         <div class="invalid-feedback">{{ $errors->get('clan')[0] }}
-                                            @if (!session('clanSuggestions')->isEmpty())
+                                            @if (session('clanSuggestions') !== null && !session('clanSuggestions')->isEmpty())
                                                 , try one of the following :
                                                 <ul class="list-group">
                                                     @foreach (session('clanSuggestions') as $suggestion)
@@ -99,7 +99,7 @@
                                         <input name="server_name" id="server_name" placeholder="Server name"
                                                class="form-control is-invalid" type="text">
                                         <div class="invalid-feedback">{{ $errors->get('server')[0] }}
-                                            @if (!session('serverSuggestions')->isEmpty())
+                                            @if (session('serverSuggestions') !== null && !session('serverSuggestions')->isEmpty())
                                                 , try one of the following :
                                                 <ul class="list-group">
                                                     @foreach (session('serverSuggestions') as $suggestion)
