@@ -10,6 +10,7 @@ use Illuminate\Database\Eloquent\Model;
  * @property-read \App\Models\Mod $map
  * @property-read \App\Models\Player $player
  * @mixin \Eloquent
+ * @property-read \App\Models\Mod $mod
  */
 class PlayerModRecord extends Model
 {
@@ -18,11 +19,11 @@ class PlayerModRecord extends Model
     /**
      * Get the stats record associated with the tee
      *
-     * @return \Illuminate\Database\Eloquent\Relations\HasOne
+     * @return \Illuminate\Database\Eloquent\Relations\BelongsTo
      */
-    public function map()
+    public function mod()
     {
-        return $this->hasOne(Mod::class, 'mod_id');
+        return $this->belongsTo(Mod::class, 'mod_id');
     }
 
     /**
