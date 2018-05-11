@@ -218,6 +218,6 @@ class Clan extends Model
     {
         return $this->hasMany(Player::class)
             ->orderByRaw('last_seen >= ? DESC', [(string)Carbon::now()->subMinutes(env('CRONTASK_INTERVAL') + 1)])
-            ->orderBy('last_seen');
+            ->orderBy('name');
     }
 }
