@@ -7,7 +7,8 @@ use Illuminate\Database\Eloquent\Model;
 /**
  * App\Models\Server
  *
- * @property-read \Illuminate\Database\Eloquent\Collection|\App\Models\ServerMap[] $maps
+ * @property-read \Illuminate\Database\Eloquent\Collection|\App\Models\ServerMapRecord[] $mapRecords
+ * @property-read \Illuminate\Database\Eloquent\Collection|\App\Models\ServerModRecord[] $modRecords
  * @property-read \App\Models\ServerStatus $stats
  * @mixin \Eloquent
  */
@@ -30,8 +31,18 @@ class Server extends Model
      *
      * @return \Illuminate\Database\Eloquent\Relations\HasMany
      */
-    public function maps()
+    public function mapRecords()
     {
-        return $this->hasMany(ServerMap::class, 'server_id');
+        return $this->hasMany(ServerMapRecord::class);
+    }
+
+    /**
+     * Get the mod records associated with this server record
+     *
+     * @return \Illuminate\Database\Eloquent\Relations\HasMany
+     */
+    public function modRecords()
+    {
+        return $this->hasMany(ServerModRecord::class);
     }
 }

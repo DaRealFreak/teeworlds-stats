@@ -37,8 +37,8 @@ class Clan extends Model
      */
     public function chartPlayedMaps($amount = 10, $displayOthers = False)
     {
-        $clanPlayedMaps = $this->hasManyThrough(PlayerMap::class, Player::class)->get();
-        return ChartUtility::chartValues($clanPlayedMaps, 'map', 'times', 5, $amount, $displayOthers);
+        $clanPlayedMaps = $this->hasManyThrough(Map::class, Player::class)->get();
+        return ChartUtility::chartValues($clanPlayedMaps, 'map', 'minutes', $amount, $displayOthers);
     }
 
     /**
@@ -50,8 +50,8 @@ class Clan extends Model
      */
     public function chartPlayedMods($amount = 10, $displayOthers = False)
     {
-        $clanPlayedMods = $this->hasManyThrough(PlayerMod::class, Player::class)->get();
-        return ChartUtility::chartValues($clanPlayedMods, 'mod', 'times', 5, $amount, $displayOthers);
+        $clanPlayedMods = $this->hasManyThrough(Mod::class, Player::class)->get();
+        return ChartUtility::chartValues($clanPlayedMods, 'mod', 'minutes', $amount, $displayOthers);
     }
 
     /**
@@ -63,7 +63,7 @@ class Clan extends Model
      */
     public function chartPlayerCountries($amount = 10, $displayOthers = True)
     {
-        return ChartUtility::chartValues($this->players, 'country', null, 1, $amount, $displayOthers);
+        return ChartUtility::chartValues($this->players, 'country', null, $amount, $displayOthers);
     }
 
     /**
@@ -155,7 +155,7 @@ class Clan extends Model
      */
     public function chartMostPlayedMaps()
     {
-        return $this->hasManyThrough(PlayerMap::class, Player::class)->selectRaw('`player_maps`.*, SUM(times) as `sum_times`')->groupBy(['map'])->orderByRaw('SUM(times) DESC')->get();
+        return $this->hasManyThrough(Map::class, Player::class)->selectRaw('`player_maps`.*, SUM(minutes) as `sum_minutes`')->groupBy(['map'])->orderByRaw('SUM(times) DESC')->get();
     }
 
     /**

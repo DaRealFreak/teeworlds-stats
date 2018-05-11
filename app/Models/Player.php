@@ -10,8 +10,8 @@ use Illuminate\Database\Eloquent\Model;
  * App\Models\Player
  *
  * @property-read \App\Models\Clan $clan
- * @property-read \Illuminate\Database\Eloquent\Collection|\App\Models\PlayerMap[] $maps
- * @property-read \Illuminate\Database\Eloquent\Collection|\App\Models\PlayerMod[] $mods
+ * @property-read \Illuminate\Database\Eloquent\Collection|\App\Models\PlayerMapRecord[] $mapRecords
+ * @property-read \Illuminate\Database\Eloquent\Collection|\App\Models\PlayerModRecord[] $modRecords
  * @property-read \App\Models\PlayerStatus $stats
  * @mixin \Eloquent
  */
@@ -39,7 +39,7 @@ class Player extends Model
      */
     public function chartPlayedMaps($amount = 10, $displayOthers = True)
     {
-        return ChartUtility::chartValues($this->maps, 'map', 'times', 5, $amount, $displayOthers);
+        return ChartUtility::chartValues($this->mapRecords, 'map', 'minutes', $amount, $displayOthers);
     }
 
     /**
@@ -51,7 +51,7 @@ class Player extends Model
      */
     public function chartPlayedMods($amount = 10, $displayOthers = True)
     {
-        return ChartUtility::chartValues($this->mods, 'mod', 'times', 5, $amount, $displayOthers);
+        return ChartUtility::chartValues($this->modRecords, 'mod', 'minutes', $amount, $displayOthers);
     }
 
     /**
@@ -79,9 +79,9 @@ class Player extends Model
      *
      * @return \Illuminate\Database\Eloquent\Relations\HasMany
      */
-    public function mods()
+    public function modRecords()
     {
-        return $this->hasMany(PlayerMod::class, 'player_id');
+        return $this->hasMany(PlayerModRecord::class);
     }
 
     /**
@@ -89,8 +89,8 @@ class Player extends Model
      *
      * @return \Illuminate\Database\Eloquent\Relations\HasMany
      */
-    public function maps()
+    public function mapRecords()
     {
-        return $this->hasMany(PlayerMap::class, 'player_id');
+        return $this->hasMany(PlayerMapRecord::class);
     }
 }

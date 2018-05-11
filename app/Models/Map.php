@@ -5,11 +5,11 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Model;
 
 /**
- * App\Models\ServerPlayHistory
+ * App\Models\Map
  *
  * @mixin \Eloquent
  */
-class ServerPlayHistory extends Model
+class Map extends Model
 {
     protected $guarded = ['id', 'created_at', 'updated_at'];
 }

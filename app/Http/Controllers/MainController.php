@@ -2,6 +2,8 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Map;
+use App\Models\Mod;
 use App\Models\Player;
 use App\Models\PlayerMap;
 use App\Models\PlayerMod;
@@ -56,7 +58,7 @@ class MainController extends Controller
      */
     public function chartPlayedMaps($amount = 10, $displayOthers = True)
     {
-        return ChartUtility::chartValues(PlayerMap::all(), 'map', 'times', 5, $amount, $displayOthers);
+        return ChartUtility::chartValues(Map::all(), 'map', 'minutes', $amount, $displayOthers);
     }
 
     /**
@@ -68,7 +70,7 @@ class MainController extends Controller
      */
     public function chartPlayedMods($amount = 10, $displayOthers = False)
     {
-        return ChartUtility::chartValues(PlayerMod::all(), 'mod', 'times', 5, $amount, $displayOthers);
+        return ChartUtility::chartValues(Mod::all(), 'mod', 'minutes', $amount, $displayOthers);
     }
 
     /**
@@ -80,6 +82,6 @@ class MainController extends Controller
      */
     public function chartPlayedCountries($amount = 10, $displayOthers = True)
     {
-        return ChartUtility::chartValues(Player::all(), 'country', null, 1, $amount, $displayOthers);
+        return ChartUtility::chartValues(Player::all(), 'country', null, $amount, $displayOthers);
     }
 }

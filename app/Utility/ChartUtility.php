@@ -11,12 +11,11 @@ class ChartUtility
      * @param Collection $collection
      * @param string $keyAttribute
      * @param null|string $valueAttribute
-     * @param int $valueModifier
      * @param int $amount
      * @param bool $displayOthers
      * @return array
      */
-    public static function chartValues(Collection $collection, string $keyAttribute, ?string $valueAttribute, int $valueModifier = 1, int $amount = 16, bool $displayOthers = True)
+    public static function chartValues(Collection $collection, string $keyAttribute, ?string $valueAttribute, int $amount = 16, bool $displayOthers = True)
     {
         $results = [];
         foreach ($collection as $item) {
@@ -28,9 +27,9 @@ class ChartUtility
                 $value = 1;
             }
             if (array_key_exists($mapName, $results)) {
-                $results[$mapName] += $value * $valueModifier;
+                $results[$mapName] += $value;
             } else {
-                $results[$mapName] = $value * $valueModifier;
+                $results[$mapName] = $value;
             }
         }
         ChartUtility::applyLimits($results, $amount, $displayOthers);
