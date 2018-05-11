@@ -196,17 +196,20 @@ Route::get('/test', function () {
     if (!$serverModel->stats()->first()) {
         $serverModel->stats()->create();
     }
-
-    $serverMapModel = $serverModel->maps->where('map', $server['map'])->first();
-    if (!$serverMapModel) {
-        $serverModel->maps()->create([
+    $map = \App\Models\Map::firstOrCreate(
+        [
             'map' => $server['map']
-        ]);
-    } else {
-        /** @var \App\Models\ServerMap $serverMapModel */
-        $serverMapModel->setAttribute('times', $serverMapModel->getAttribute('times') + 1);
-        $serverMapModel->save();
-    }
+        ]
+    );
+
+    $mapRecord = \App\Models\ServerMapRecord::firstOrCreate(
+        [
+            'server_id' => $serverModel->getAttribute('id'),
+            'map_id' => $map->getAttribute('id')
+        ]
+    );
+    $mapRecord->setAttribute('times', $mapRecord->getAttribute('times') + 1);
+    $serverModel->mapRecords()->save($mapRecord);
 
     foreach ($server['players'] as $player) {
         /** @var \App\Models\Player $playerModel */
@@ -222,7 +225,7 @@ Route::get('/test', function () {
         }
 
         // update player online stats
-        $currentHour = \Carbon\Carbon::now()->format('H');
+        $currentHour = (int)\Carbon\Carbon::now()->format('H');
         $currentDay = strtolower(\Carbon\Carbon::now()->format('l'));
         $playerModel->stats()->first()->update([
             'hour_' . $currentHour => $playerModel->stats()->first()->getAttribute('hour_' . $currentHour) + 1,
@@ -245,29 +248,36 @@ Route::get('/test', function () {
         }
 
         // update player map stat
-        $playerMapModel = $playerModel->maps->where('map', $server['map'])->first();
-        if (!$playerMapModel) {
-            $playerModel->maps()->create([
+        $map = \App\Models\Map::firstOrCreate(
+            [
                 'map' => $server['map']
-            ]);
-        } else {
-            /** @var \App\Models\PlayerMap $playerMapModel */
-            $playerMapModel->setAttribute('times', $playerMapModel->getAttribute('times') + 1);
-            $playerMapModel->save();
-        }
+            ]
+        );
+        $mapRecord = \App\Models\PlayerMapRecord::firstOrCreate(
+            [
+                'player_id' => $playerModel->getAttribute('id'),
+                'map_id' => $map->getAttribute('id')
+            ]
+        );
+        $mapRecord->setAttribute('times', $mapRecord->getAttribute('times') + 1);
+        $playerModel->mapRecords()->save($mapRecord);
 
         // update player mod stat
-        $playerModModel = $playerModel->mods->where('mod', $server['gametype'])->first();
-        if (!$playerModModel) {
-            $playerModel->mods()->create([
+        $mod = \App\Models\Mod::firstOrCreate(
+            [
                 'mod' => $server['gametype']
-            ]);
-        } else {
-            /** @var \App\Models\PlayerMap $playerModModel */
-            $playerModModel->setAttribute('times', $playerModModel->getAttribute('times') + 1);
-            $playerModModel->save();
-        }
+            ]
+        );
+        $modRecord = \App\Models\PlayerModRecord::firstOrCreate(
+            [
+                'player_id' => $playerModel->getAttribute('id'),
+                'mod_id' => $mod->getAttribute('id')
+            ]
+        );
+        $modRecord->setAttribute('times', $modRecord->getAttribute('times') + 1);
+        $playerModel->modRecords()->save($modRecord);
 
+        // update player country stat
         $playerModel->setAttribute('country', \App\TwRequest\TwRequest::getCountryName($player['country']));
         $playerModel->save();
     }

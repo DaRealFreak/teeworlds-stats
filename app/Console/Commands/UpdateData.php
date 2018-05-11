@@ -2,8 +2,17 @@
 
 namespace App\Console\Commands;
 
+use App\Models\Clan;
+use App\Models\Map;
+use App\Models\Mod;
+use App\Models\Player;
+use App\Models\PlayerMapRecord;
+use App\Models\PlayerModRecord;
 use App\Models\Server;
+use App\Models\ServerMapRecord;
+use App\Models\ServerModRecord;
 use App\TwRequest\TwRequest;
+use Carbon\Carbon;
 use Illuminate\Console\Command;
 
 class UpdateData extends Command
@@ -58,7 +67,12 @@ class UpdateData extends Command
         return True;
     }
 
-    private function updateServer($server)
+    /**
+     * update the server data of the server we reached
+     *
+     * @param array $server
+     */
+    private function updateServer(array $server)
     {
         /** @var Server $serverModel */
         $serverModel = Server::firstOrCreate(
@@ -70,33 +84,42 @@ class UpdateData extends Command
         $serverModel->setAttribute('name', $server['name']);
         $serverModel->setAttribute('version', $server['version']);
         $serverModel->setAttribute('mod', $server['gametype']);
-
-        // if the server model only got created just now it doesn't have stats yet
         if (!$serverModel->stats()->first()) {
             $serverModel->stats()->create();
         }
 
-        // check if the map already got tracked, create if not, else update the number of tracked times
-        $serverMapModel = $serverModel->maps->where('map', $server['map'])->first();
-        if (!$serverMapModel) {
-            $serverModel->maps()->create([
-                'map' => $server['map']
-            ]);
-        } else {
-            /** @var \App\Models\ServerMap $serverMapModel */
-            $serverMapModel->setAttribute('times', $serverMapModel->getAttribute('times') + 1);
-            $serverMapModel->save();
-        }
+        $map = Map::firstOrCreate(['map' => $server['map']]);
+        $mapRecord = ServerMapRecord::firstOrCreate(
+            [
+                'server_id' => $serverModel->getAttribute('id'),
+                'map_id' => $map->getAttribute('id')
+            ]
+        );
+        $mapRecord->setAttribute('minutes', $mapRecord->getAttribute('minutes') + env('CRONTASK_INTERVAL'));
+        $serverModel->mapRecords()->save($mapRecord);
 
-        // save all changes to the model
-        $serverModel->save();
+        // update server mod stat
+        $mod = Mod::firstOrCreate(['mod' => $server['gametype']]);
+        $modRecord = ServerModRecord::firstOrCreate(
+            [
+                'server_id' => $serverModel->getAttribute('id'),
+                'mod_id' => $mod->getAttribute('id')
+            ]
+        );
+        $modRecord->setAttribute('minutes', $modRecord->getAttribute('minutes') + env('CRONTASK_INTERVAL'));
+        $serverModel->modRecords()->save($modRecord);
     }
 
-    private function updatePlayers($server)
+    /**
+     * update the player data with the data extracted from the server
+     *
+     * @param array $server
+     */
+    private function updatePlayers(array $server)
     {
         foreach ($server['players'] as $player) {
-            /** @var \App\Models\Player $playerModel */
-            $playerModel = \App\Models\Player::firstOrCreate(
+            /** @var Player $playerModel */
+            $playerModel = Player::firstOrCreate(
                 [
                     'name' => $player['name'],
                 ]
@@ -108,53 +131,52 @@ class UpdateData extends Command
             }
 
             // update player online stats
-            $currentHour = \Carbon\Carbon::now()->format('H');
-            $currentDay = strtolower(\Carbon\Carbon::now()->format('l'));
+            $currentHour = (int)Carbon::now()->format('H');
+            $currentDay = strtolower(Carbon::now()->format('l'));
             $playerModel->stats()->first()->update([
-                'hour_' . $currentHour => $playerModel->stats()->first()->getAttribute('hour_' . $currentHour) + 1,
-                $currentDay => $playerModel->stats()->first()->getAttribute($currentDay) + 1
+                'hour_' . $currentHour => $playerModel->stats()->first()->getAttribute('hour_' . $currentHour) + env('CRONTASK_INTERVAL'),
+                $currentDay => $playerModel->stats()->first()->getAttribute($currentDay) + env('CRONTASK_INTERVAL')
             ]);
 
             // update player clan stat
             // if clan is set and player has no clan or different clan
             if ($player['clan'] && (!$playerModel->clan()->first() || $playerModel->clan()->first()->getAttribute('name') != $player['clan'])) {
-                /** @var \App\Models\Clan $clanModel */
-                $clanModel = \App\Models\Clan::firstOrCreate(
+                /** @var Clan $clanModel */
+                $clanModel = Clan::firstOrCreate(
                     [
                         'name' => $player['clan'],
                     ]
                 );
                 $playerModel->clan()->associate($clanModel);
-                $playerModel->setAttribute('clan_joined_at', \Carbon\Carbon::now());
+                $playerModel->setAttribute('clan_joined_at', Carbon::now());
             } elseif (!$player['clan'] && $playerModel->clan()->first()) {
                 $playerModel->clan()->first()->delete();
             }
 
             // update player map stat
-            $playerMapModel = $playerModel->maps->where('map', $server['map'])->first();
-            if (!$playerMapModel) {
-                $playerModel->maps()->create([
-                    'map' => $server['map']
-                ]);
-            } else {
-                /** @var \App\Models\PlayerMap $playerMapModel */
-                $playerMapModel->setAttribute('times', $playerMapModel->getAttribute('times') + 1);
-                $playerMapModel->save();
-            }
+            $map = Map::firstOrCreate(['map' => $server['map']]);
+            $mapRecord = PlayerMapRecord::firstOrCreate(
+                [
+                    'player_id' => $playerModel->getAttribute('id'),
+                    'map_id' => $map->getAttribute('id')
+                ]
+            );
+            $mapRecord->setAttribute('minutes', $mapRecord->getAttribute('minutes') + env('CRONTASK_INTERVAL'));
+            $playerModel->mapRecords()->save($mapRecord);
 
             // update player mod stat
-            $playerModModel = $playerModel->mods->where('mod', $server['gametype'])->first();
-            if (!$playerModModel) {
-                $playerModel->mods()->create([
-                    'mod' => $server['gametype']
-                ]);
-            } else {
-                /** @var \App\Models\PlayerMap $playerModModel */
-                $playerModModel->setAttribute('times', $playerModModel->getAttribute('times') + 1);
-                $playerModModel->save();
-            }
+            $mod = Mod::firstOrCreate(['mod' => $server['gametype']]);
+            $modRecord = PlayerModRecord::firstOrCreate(
+                [
+                    'player_id' => $playerModel->getAttribute('id'),
+                    'mod_id' => $mod->getAttribute('id')
+                ]
+            );
+            $modRecord->setAttribute('minutes', $modRecord->getAttribute('minutes') + env('CRONTASK_INTERVAL'));
+            $playerModel->modRecords()->save($modRecord);
 
-            $playerModel->setAttribute('country', $this->twRequest::getCountryName($player['country']));
+            // update player country stat
+            $playerModel->setAttribute('country', TwRequest::getCountryName($player['country']));
             $playerModel->save();
         }
     }

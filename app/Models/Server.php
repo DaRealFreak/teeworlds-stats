@@ -8,9 +8,14 @@ use Illuminate\Database\Eloquent\Model;
 /**
  * App\Models\Server
  *
+<<<<<<< HEAD
  * @property-read \Illuminate\Database\Eloquent\Collection|\App\Models\Player[] $currentPlayers
  * @property-read \Illuminate\Database\Eloquent\Collection|\App\Models\PlayerHistory[] $playerRecords
  * @property-read \Illuminate\Database\Eloquent\Collection|\App\Models\ServerHistory[] $serverRecords
+=======
+ * @property-read \Illuminate\Database\Eloquent\Collection|\App\Models\ServerMapRecord[] $mapRecords
+ * @property-read \Illuminate\Database\Eloquent\Collection|\App\Models\ServerModRecord[] $modRecords
+>>>>>>> a78c4ee... [!git add app/ routes/][TASK] rename times to minutes, extract maps and mods to unified table connected to models with record models
  * @property-read \App\Models\ServerStatus $stats
  * @mixin \Eloquent
  */
@@ -64,8 +69,24 @@ class Server extends Model
      *
      * @return \Illuminate\Database\Eloquent\Relations\HasMany
      */
+<<<<<<< HEAD
     public function serverRecords()
     {
         return $this->hasMany(ServerHistory::class);
+=======
+    public function mapRecords()
+    {
+        return $this->hasMany(ServerMapRecord::class);
+    }
+
+    /**
+     * Get the mod records associated with this server record
+     *
+     * @return \Illuminate\Database\Eloquent\Relations\HasMany
+     */
+    public function modRecords()
+    {
+        return $this->hasMany(ServerModRecord::class);
+>>>>>>> a78c4ee... [!git add app/ routes/][TASK] rename times to minutes, extract maps and mods to unified table connected to models with record models
     }
 }

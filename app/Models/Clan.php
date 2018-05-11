@@ -146,6 +146,7 @@ class Clan extends Model
      */
     public function chartPlayedMaps($amount = 10, $displayOthers = False)
     {
+<<<<<<< HEAD
         /** @var PlayerHistory $playedMap */
         foreach ($this->mostPlayedMaps()->get() as $playedMap) {
             $results[$playedMap->map->getAttribute('map')] = (int)$playedMap->getAttribute('sum_minutes');
@@ -153,6 +154,10 @@ class Clan extends Model
         ChartUtility::applyLimits($results, $amount, $displayOthers);
 
         return $results;
+=======
+        $clanPlayedMaps = $this->hasManyThrough(Map::class, Player::class)->get();
+        return ChartUtility::chartValues($clanPlayedMaps, 'map', 'minutes', $amount, $displayOthers);
+>>>>>>> a78c4ee... [!git add app/ routes/][TASK] rename times to minutes, extract maps and mods to unified table connected to models with record models
     }
 
     /**
@@ -164,6 +169,7 @@ class Clan extends Model
      */
     public function chartPlayedMods($amount = 10, $displayOthers = False)
     {
+<<<<<<< HEAD
         /** @var PlayerHistory $playedMod */
         foreach ($this->mostPlayedMods()->get() as $playedMod) {
             $results[$playedMod->mod->getAttribute('mod')] = (int)$playedMod->getAttribute('sum_minutes');
@@ -176,6 +182,10 @@ class Clan extends Model
         }
 
         return $results;
+=======
+        $clanPlayedMods = $this->hasManyThrough(Mod::class, Player::class)->get();
+        return ChartUtility::chartValues($clanPlayedMods, 'mod', 'minutes', $amount, $displayOthers);
+>>>>>>> a78c4ee... [!git add app/ routes/][TASK] rename times to minutes, extract maps and mods to unified table connected to models with record models
     }
 
     /**
@@ -187,6 +197,7 @@ class Clan extends Model
      */
     public function chartPlayerCountries($amount = 10, $displayOthers = True)
     {
+<<<<<<< HEAD
         $clanPlayers = $this->players()->selectRaw('`players`.*, COUNT(`players`.`country`) as `count_countries`')
             ->groupBy('country')
             ->orderByRaw('COUNT(`players`.`country`) DESC')->get();
@@ -198,6 +209,9 @@ class Clan extends Model
         ChartUtility::applyLimits($results, $amount, $displayOthers);
 
         return $results;
+=======
+        return ChartUtility::chartValues($this->players, 'country', null, $amount, $displayOthers);
+>>>>>>> a78c4ee... [!git add app/ routes/][TASK] rename times to minutes, extract maps and mods to unified table connected to models with record models
     }
 
     /**
@@ -247,6 +261,55 @@ class Clan extends Model
     }
 
     /**
+<<<<<<< HEAD
+=======
+     * function to retrieve the oldest player of the guild
+     *
+     * @return Model|\Illuminate\Database\Eloquent\Relations\HasOne|null|object
+     */
+    public function statsOldestPlayer()
+    {
+        return $this->hasOne(Player::class, 'clan_id')->orderBy('clan_joined_at')->first();
+    }
+
+    /**
+     * function to retrieve the youngest player of the guild
+     *
+     * @return Model|\Illuminate\Database\Eloquent\Relations\HasOne|null|object
+     */
+    public function statsYoungestPlayer()
+    {
+        return $this->hasOne(Player::class, 'clan_id')->orderByDesc('clan_joined_at')->first();
+    }
+
+    /**
+     * function to retrieve the most active player of the guild
+     *
+     * @return Player
+     */
+    public function statsMostActivePlayer()
+    {
+        return $this->hasManyThrough(PlayerStatus::class, Player::class)->orderByRaw('
+        SUM(`player_statuses`.`hour_0`+`player_statuses`.`hour_1`+`player_statuses`.`hour_2`+`player_statuses`.`hour_3`+
+        `player_statuses`.`hour_4`+`player_statuses`.`hour_5`+`player_statuses`.`hour_6`+`player_statuses`.`hour_7`+
+        `player_statuses`.`hour_8`+`player_statuses`.`hour_9`+`player_statuses`.`hour_10`+`player_statuses`.`hour_11`+
+        `player_statuses`.`hour_12`+`player_statuses`.`hour_13`+`player_statuses`.`hour_14`+`player_statuses`.`hour_15`+
+        `player_statuses`.`hour_16`+`player_statuses`.`hour_17`+`player_statuses`.`hour_18`+`player_statuses`.`hour_19`+
+        `player_statuses`.`hour_20`+`player_statuses`.`hour_21`+`player_statuses`.`hour_22`+`player_statuses`.`hour_23`) DESC')->groupBy(['player_id'])->first()->player;
+    }
+
+    /**
+     * function to retrieve the most played map of the guild
+     *
+     * @return \Illuminate\Database\Eloquent\Collection|\Illuminate\Support\Collection
+     */
+    public function chartMostPlayedMaps()
+    {
+        return $this->hasManyThrough(Map::class, Player::class)->selectRaw('`player_maps`.*, SUM(minutes) as `sum_minutes`')->groupBy(['map'])->orderByRaw('SUM(times) DESC')->get();
+    }
+
+    /**
+>>>>>>> a78c4ee... [!git add app/ routes/][TASK] rename times to minutes, extract maps and mods to unified table connected to models with record models
      * function to humanize the tracked minutes into a human time(h-m-s or if needed even d-h-m-s etc)
      *
      * @param $minutes
