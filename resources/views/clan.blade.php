@@ -165,7 +165,7 @@
             Chart.defaults.global.defaultFontColor = '#75787c';
 
             let playedMods = $('#playedModsChart');
-            @if (count($player->chartPlayedMods()) >= 3)
+            @if (count($clan->chartPlayedMods()) >= 3)
                 // ------------------------------------------------------- //
                 // Played mods radar chart
                 // ------------------------------------------------------ //
