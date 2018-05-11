@@ -28,7 +28,7 @@
                                         <div class="content">
                                             <strong class="d-block">{{ $player->name }}</strong>
                                             <span class="d-block">{{ $player->clan->name }} </span>
-                                            <small class="date d-block">{{ $player->updated_at }}</small>
+                                            <small class="date d-block">{{ $player->last_seen }}</small>
                                         </div>
                                     </a>
                                 @endforeach
