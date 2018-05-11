@@ -210,11 +210,14 @@ class Clan extends Model
 
     /**
      * Get the player records associated with the clan
+     * players who were seen recently appear on top of the list
      *
      * @return \Illuminate\Database\Eloquent\Relations\HasMany
      */
     public function players()
     {
-        return $this->hasMany(Player::class);
+        return $this->hasMany(Player::class)
+            ->orderByRaw('last_seen >= ? DESC', [(string)Carbon::now()->subMinutes(env('CRONTASK_INTERVAL') + 1)])
+            ->orderBy('last_seen');
     }
 }
