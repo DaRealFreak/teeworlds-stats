@@ -18,7 +18,7 @@
                             </div>
                             <div class="messages pre-scrollable pre-scrollable-needed">
                                 @foreach ($server->players as $player)
-                                    <a href="{{ url("tee", urlencode($player->name)) }}"
+                                    <a href="{{ url("tee/" . $player->name) }}"
                                        class="message d-flex align-items-center">
                                         <div class="profile">
                                             <img src="{{ asset('images/user.png') }}" alt="{{ $player->name }}"
@@ -27,7 +27,7 @@
                                         </div>
                                         <div class="content">
                                             <strong class="d-block">{{ $player->name }}</strong>
-                                            <span class="d-block">{{ $player->clan()->name }} </span>
+                                            <span class="d-block">{{ $player->clan->name }} </span>
                                             <small class="date d-block">{{ $player->last_seen }}</small>
                                         </div>
                                     </a>
