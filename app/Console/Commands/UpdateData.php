@@ -126,6 +126,11 @@ class UpdateData extends Command
     private function updatePlayers(array $server, Server $serverModel)
     {
         foreach ($server['players'] as $player) {
+            // players not yet connected to the server have a unique entry, skip these
+            if ($player['name'] == '(connecting)' && $player['country'] === -1 && $player['clan'] == '' && $player['score'] === 0) {
+                continue;
+            }
+
             /** @var Player $playerModel */
             $playerModel = Player::firstOrCreate(
                 [
@@ -192,6 +197,8 @@ class UpdateData extends Command
             $playerModel->setAttribute('country', TwRequest::getCountryName($player['country']));
             $playerModel->save();
 
+            // $player['ingame'] is false if the player is spectating and not playing
+            // maybe don't update play history if not set?
             $this->updateServerPlayHistory($playerModel, $map, $serverModel);
         }
     }
