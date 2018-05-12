@@ -21,7 +21,10 @@
                             <div class="number dashtext-2">{{ $general['online'] }}</div>
                         </div>
                         <div class="progress progress-template">
-                            <div role="progressbar" style="width: 70%" aria-valuenow="70" aria-valuemin="0"
+                            <div role="progressbar"
+                                 style="width: {{ round(($general['online']/$dailySummary->players_online) * 100, 2) }}%"
+                                 aria-valuenow="{{ round(($general['online']/$dailySummary->players_online) * 100, 2) }}"
+                                 aria-valuemin="0"
                                  aria-valuemax="100" class="progress-bar progress-bar-template dashbg-2"></div>
                         </div>
                     </div>
@@ -33,10 +36,13 @@
                                 </div>
                                 <strong>New tees in the last 24 hours</strong>
                             </div>
-                            <div class="number dashtext-1">27</div>
+                            <div class="number dashtext-1">{{ $controller->playersCreatedLast24Hours()->count() }}</div>
                         </div>
                         <div class="progress progress-template">
-                            <div role="progressbar" style="width: 30%" aria-valuenow="30" aria-valuemin="0"
+                            <div role="progressbar"
+                                 style="width: {{ round(($controller->playersCreatedLast24Hours()->count() / $controller->playersSeenLast24Hours()->count()) * 100, 2) }}%"
+                                 aria-valuenow="{{ round(($controller->playersCreatedLast24Hours()->count() / $controller->playersSeenLast24Hours()->count()) * 100, 2) }}"
+                                 aria-valuemin="0"
                                  aria-valuemax="100" class="progress-bar progress-bar-template dashbg-1"></div>
                         </div>
                     </div>
@@ -97,7 +103,7 @@
             Chart.defaults.global.defaultFontColor = '#75787c';
 
             let playedMods = $('#playedMods');
-            @if (count($chartPlayedMods) >= 3)
+            @if (count($controller->chartPlayedMods()) >= 3)
                 // ------------------------------------------------------- //
                 // Played mods radar chart
                 // ------------------------------------------------------ //
@@ -139,7 +145,7 @@
                         }
                     },
                     data: {
-                        labels: {!! json_encode(array_keys($chartPlayedMods)) !!},
+                        labels: {!! json_encode(array_keys($controller->chartPlayedMods())) !!},
                         datasets: [
                             {
                                 label: "Played mods",
@@ -150,7 +156,7 @@
                                 pointBorderColor: "#fff",
                                 pointHoverBackgroundColor: "#fff",
                                 pointHoverBorderColor: "#7127AC",
-                                data: {!! json_encode(array_values($chartPlayedMods)) !!}
+                                data: {!! json_encode(array_values($controller->chartPlayedMods())) !!}
                             }
                         ]
                     }
@@ -180,10 +186,10 @@
                         }
                     },
                     data: {
-                        labels: {!! json_encode(array_keys($chartPlayedMods)) !!},
+                        labels: {!! json_encode(array_keys($controller->chartPlayedMods())) !!},
                         datasets: [
                             {
-                                data: {!! json_encode(array_values($chartPlayedMods)) !!},
+                                data: {!! json_encode(array_values($controller->chartPlayedMods())) !!},
                                 borderWidth: 0,
                                 backgroundColor: [
                                     '#723ac3',
@@ -226,10 +232,10 @@
                     }
                 },
                 data: {
-                    labels: {!! json_encode(array_keys($chartPlayedCountries)) !!},
+                    labels: {!! json_encode(array_keys($controller->chartPlayedCountries())) !!},
                     datasets: [
                         {
-                            data: {!! json_encode(array_values($chartPlayedCountries)) !!},
+                            data: {!! json_encode(array_values($controller->chartPlayedCountries())) !!},
                             borderWidth: 0,
                             backgroundColor: [
                                 '#723ac3',
