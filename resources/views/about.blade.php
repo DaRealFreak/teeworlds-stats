@@ -43,7 +43,7 @@
                                 <div>It could be because this clan/server/tee</div>
                                 <div>
                                     <ul>
-                                        <li>Has not yet been online more than 5 minutes</li>
+                                        <li>Has not yet been online more than {{ env('CRONTASK_INTERVAL') }} minutes</li>
                                         <li>Was not reachable through the official master servers</li>
                                         <li>Was misspelled</li>
                                     </ul>
@@ -59,7 +59,7 @@
 
                             <div class="form-group-material">
                                 <h3>Where do these statistics come from?</h3>
-                                <div>Teeworlds servers are looked up every 5 minutes to gather data about players,
+                                <div>Teeworlds servers are looked up every {{ env('CRONTASK_INTERVAL') }} minutes to gather data about players,
                                     clans, mods, etc...
                                 </div>
                                 <div>Results are displayed on demand.</div>
