@@ -104,7 +104,7 @@
                                                 <ul class="list-group">
                                                     @foreach (session('serverSuggestions') as $suggestion)
                                                         <li class="list-group-item list-group-item-transparent">
-                                                            <a href="{{ url("server", urlencode($suggestion['name'])) }}">{{ $suggestion['name'] }}</a>
+                                                            <a href="{{ url("server", [urlencode($suggestion['id']), urlencode($suggestion['name'])]) }}">{{ $suggestion['name'] }}</a>
                                                         </li>
                                                     @endforeach
                                                 </ul>
