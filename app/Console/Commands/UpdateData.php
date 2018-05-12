@@ -131,7 +131,7 @@ class UpdateData extends Command
         // or it's not the latest history entry or more than 1.5 times the cron interval ago create a new one
         if (!$historyEntry
             || ($latestHistoryEntry && $latestHistoryEntry->isNot($historyEntry))
-            || $latestHistoryEntry->getAttribute('updated_at') >= Carbon::now()->subMinutes(env('CRONTASK_INTERVAL') * 1.5)) {
+            || $latestHistoryEntry->getAttribute('updated_at') < Carbon::now()->subMinutes(env('CRONTASK_INTERVAL') * 1.5)) {
             $historyEntry = ServerHistory::create(
                 [
                     'server_id' => $serverModel->getAttribute('id'),
@@ -247,7 +247,7 @@ class UpdateData extends Command
         // if no history for this server and map is set or it's not the latest history in general create a new one
         if (!$historyEntry
             || ($latestHistoryEntry && $latestHistoryEntry->isNot($historyEntry))
-            || $latestHistoryEntry->getAttribute('updated_at') >= Carbon::now()->subMinutes(env('CRONTASK_INTERVAL') * 1.5)) {
+            || $latestHistoryEntry->getAttribute('updated_at') < Carbon::now()->subMinutes(env('CRONTASK_INTERVAL') * 1.5)) {
             $historyEntry = PlayerHistory::create(
                 [
                     'player_id' => $playerModel->getAttribute('id'),
