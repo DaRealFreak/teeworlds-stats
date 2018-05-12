@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Clan;
+use App\Models\DailySummary;
 use App\Models\Map;
 use App\Models\Mod;
 use App\Models\Player;
@@ -36,9 +37,8 @@ class MainController extends Controller
                 'maps' => count(Map::groupBy(['map'])->get()),
                 'mods' => count(Mod::groupBy(['mod'])->get()),
             ])
-            ->with('chartPlayedMaps', $this->chartPlayedMaps())
-            ->with('chartPlayedCountries', $this->chartPlayedCountries())
-            ->with('chartPlayedMods', $this->chartPlayedMods());
+            ->with('dailySummary', DailySummary::firstOrCreate(['date' => Carbon::today()]))
+            ->with('controller', $this);
     }
 
     /**
@@ -118,5 +118,21 @@ class MainController extends Controller
         ChartUtility::applyLimits($results, $amount, $displayOthers);
 
         return $results;
+    }
+
+    /**
+     * @return Player[]|\Illuminate\Database\Eloquent\Collection
+     */
+    public function playersCreatedLast24Hours()
+    {
+        return Player::where('created_at', '>=', Carbon::now()->subDay())->get();
+    }
+
+    /**
+     * @return Player[]|\Illuminate\Database\Eloquent\Collection
+     */
+    public function playersSeenLast24Hours()
+    {
+        return Player::where('last_seen', '>=', Carbon::now()->subDay())->get();
     }
 }
