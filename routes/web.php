@@ -36,11 +36,26 @@ Route::get('/server/{server_id}/{server_name}/', ['as' => 'searchServerByIdAndNa
 Auth::routes();
 
 # Test routes
-Route::get('/summary', function () {
+Route::get('/test', function () {
     return "huge success";
 });
 
-Route::get('/test', function () {
-    return "this is a serious testing area!";
+# Create example rules for player and server mods
+Route::get('/rules', function () {
+    \App\Models\ModRule::firstOrCreate(
+        [
+            'decider' => 'mod',
+            'rule' => '%fng%',
+            'mod_id' => \App\Models\Mod::firstOrCreate(['mod' => 'FNG'])->getAttribute('id')
+        ]
+    );
+
+    \App\Models\ModRule::firstOrCreate(
+        [
+            'decider' => 'server',
+            'rule' => '%gores%',
+            'mod_id' => \App\Models\Mod::firstOrCreate(['mod' => 'Gores'])->getAttribute('id')
+        ]
+    );
 });
 
