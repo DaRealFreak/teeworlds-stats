@@ -215,11 +215,11 @@
                             },
                             ticks: {
                                 beginAtZero: true,
-                                maxTicksLimit: 3,
                                 display: false,
                                 userCallback: function (value, index, values) {
                                     return humanizeDuration(value * 60 * 100);
-                                }
+                                },
+                                max: {!! max(array_values($player->chartPlayedMods())) !!}
                             },
                             pointLabels: {
                                 fontSize: 12
