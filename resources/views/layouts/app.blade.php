@@ -126,12 +126,12 @@
                 </ul>
             @endif
 
-        <!-- Server Navigation Entry -->
+            <!-- Server Navigation Entry -->
             @if(!empty($server))
                 <span class="heading">Server</span>
                 <ul class="list-unstyled">
                     <li>
-                        <a href="{{ $server->name }}">
+                        <a href="{{ url("server", [urlencode($server->id), urlencode($server->name)]) }}">
                             <i class="icon-chart"></i>
                             {{ $server->name }}
                         </a>
