@@ -46,7 +46,6 @@ class SearchController extends Controller
     public function searchTeeByName(Request $request, $tee_name)
     {
         $tee_name = urldecode($tee_name);
-
         if (!$player = (new Player)->where('name', $tee_name)->first()) {
             $suggestedPlayers = Player::hydrate(
                 Searchy::search('players')
@@ -89,7 +88,6 @@ class SearchController extends Controller
     public function searchClanByName(Request $request, $clan_name)
     {
         $clan_name = urldecode($clan_name);
-
         if (!$clan = (new Clan)->where('name', $clan_name)->first()) {
             $clanSuggestions = Clan::hydrate(
                 Searchy::search('clans')
@@ -125,47 +123,14 @@ class SearchController extends Controller
     }
 
     /**
-     * search server by name, redirect on direct match to detail page, else suggest close matches
-     *
      * @param Request $request
      * @param $server_name
-     * @return \Illuminate\Http\RedirectResponse
+     * @return \Illuminate\Contracts\View\Factory|\Illuminate\Http\RedirectResponse|\Illuminate\View\View
      */
     public function searchServerByName(Request $request, $server_name)
     {
         $server_name = urldecode($server_name);
-
         if (!$server = Server::where('name', $server_name)->first()) {
-            $serverSuggestions = Server::hydrate(
-                Searchy::search('servers')
-                    ->fields('name')
-                    ->query($server_name)->getQuery()
-                    ->having('relevance', '>', 20)
-                    ->limit(10)
-                    ->get()->toArray()
-            );
-
-            return Redirect::to("search")
-                ->withErrors(['server' => 'This server does not exist'])
-                ->with('serverSuggestions', $serverSuggestions);
-        }
-        return Redirect::to(url('server', [urlencode($server->id), urlencode($server->name)]));
-    }
-
-    /**
-     * search server by passed id or redirect to search term if id does not exist
-     *
-     * @param Request $request
-     * @param $server_id
-     * @param $server_name
-     * @return \Illuminate\Contracts\View\Factory|\Illuminate\Http\RedirectResponse|\Illuminate\View\View
-     */
-    public function searchServerByIdAndName(Request $request, $server_id, $server_name)
-    {
-        $server_name = urldecode($server_name);
-        $server_id = urldecode($server_id);
-
-        if (!$server = Server::where(['id' => $server_id])->first()) {
             $serverSuggestions = Server::hydrate(
                 Searchy::search('servers')
                     ->fields('name')

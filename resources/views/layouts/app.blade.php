@@ -113,32 +113,25 @@
                 <li><a href="{{ url('search') }}"> <i class="icon-magnifying-glass-browser"></i>Search </a></li>
             </ul>
 
-            @php
-                // if we are on the player page and the player has a clan define the clan as local variable
-                if (isset($player) && $player->clan()) {
-                    $clan = $player->clan();
-                }
-            @endphp
-
             <!-- Clan Navigation Entry -->
-            @if(!empty($clan->name))
+            @if(!empty($player->clan->name))
                 <span class="heading">Clan</span>
                 <ul class="list-unstyled">
                     <li>
-                        <a href="{{ url('clan', urlencode($clan->name))}}">
+                        <a href="{{ url('clan', urlencode($player->clan->name))}}">
                             <i class="icon-chart"></i>
-                            {{ $clan->name }}
+                            {{ $player->clan->name }}
                         </a>
                     </li>
                 </ul>
             @endif
 
-            <!-- Server Navigation Entry -->
+        <!-- Server Navigation Entry -->
             @if(!empty($server))
                 <span class="heading">Server</span>
                 <ul class="list-unstyled">
                     <li>
-                        <a href="{{ url("server", [urlencode($server->id), urlencode($server->name)]) }}">
+                        <a href="{{ $server->name }}">
                             <i class="icon-chart"></i>
                             {{ $server->name }}
                         </a>
