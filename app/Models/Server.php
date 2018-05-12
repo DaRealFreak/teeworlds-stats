@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Model;
 
 /**
@@ -55,5 +56,16 @@ class Server extends Model
     public function playRecords()
     {
         return $this->hasMany(ServerPlayHistory::class);
+    }
+
+    /**
+     * Get the current players on the server associated with this record
+     *
+     * @return \Illuminate\Database\Eloquent\Relations\HasManyThrough
+     */
+    public function currentPlayers()
+    {
+        return $this->hasManyThrough(Player::class, ServerPlayHistory::class, 'server_id', 'id')
+            ->whereRaw('`server_play_histories`.`updated_at` >= ?', [Carbon::now()->subMinutes(env('CRONTASK_INTERVAL') + 1)]);
     }
 }
