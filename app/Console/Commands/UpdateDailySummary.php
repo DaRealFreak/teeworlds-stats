@@ -53,7 +53,7 @@ class UpdateDailySummary extends Command
         );
 
         $onlinePlayers = Player::whereBetween('last_seen', [$usedDate, $limitDate])->get()->count();
-        $onlinePlayersPeak = Player::where('last_seen', '>=', Carbon::now()->subMinutes(env('CRONTASK_INTERVAL') + 1))->count();
+        $onlinePlayersPeak = Player::where('last_seen', '>=', Carbon::now()->subMinutes(env('CRONTASK_INTERVAL') * 1.5))->count();
 
         $onlineClans = Clan::with('players')->whereHas('players', function ($query) use ($usedDate, $limitDate) {
             /** @var Player $query */
@@ -61,11 +61,11 @@ class UpdateDailySummary extends Command
         })->get()->count();
         $onlineClansPeak = Clan::with('players')->whereHas('players', function ($query) use ($usedDate, $limitDate) {
             /** @var Player $query */
-            $query->whereBetween('last_seen', [Carbon::now()->subMinutes(env('CRONTASK_INTERVAL') + 1), Carbon::now()]);
+            $query->whereBetween('last_seen', [Carbon::now()->subMinutes(env('CRONTASK_INTERVAL') * 1.5), Carbon::now()]);
         })->get()->count();
 
         $onlineServers = Server::whereBetween('last_seen', [$usedDate, $limitDate])->get()->count();
-        $onlineServersPeak = Server::where('last_seen', '>=', Carbon::now()->subMinutes(env('CRONTASK_INTERVAL') + 1))->count();
+        $onlineServersPeak = Server::where('last_seen', '>=', Carbon::now()->subMinutes(env('CRONTASK_INTERVAL') * 1.5))->count();
 
         $dailySummary->setAttribute('players_online', $onlinePlayers);
         $dailySummary->setAttribute('clans_online', $onlineClans);
