@@ -7,6 +7,7 @@ use App\Console\Commands\UpdateData;
 use Illuminate\Console\Scheduling\Schedule;
 use Illuminate\Foundation\Console\Kernel as ConsoleKernel;
 use Illuminate\Support\Facades\Artisan;
+use Spatie\ResponseCache\Commands\Clear;
 
 class Kernel extends ConsoleKernel
 {
@@ -30,6 +31,7 @@ class Kernel extends ConsoleKernel
     {
         $schedule->command(UpdateData::class)->everyTenMinutes()->after(function () {
             Artisan::call(UpdateDailySummary::class);
+            Artisan::call(Clear::class);
         });
     }
 
