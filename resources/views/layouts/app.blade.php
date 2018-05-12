@@ -126,6 +126,19 @@
                 </ul>
             @endif
 
+            <!-- Clan Navigation Entry if not already set by player -->
+            @if(!empty($clan->name) && empty($player->clan->name))
+                <span class="heading">Clan</span>
+                <ul class="list-unstyled">
+                    <li>
+                        <a href="{{ url('clan', urlencode($clan->name))}}">
+                            <i class="icon-chart"></i>
+                            {{ $clan->name }}
+                        </a>
+                    </li>
+                </ul>
+            @endif
+
             <!-- Server Navigation Entry -->
             @if(!empty($server))
                 <span class="heading">Server</span>
