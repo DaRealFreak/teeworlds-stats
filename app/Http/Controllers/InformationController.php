@@ -53,7 +53,6 @@ class InformationController extends Controller
     /**
      * @param Request $request
      * @param $server_id
-     * @param $server_name
      * @return \Illuminate\Contracts\View\Factory|\Illuminate\View\View
      */
     public function editServer(Request $request, $server_id, $server_name)
