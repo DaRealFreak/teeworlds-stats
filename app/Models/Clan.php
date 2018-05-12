@@ -24,7 +24,7 @@ class Clan extends Model
      */
     public function online()
     {
-        return $this->players()->where('last_seen', '>=', Carbon::now()->subMinutes(env('CRONTASK_INTERVAL') + 1))->get();
+        return $this->players()->where('last_seen', '>=', Carbon::now()->subMinutes(env('CRONTASK_INTERVAL') * 1.5))->get();
     }
 
     /**
@@ -36,12 +36,12 @@ class Clan extends Model
      */
     public function chartPlayedMaps($amount = 10, $displayOthers = False)
     {
-        $clanPlayedMaps = $this->hasManyThrough(PlayerMapRecord::class, Player::class)
-            ->selectRaw('`player_map_records`.*, SUM(`player_map_records`.`minutes`) as `sum_minutes`')
+        $clanPlayedMaps = $this->hasManyThrough(PlayerHistory::class, Player::class)
+            ->selectRaw('`' . (new PlayerHistory)->getTable() . '`.*, SUM(`' . (new PlayerHistory)->getTable() . '`.`minutes`) as `sum_minutes`')
             ->groupBy('map_id')
-            ->orderByRaw('SUM(`player_map_records`.`minutes`) DESC')->get();
+            ->orderByDesc('sum_minutes')->get();
 
-        /** @var PlayerMapRecord $playedMap */
+        /** @var PlayerHistory $playedMap */
         foreach ($clanPlayedMaps as $playedMap) {
             $results[$playedMap->map->getAttribute('map')] = (int)$playedMap->getAttribute('sum_minutes');
         }
@@ -59,12 +59,12 @@ class Clan extends Model
      */
     public function chartPlayedMods($amount = 10, $displayOthers = False)
     {
-        $clanPlayedMods = $this->hasManyThrough(PlayerModRecord::class, Player::class)
-            ->selectRaw('`player_mod_records`.*, SUM(`player_mod_records`.`minutes`) as `sum_minutes`')
+        $clanPlayedMods = $this->hasManyThrough(PlayerHistory::class, Player::class)
+            ->selectRaw('`' . (new PlayerHistory)->getTable() . '`.*, SUM(`' . (new PlayerHistory)->getTable() . '`.`minutes`) as `sum_minutes`')
             ->groupBy('mod_id')
             ->orderByDesc('sum_minutes')->get();
 
-        /** @var PlayerModRecord $playedMod */
+        /** @var PlayerHistory $playedMod */
         foreach ($clanPlayedMods as $playedMod) {
             $results[$playedMod->mod->getAttribute('mod')] = (int)$playedMod->getAttribute('sum_minutes');
         }
@@ -189,11 +189,11 @@ class Clan extends Model
      */
     public function chartMostPlayedMaps()
     {
-        return $this->hasManyThrough(PlayerMapRecord::class, Player::class)
-            ->join((new Map)->getTable(), (new PlayerMapRecord())->getTable() . '.map_id', '=', (new Map())->getTable() . '.id')
-            ->selectRaw('`maps`.*, SUM(`player_map_records`.`minutes`) as `sum_minutes`')
+        return $this->hasManyThrough(PlayerHistory::class, Player::class)
+            ->join((new Map)->getTable(), (new PlayerHistory())->getTable() . '.map_id', '=', (new Map())->getTable() . '.id')
+            ->selectRaw('`maps`.*, SUM(`' . (new PlayerHistory)->getTable() . '`.`minutes`) as `sum_minutes`')
             ->groupBy(['map'])
-            ->orderByRaw('SUM(`player_map_records`.`minutes`) DESC')
+            ->orderByDesc('sum_minutes')
             ->get();
     }
 
@@ -217,7 +217,7 @@ class Clan extends Model
     public function players()
     {
         return $this->hasMany(Player::class)
-            ->orderByRaw('last_seen >= ? DESC', [(string)Carbon::now()->subMinutes(env('CRONTASK_INTERVAL') + 1)])
+            ->orderByRaw('last_seen >= ? DESC', [(string)Carbon::now()->subMinutes(env('CRONTASK_INTERVAL') * 1.5)])
             ->orderBy('name');
     }
 }

@@ -8,15 +8,36 @@ use Illuminate\Database\Eloquent\Model;
 /**
  * App\Models\Server
  *
- * @property-read \Illuminate\Database\Eloquent\Collection|\App\Models\ServerMapRecord[] $mapRecords
- * @property-read \Illuminate\Database\Eloquent\Collection|\App\Models\ServerModRecord[] $modRecords
- * @property-read \Illuminate\Database\Eloquent\Collection|\App\Models\ServerPlayHistory[] $playRecords
+ * @property-read \Illuminate\Database\Eloquent\Collection|\App\Models\Player[] $currentPlayers
+ * @property-read \Illuminate\Database\Eloquent\Collection|\App\Models\PlayerHistory[] $playerRecords
+ * @property-read \Illuminate\Database\Eloquent\Collection|\App\Models\ServerHistory[] $serverRecords
  * @property-read \App\Models\ServerStatus $stats
  * @mixin \Eloquent
  */
 class Server extends Model
 {
     protected $guarded = ['id', 'created_at', 'updated_at'];
+
+    /**
+     * check if the player was seen in the passed time span
+     *
+     * @return bool
+     */
+    public function online()
+    {
+        return $this->getAttribute('last_seen') >= Carbon::now()->subMinutes(env('CRONTASK_INTERVAL') * 1.5);
+    }
+
+    /**
+     * Get the current players on the server associated with this record
+     *
+     * @return \Illuminate\Database\Eloquent\Relations\HasManyThrough
+     */
+    public function currentPlayers()
+    {
+        return $this->hasManyThrough(Player::class, PlayerHistory::class, 'server_id', 'id')
+            ->whereRaw('`' . (new PlayerHistory)->getTable() . '`.`updated_at` >= ?', [Carbon::now()->subMinutes(env('CRONTASK_INTERVAL') * 1.5)]);
+    }
 
     /**
      * Get the stats record associated with this server record
@@ -29,43 +50,22 @@ class Server extends Model
     }
 
     /**
-     * Get the map records associated with this server record
-     *
-     * @return \Illuminate\Database\Eloquent\Relations\HasMany
-     */
-    public function mapRecords()
-    {
-        return $this->hasMany(ServerMapRecord::class);
-    }
-
-    /**
-     * Get the mod records associated with this server record
-     *
-     * @return \Illuminate\Database\Eloquent\Relations\HasMany
-     */
-    public function modRecords()
-    {
-        return $this->hasMany(ServerModRecord::class);
-    }
-
-    /**
      * Get the server play records associated with the server
      *
      * @return \Illuminate\Database\Eloquent\Relations\HasMany
      */
-    public function playRecords()
+    public function playerRecords()
     {
-        return $this->hasMany(ServerPlayHistory::class);
+        return $this->hasMany(PlayerHistory::class);
     }
 
     /**
-     * Get the current players on the server associated with this record
+     * Get the server play records associated with the tee
      *
-     * @return \Illuminate\Database\Eloquent\Relations\HasManyThrough
+     * @return \Illuminate\Database\Eloquent\Relations\HasMany
      */
-    public function currentPlayers()
+    public function serverRecords()
     {
-        return $this->hasManyThrough(Player::class, ServerPlayHistory::class, 'server_id', 'id')
-            ->whereRaw('`server_play_histories`.`updated_at` >= ?', [Carbon::now()->subMinutes(env('CRONTASK_INTERVAL') + 1)]);
+        return $this->hasMany(ServerHistory::class);
     }
 }

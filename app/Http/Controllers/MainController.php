@@ -6,9 +6,8 @@ use App\Models\Clan;
 use App\Models\Map;
 use App\Models\Mod;
 use App\Models\Player;
-use App\Models\PlayerMapRecord;
-use App\Models\PlayerModRecord;
 use App\Models\Server;
+use App\Models\PlayerHistory;
 use App\Utility\ChartUtility;
 use Carbon\Carbon;
 
@@ -29,7 +28,7 @@ class MainController extends Controller
     {
         return view('general')
             ->with('general', [
-                'online' => Player::where('last_seen', '>=', Carbon::now()->subMinutes(env('CRONTASK_INTERVAL') + 1))->count(),
+                'online' => Player::where('last_seen', '>=', Carbon::now()->subMinutes(env('CRONTASK_INTERVAL') * 1.5))->count(),
                 'players' => Player::count(),
                 'servers' => Server::count(),
                 'clans' => Clan::count(),
@@ -59,11 +58,11 @@ class MainController extends Controller
      */
     public function chartPlayedMaps($amount = 10, $displayOthers = True)
     {
-        $playedMaps = PlayerMapRecord::selectRaw('`player_map_records`.*, SUM(`player_map_records`.`minutes`) as `sum_minutes`')
+        $playedMaps = PlayerHistory::selectRaw('`' . (new PlayerHistory)->getTable() . '`.*, SUM(`' . (new PlayerHistory)->getTable() . '`.`minutes`) as `sum_minutes`')
             ->groupBy('map_id')
-            ->orderByRaw('SUM(`player_map_records`.`minutes`) DESC')->get();
+            ->orderByDesc('sum_minutes')->get();
 
-        /** @var PlayerMapRecord $playedMap */
+        /** @var PlayerHistory $playedMap */
         foreach ($playedMaps as $playedMap) {
             $results[$playedMap->map->getAttribute('map')] = (int)$playedMap->getAttribute('sum_minutes');
         }
@@ -81,11 +80,11 @@ class MainController extends Controller
      */
     public function chartPlayedMods($amount = 10, $displayOthers = False)
     {
-        $playedMods = PlayerModRecord::selectRaw('`player_mod_records`.*, SUM(`player_mod_records`.`minutes`) as `sum_minutes`')
+        $playedMods = PlayerHistory::selectRaw('`player_histories`.*, SUM(`player_histories`.`minutes`) as `sum_minutes`')
             ->groupBy('mod_id')
             ->orderByDesc('sum_minutes')->get();
 
-        /** @var PlayerModRecord $playedMod */
+        /** @var PlayerHistory $playedMod */
         foreach ($playedMods as $playedMod) {
             $results[$playedMod->mod->getAttribute('mod')] = (int)$playedMod->getAttribute('sum_minutes');
         }

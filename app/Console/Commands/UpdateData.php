@@ -6,12 +6,9 @@ use App\Models\Clan;
 use App\Models\Map;
 use App\Models\Mod;
 use App\Models\Player;
-use App\Models\PlayerMapRecord;
-use App\Models\PlayerModRecord;
+use App\Models\PlayerHistory;
 use App\Models\Server;
-use App\Models\ServerMapRecord;
-use App\Models\ServerModRecord;
-use App\Models\ServerPlayHistory;
+use App\Models\ServerHistory;
 use App\TwRequest\TwRequest;
 use Carbon\Carbon;
 use Illuminate\Console\Command;
@@ -91,30 +88,62 @@ class UpdateData extends Command
             $serverModel->stats()->create();
         }
 
+        /** @var Map $map */
         $map = Map::firstOrCreate(['map' => $server['map']]);
-        $mapRecord = ServerMapRecord::firstOrCreate(
-            [
-                'server_id' => $serverModel->getAttribute('id'),
-                'map_id' => $map->getAttribute('id')
-            ]
-        );
-        $mapRecord->setAttribute('minutes', $mapRecord->getAttribute('minutes') + env('CRONTASK_INTERVAL'));
-        $serverModel->mapRecords()->save($mapRecord);
-
-        // update server mod stat
+        /** @var Mod $mod */
         $mod = Mod::firstOrCreate(['mod' => $server['gametype']]);
-        $modRecord = ServerModRecord::firstOrCreate(
-            [
-                'server_id' => $serverModel->getAttribute('id'),
-                'mod_id' => $mod->getAttribute('id')
-            ]
-        );
-        $modRecord->setAttribute('minutes', $modRecord->getAttribute('minutes') + env('CRONTASK_INTERVAL'));
-        $serverModel->modRecords()->save($modRecord);
+        $this->updateServerHistory($serverModel, $map, $mod);
 
         // persist our changes
         $serverModel->save();
+
         return $serverModel;
+    }
+
+    /**
+     * update or create the server history with the data extracted from the server
+     *
+     * @param Server $serverModel
+     * @param Map $mapModel
+     * @param Mod $modModel
+     */
+    private function updateServerHistory(Server $serverModel, Map $mapModel, Mod $modModel)
+    {
+        // retrieve the latest history for the server
+        /** @var ServerHistory $latestHistoryEntry */
+        $latestHistoryEntry = ServerHistory::where(
+            [
+                'server_id' => $serverModel->getAttribute('id'),
+            ]
+        )->orderByDesc('updated_at')->first();
+
+        // retrieve the latest history for the server for map and mod
+        /** @var ServerHistory $historyEntry */
+        $historyEntry = ServerHistory::orderByDesc('updated_at')->where(
+            [
+                'server_id' => $serverModel->getAttribute('id'),
+                'map_id' => $mapModel->getAttribute('id'),
+                'mod_id' => $modModel->getAttribute('id')
+            ]
+        )->first();
+
+        // if no history for this server for this map and mod is set
+        // or it's not the latest history entry or more than 1.5 times the cron interval ago create a new one
+        if (!$historyEntry
+            || ($latestHistoryEntry && $latestHistoryEntry->isNot($historyEntry))
+            || $latestHistoryEntry->getAttribute('updated_at') >= Carbon::now()->subMinutes(env('CRONTASK_INTERVAL') * 1.5)) {
+            $historyEntry = ServerHistory::create(
+                [
+                    'server_id' => $serverModel->getAttribute('id'),
+                    'map_id' => $mapModel->getAttribute('id'),
+                    'mod_id' => $modModel->getAttribute('id')
+                ]
+            );
+        }
+
+        // update the history and persist the changes
+        $historyEntry->setAttribute('minutes', $historyEntry->getAttribute('minutes') + env('CRONTASK_INTERVAL'));
+        $historyEntry->save();
     }
 
     /**
@@ -122,6 +151,7 @@ class UpdateData extends Command
      *
      * @param array $server
      * @param Server $serverModel
+     * @return void
      */
     private function updatePlayers(array $server, Server $serverModel)
     {
@@ -169,74 +199,61 @@ class UpdateData extends Command
                 $playerModel->clan()->dissociate();
             }
 
-            // update player map stat
-            /** @var Map $map */
-            $map = Map::firstOrCreate(['map' => $server['map']]);
-            $mapRecord = PlayerMapRecord::firstOrCreate(
-                [
-                    'player_id' => $playerModel->getAttribute('id'),
-                    'map_id' => $map->getAttribute('id')
-                ]
-            );
-            $mapRecord->setAttribute('minutes', $mapRecord->getAttribute('minutes') + env('CRONTASK_INTERVAL'));
-            $playerModel->mapRecords()->save($mapRecord);
-
-            // update player mod stat
-            /** @var Mod $mod */
-            $mod = Mod::firstOrCreate(['mod' => $server['gametype']]);
-            $modRecord = PlayerModRecord::firstOrCreate(
-                [
-                    'player_id' => $playerModel->getAttribute('id'),
-                    'mod_id' => $mod->getAttribute('id')
-                ]
-            );
-            $modRecord->setAttribute('minutes', $modRecord->getAttribute('minutes') + env('CRONTASK_INTERVAL'));
-            $playerModel->modRecords()->save($modRecord);
-
             // update player country stat
             $playerModel->setAttribute('country', TwRequest::getCountryName($player['country']));
-            $playerModel->save();
+
+            /** @var Map $map */
+            $map = Map::firstOrCreate(['map' => $server['map']]);
+            /** @var Mod $mod */
+            $mod = Mod::firstOrCreate(['mod' => $server['gametype']]);
 
             // $player['ingame'] is false if the player is spectating and not playing
             // maybe don't update play history if not set?
-            $this->updateServerPlayHistory($playerModel, $map, $serverModel);
+            $this->updatePlayerHistory($playerModel, $serverModel, $map, $mod);
+
+            $playerModel->save();
         }
     }
 
     /**
-     * update or create a history entry for the player for the map and server
+     * update or create the player history with the data extracted from the server
      *
      * @param Player $playerModel
-     * @param Map $mapModel
      * @param Server $serverModel
+     * @param Map $mapModel
+     * @param Mod $modModel
      */
-    private function updateServerPlayHistory(Player $playerModel, Map $mapModel, Server $serverModel)
+    private function updatePlayerHistory(Player $playerModel, Server $serverModel, Map $mapModel, Mod $modModel)
     {
         // retrieve the latest history for the player
-        /** @var ServerPlayHistory $latestHistoryEntry */
-        $latestHistoryEntry = ServerPlayHistory::where(
+        /** @var PlayerHistory $latestHistoryEntry */
+        $latestHistoryEntry = PlayerHistory::where(
             [
                 'player_id' => $playerModel->getAttribute('id'),
             ]
         )->orderByDesc('updated_at')->first();
 
         // retrieve the latest history for the player for the server and map
-        /** @var ServerPlayHistory $historyEntry */
-        $historyEntry = ServerPlayHistory::orderByDesc('updated_at')->where(
+        /** @var PlayerHistory $historyEntry */
+        $historyEntry = PlayerHistory::orderByDesc('updated_at')->where(
             [
                 'player_id' => $playerModel->getAttribute('id'),
                 'server_id' => $serverModel->getAttribute('id'),
-                'map_id' => $mapModel->getAttribute('id')
+                'map_id' => $mapModel->getAttribute('id'),
+                'mod_id' => $modModel->getAttribute('id')
             ]
         )->first();
 
         // if no history for this server and map is set or it's not the latest history in general create a new one
-        if (!$historyEntry || ($latestHistoryEntry && $latestHistoryEntry->isNot($historyEntry))) {
-            $historyEntry = ServerPlayHistory::create(
+        if (!$historyEntry
+            || ($latestHistoryEntry && $latestHistoryEntry->isNot($historyEntry))
+            || $latestHistoryEntry->getAttribute('updated_at') >= Carbon::now()->subMinutes(env('CRONTASK_INTERVAL') * 1.5)) {
+            $historyEntry = PlayerHistory::create(
                 [
                     'player_id' => $playerModel->getAttribute('id'),
                     'server_id' => $serverModel->getAttribute('id'),
-                    'map_id' => $mapModel->getAttribute('id')
+                    'map_id' => $mapModel->getAttribute('id'),
+                    'mod_id' => $modModel->getAttribute('id')
                 ]
             );
         }
