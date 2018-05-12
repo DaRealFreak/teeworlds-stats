@@ -5,6 +5,7 @@ namespace App\Console\Commands;
 use App\Models\Clan;
 use App\Models\Map;
 use App\Models\Mod;
+use App\Models\ModRule;
 use App\Models\Player;
 use App\Models\PlayerHistory;
 use App\Models\Server;
@@ -91,8 +92,9 @@ class UpdateData extends Command
         /** @var Map $map */
         $map = Map::firstOrCreate(['map' => $server['map']]);
         /** @var Mod $mod */
-        $mod = Mod::firstOrCreate(['mod' => $server['gametype']]);
-        $this->updateServerHistory($serverModel, $map, $mod);
+        list($mod, $originalMod) = $this->retrieveOrCreateMod($serverModel, $server['gametype']);
+
+        $this->updateServerHistory($serverModel, $map, $mod, $originalMod);
 
         // persist our changes
         $serverModel->save();
@@ -106,8 +108,9 @@ class UpdateData extends Command
      * @param Server $serverModel
      * @param Map $mapModel
      * @param Mod $modModel
+     * @param Mod|null $originalModModel
      */
-    private function updateServerHistory(Server $serverModel, Map $mapModel, Mod $modModel)
+    private function updateServerHistory(Server $serverModel, Map $mapModel, Mod $modModel, ?Mod $originalModModel)
     {
         // retrieve the latest history for the server
         /** @var ServerHistory $latestHistoryEntry */
@@ -136,7 +139,8 @@ class UpdateData extends Command
                 [
                     'server_id' => $serverModel->getAttribute('id'),
                     'map_id' => $mapModel->getAttribute('id'),
-                    'mod_id' => $modModel->getAttribute('id')
+                    'mod_id' => $modModel->getAttribute('id'),
+                    'mod_original_id' => $originalModModel ? $originalModModel->getAttribute('id') : null
                 ]
             );
         }
@@ -205,14 +209,46 @@ class UpdateData extends Command
             /** @var Map $map */
             $map = Map::firstOrCreate(['map' => $server['map']]);
             /** @var Mod $mod */
-            $mod = Mod::firstOrCreate(['mod' => $server['gametype']]);
+            list($mod, $originalMod) = $this->retrieveOrCreateMod($serverModel, $server['gametype']);
 
             // $player['ingame'] is false if the player is spectating and not playing
             // maybe don't update play history if not set?
-            $this->updatePlayerHistory($playerModel, $serverModel, $map, $mod);
+            $this->updatePlayerHistory($playerModel, $serverModel, $map, $mod, $originalMod);
 
             $playerModel->save();
         }
+    }
+
+    /**
+     * @param Server $serverModel
+     * @param string $gameType
+     * @return array
+     */
+    private function retrieveOrCreateMod(Server $serverModel, string $gameType)
+    {
+        $mod = Mod::firstOrCreate(['mod' => $gameType]);
+
+        /** @var ModRule $modRule */
+        foreach (ModRule::orderBy('priority')->get() as $modRule) {
+            if ($modRule->getAttribute('decider') == 'server') {
+                if ($modRule->servers()->contains($serverModel)) {
+                    $originalMod = $mod;
+                    $mod = $modRule->mod;
+                    break;
+                }
+            } else {
+                if ($modRule->mods()->contains($mod)) {
+                    $originalMod = $mod;
+                    $mod = $modRule->mod;
+                    break;
+                }
+            }
+        }
+        if (!isset($originalMod)) {
+            $originalMod = null;
+        }
+
+        return [$mod, $originalMod];
     }
 
     /**
@@ -222,8 +258,9 @@ class UpdateData extends Command
      * @param Server $serverModel
      * @param Map $mapModel
      * @param Mod $modModel
+     * @param Mod|null $originalModModel
      */
-    private function updatePlayerHistory(Player $playerModel, Server $serverModel, Map $mapModel, Mod $modModel)
+    private function updatePlayerHistory(Player $playerModel, Server $serverModel, Map $mapModel, Mod $modModel, ?Mod $originalModModel)
     {
         // retrieve the latest history for the player
         /** @var PlayerHistory $latestHistoryEntry */
@@ -253,7 +290,8 @@ class UpdateData extends Command
                     'player_id' => $playerModel->getAttribute('id'),
                     'server_id' => $serverModel->getAttribute('id'),
                     'map_id' => $mapModel->getAttribute('id'),
-                    'mod_id' => $modModel->getAttribute('id')
+                    'mod_id' => $modModel->getAttribute('id'),
+                    'mod_original_id' => $originalModModel ? $originalModModel->getAttribute('id') : null
                 ]
             );
         }

@@ -9,6 +9,7 @@ use Illuminate\Database\Eloquent\Model;
  *
  * @property-read \App\Models\Map $map
  * @property-read \App\Models\Mod $mod
+ * @property-read \App\Models\Mod $modReplacement
  * @property-read \App\Models\Player $player
  * @property-read \App\Models\Server $server
  * @mixin \Eloquent
@@ -25,6 +26,16 @@ class PlayerHistory extends Model
     public function mod()
     {
         return $this->belongsTo(Mod::class, 'mod_id');
+    }
+
+    /**
+     * Get the mod record associated with this record
+     *
+     * @return \Illuminate\Database\Eloquent\Relations\BelongsTo
+     */
+    public function modOriginal()
+    {
+        return $this->belongsTo(Mod::class, 'mod_original_id');
     }
 
     /**
