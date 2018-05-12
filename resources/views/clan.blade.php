@@ -16,7 +16,7 @@
                         </div>
                         <div class="messages pre-scrollable pre-scrollable-needed">
                             @foreach ($clan->players as $player)
-                                <a href="{{ url("tee/" . $player->name) }}" class="message d-flex align-items-center">
+                                <a href="{{ url("tee", urlencode($player->name)) }}" class="message d-flex align-items-center">
                                     <div class="profile">
                                         <img src="{{ asset('images/user.png') }}" alt="{{ $player->name }}"
                                              class="img-fluid">
@@ -55,7 +55,7 @@
                             <div class="col-lg-4 d-flex align-items-center">
                                 <div class="avatar"><img src="{{ asset('images/user.png') }}" alt="..."
                                                          class="img-fluid"></div>
-                                <a href="{{ url("tee/" . $clan->statsYoungestPlayer()->name) }}" class="name">
+                                <a href="{{ url("tee", urlencode($clan->statsYoungestPlayer()->name)) }}" class="name">
                                     <strong class="d-block">{{ $clan->statsYoungestPlayer()->name }}</strong>
                                 </a>
                             </div>
@@ -73,7 +73,7 @@
                             <div class="col-lg-4 d-flex align-items-center">
                                 <div class="avatar"><img src="{{ asset('images/user.png') }}" alt="..."
                                                          class="img-fluid"></div>
-                                <a href="{{ url("tee/" . $clan->statsOldestPlayer()->name) }}" class="name">
+                                <a href="{{ url("tee", urlencode($clan->statsOldestPlayer()->name)) }}" class="name">
                                     <strong class="d-block">{{ $clan->statsOldestPlayer()->name }}</strong>
                                 </a>
                             </div>
@@ -91,7 +91,7 @@
                             <div class="col-lg-4 d-flex align-items-center">
                                 <div class="avatar"><img src="{{ asset('images/user.png') }}" alt="..."
                                                          class="img-fluid"></div>
-                                <a href="{{ url("tee/" . $clan->statsMostActivePlayer()->name) }}" class="name">
+                                <a href="{{ url("tee", urlencode($clan->statsMostActivePlayer()->name)) }}" class="name">
                                     <strong class="d-block">{{ $clan->statsMostActivePlayer()->name }}</strong>
                                 </a>
                             </div>

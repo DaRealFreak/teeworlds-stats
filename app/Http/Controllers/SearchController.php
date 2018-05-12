@@ -34,7 +34,7 @@ class SearchController extends Controller
                 'tee' => 'The name field is required'
             ]);
         } else {
-            return Redirect::to('tee/' . $name);
+            return Redirect::to(url('tee', urlencode($name)));
         }
     }
 
@@ -45,6 +45,7 @@ class SearchController extends Controller
      */
     public function searchTeeByName(Request $request, $tee_name)
     {
+        $tee_name = urldecode($tee_name);
         if (!$player = (new Player)->where('name', $tee_name)->first()) {
             $suggestedPlayers = Player::hydrate(
                 Searchy::search('players')
@@ -75,7 +76,7 @@ class SearchController extends Controller
                 'clan' => 'The name field is required'
             ]);
         } else {
-            return Redirect::to('clan/' . $name);
+            return Redirect::to(url('clan', urlencode($name)));
         }
     }
 
@@ -86,6 +87,7 @@ class SearchController extends Controller
      */
     public function searchClanByName(Request $request, $clan_name)
     {
+        $clan_name = urldecode($clan_name);
         if (!$clan = (new Clan)->where('name', $clan_name)->first()) {
             $clanSuggestions = Clan::hydrate(
                 Searchy::search('clans')
@@ -116,7 +118,7 @@ class SearchController extends Controller
                 'server' => 'The name field is required'
             ]);
         } else {
-            return Redirect::to('server/' . $name);
+            return Redirect::to(url('server', urlencode($name)));
         }
     }
 
@@ -127,7 +129,8 @@ class SearchController extends Controller
      */
     public function searchServerByName(Request $request, $server_name)
     {
-        if (!$server = (new Server)->where('name', $server_name)->first()) {
+        $server_name = urldecode($server_name);
+        if (!$server = Server::where('name', $server_name)->first()) {
             $serverSuggestions = Server::hydrate(
                 Searchy::search('servers')
                     ->fields('name')
@@ -141,7 +144,6 @@ class SearchController extends Controller
                 ->withErrors(['server' => 'This server does not exist'])
                 ->with('serverSuggestions', $serverSuggestions);
         }
-
         return view('server')->with('server', $server);
     }
 }

@@ -118,7 +118,7 @@
                 <span class="heading">Clan</span>
                 <ul class="list-unstyled">
                     <li>
-                        <a href="{{ url('clan/' . $player->clan->name)}}">
+                        <a href="{{ url('clan', urlencode($player->clan->name))}}">
                             <i class="icon-chart"></i>
                             {{ $player->clan->name }}
                         </a>

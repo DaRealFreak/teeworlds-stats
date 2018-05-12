@@ -28,7 +28,7 @@
                                                 <ul class="list-group">
                                                     @foreach (session('teeSuggestions') as $suggestion)
                                                         <li class="list-group-item list-group-item-transparent">
-                                                            <a href="{{ url("tee/" . $suggestion['name']) }}">{{ $suggestion['name'] }}</a>
+                                                            <a href="{{ url("tee", urlencode($suggestion['name'])) }}">{{ $suggestion['name'] }}</a>
                                                         </li>
                                                     @endforeach
                                                 </ul>
@@ -66,7 +66,7 @@
                                                 <ul class="list-group">
                                                     @foreach (session('clanSuggestions') as $suggestion)
                                                         <li class="list-group-item list-group-item-transparent">
-                                                            <a href="{{ url("clan/" . $suggestion['name']) }}">{{ $suggestion['name'] }}</a>
+                                                            <a href="{{ url("clan", urlencode($suggestion['name'])) }}">{{ $suggestion['name'] }}</a>
                                                         </li>
                                                     @endforeach
                                                 </ul>
@@ -104,7 +104,7 @@
                                                 <ul class="list-group">
                                                     @foreach (session('serverSuggestions') as $suggestion)
                                                         <li class="list-group-item list-group-item-transparent">
-                                                            <a href="{{ url("server/" . $suggestion['name']) }}">{{ $suggestion['name'] }}</a>
+                                                            <a href="{{ url("server", urlencode($suggestion['name'])) }}">{{ $suggestion['name'] }}</a>
                                                         </li>
                                                     @endforeach
                                                 </ul>
