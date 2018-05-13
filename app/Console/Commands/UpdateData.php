@@ -189,26 +189,34 @@ class UpdateData extends Command
             // update player last seen stat
             $playerModel->setAttribute('last_seen', Carbon::now());
 
+            if ($player['clan'] == '' && $playerModel->clan()) {
+                $playerModel->currentClanRecord()->update(['left_at' => Carbon::now()]);
+            }
+
             // if clan name is not empty and player has no clan associated
             // or player has a clan associated but the clan name differs from the current one
-            if (($player['clan'] && !$playerModel->clan()) || ($playerModel->clan() && $playerModel->clan()->getAttribute('name') !== $player['clan'])) {
+            if ($player['clan'] != '') {
                 $clanModel = Clan::firstOrCreate(
                     [
-                        'name' => $player['clan'],
+                        'name' => $player['clan']
                     ]
                 );
 
-                // remove clan if player has a current clan record
-                if ($playerModel->clan()) {
+                // leave the current clan if the player has a clan already and is having currently a different clan tag
+                if ($playerModel->clan() && $playerModel->clan()->getAttribute('name') !== $clanModel->getAttribute('name'))
+                {
                     $playerModel->currentClanRecord()->update(['left_at' => Carbon::now()]);
                 }
 
-                PlayerClanHistory::create(
-                    [
-                        'player_id' => $playerModel->getAttribute('id'),
-                        'clan_id' => $clanModel->getAttribute('id'),
-                    ]
-                );
+                // if the player doesn't have a clan yet or changed clans create a new history entry
+                if (!$playerModel->clan() || ($playerModel->clan() && $playerModel->clan()->getAttribute('name') !== $clanModel->getAttribute('name'))) {
+                    PlayerClanHistory::create(
+                        [
+                            'player_id' => $playerModel->getAttribute('id'),
+                            'clan_id' => $clanModel->getAttribute('id'),
+                        ]
+                    );
+                }
             }
 
             // update player country stat
