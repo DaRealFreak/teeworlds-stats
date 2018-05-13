@@ -19,11 +19,7 @@ class CreatePlayersTable extends Migration
             $table->timestamp('last_seen')->useCurrent();
 
             $table->string('name');
-            $table->unsignedInteger('clan_id')->nullable()->default(null);
-            $table->timestamp('clan_joined_at')->useCurrent();
             $table->string('country');
-
-            $table->foreign('clan_id')->references('id')->on('clans');
         });
     }
 

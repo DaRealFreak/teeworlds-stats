@@ -9,7 +9,7 @@ use Illuminate\Database\Eloquent\Model;
 /**
  * App\Models\Player
  *
- * @property-read \App\Models\Clan $clan
+ * @property-read \Illuminate\Database\Eloquent\Collection|\App\Models\PlayerClanHistory[] $clanRecords
  * @property-read \Illuminate\Database\Eloquent\Collection|\App\Models\PlayerHistory[] $playRecords
  * @property-read \App\Models\PlayerStatus $stats
  * @mixin \Eloquent
@@ -31,11 +31,34 @@ class Player extends Model
     /**
      * Get the clan record associated with the tee.
      *
-     * @return \Illuminate\Database\Eloquent\Relations\BelongsTo
+     * @return Model|\Illuminate\Database\Eloquent\Relations\HasMany
      */
     public function clan()
     {
-        return $this->belongsTo(Clan::class, 'clan_id');
+        /** @var PlayerClanHistory $clanRecord */
+        if ($clanRecord = $this->currentClanRecord()) {
+            return $clanRecord->clan;
+        } else {
+            return null;
+        }
+    }
+
+    /**
+     * @return Model|\Illuminate\Database\Eloquent\Relations\HasMany|null
+     */
+    public function currentClanRecord()
+    {
+        return $this->clanRecords()->where('left_at', null)->first();
+    }
+
+    /**
+     * Get the player clan records associated with the tee
+     *
+     * @return \Illuminate\Database\Eloquent\Relations\HasMany
+     */
+    public function clanRecords()
+    {
+        return $this->hasMany(PlayerClanHistory::class);
     }
 
     /**

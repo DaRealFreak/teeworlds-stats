@@ -55,13 +55,13 @@
                             <div class="col-lg-4 d-flex align-items-center">
                                 <div class="avatar"><img src="{{ asset('images/user.png') }}" alt="..."
                                                          class="img-fluid"></div>
-                                <a href="{{ url("tee", urlencode($clan->statsYoungestPlayer()->name)) }}" class="name">
-                                    <strong class="d-block">{{ $clan->statsYoungestPlayer()->name }}</strong>
+                                <a href="{{ url("tee", urlencode($clan->statsYoungestPlayer()->player->name)) }}" class="name">
+                                    <strong class="d-block">{{ $clan->statsYoungestPlayer()->player->name }}</strong>
                                 </a>
                             </div>
                             <div class="col-lg-6 text-center">
                                 <div class="contributions">
-                                    Joined: {{ $clan->statsYoungestPlayer()->clan_joined_at }}</div>
+                                    Joined: {{ $clan->statsYoungestPlayer()->joined_at }}</div>
                             </div>
                         </div>
                     </div>
@@ -73,13 +73,13 @@
                             <div class="col-lg-4 d-flex align-items-center">
                                 <div class="avatar"><img src="{{ asset('images/user.png') }}" alt="..."
                                                          class="img-fluid"></div>
-                                <a href="{{ url("tee", urlencode($clan->statsOldestPlayer()->name)) }}" class="name">
-                                    <strong class="d-block">{{ $clan->statsOldestPlayer()->name }}</strong>
+                                <a href="{{ url("tee", urlencode($clan->statsOldestPlayer()->player->name)) }}" class="name">
+                                    <strong class="d-block">{{ $clan->statsOldestPlayer()->player->name }}</strong>
                                 </a>
                             </div>
                             <div class="col-lg-6 text-center">
                                 <div class="contributions">
-                                    Joined: {{ $clan->statsOldestPlayer()->clan_joined_at }}</div>
+                                    Joined: {{ $clan->statsOldestPlayer()->joined_at }}</div>
                             </div>
                         </div>
                     </div>
@@ -110,12 +110,12 @@
                                 <div class="avatar"><img src="{{ asset('images/teehut.png') }}" alt="..."
                                                          class="img-fluid"></div>
                                 <a href="#" class="name">
-                                    <strong class="d-block">{{ $clan->chartMostPlayedMaps()->first()->map }}</strong>
+                                    <strong class="d-block">{{ $clan->mostPlayedMaps()->first()->map->map }}</strong>
                                 </a>
                             </div>
                             <div class="col-lg-6 text-center">
                                 <div class="contributions">
-                                    Played: {{ $clan->humanizeDuration($clan->chartMostPlayedMaps()->first()->sum_minutes) }}</div>
+                                    Played: {{ $clan->humanizeDuration($clan->mostPlayedMaps()->first()->sum_minutes) }}</div>
                             </div>
                         </div>
                     </div>

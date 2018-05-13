@@ -27,7 +27,7 @@
                                         </div>
                                         <div class="content">
                                             <strong class="d-block">{{ $player->name }}</strong>
-                                            <span class="d-block">{{ $player->clan->name }} </span>
+                                            <span class="d-block">{{ $player->clan()->name }} </span>
                                             <small class="date d-block">{{ $player->last_seen }}</small>
                                         </div>
                                     </a>
