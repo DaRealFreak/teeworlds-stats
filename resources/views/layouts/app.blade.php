@@ -113,21 +113,15 @@
                 <li><a href="{{ url('search') }}"> <i class="icon-magnifying-glass-browser"></i>Search </a></li>
             </ul>
 
-            <!-- Clan Navigation Entry -->
-            @if(!empty($player->clan->name))
-                <span class="heading">Clan</span>
-                <ul class="list-unstyled">
-                    <li>
-                        <a href="{{ url('clan', urlencode($player->clan->name))}}">
-                            <i class="icon-chart"></i>
-                            {{ $player->clan->name }}
-                        </a>
-                    </li>
-                </ul>
-            @endif
+            @php
+                // if we are on the player page and the player has a clan define the clan as local variable
+                if (isset($player) && $player->clan()) {
+                    $clan = $player->clan();
+                }
+            @endphp
 
-            <!-- Clan Navigation Entry if not already set by player -->
-            @if(!empty($clan->name) && empty($player->clan->name))
+            <!-- Clan Navigation Entry -->
+            @if(!empty($clan->name))
                 <span class="heading">Clan</span>
                 <ul class="list-unstyled">
                     <li>
