@@ -9,7 +9,7 @@ use Illuminate\Database\Eloquent\Model;
  *
  * @property-read \App\Models\Map $map
  * @property-read \App\Models\Mod $mod
- * @property-read \App\Models\Mod $modReplacement
+ * @property-read \App\Models\Mod $modOriginal
  * @property-read \App\Models\Player $player
  * @property-read \App\Models\Server $server
  * @mixin \Eloquent

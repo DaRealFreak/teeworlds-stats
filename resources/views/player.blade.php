@@ -5,8 +5,8 @@
     <div class="page-header no-margin-bottom">
         <div class="container-fluid">
             <h2 class="h5 no-margin-bottom">{{ $player->name }}'s Statistics
-                @if ($player->clan)
-                    - [{{ $player->clan->name }}]
+                @if ($player->clan())
+                    - [{{ $player->clan()->name }}]
                 @endif
             </h2>
         </div>

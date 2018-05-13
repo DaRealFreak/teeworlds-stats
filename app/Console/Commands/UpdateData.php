@@ -7,6 +7,7 @@ use App\Models\Map;
 use App\Models\Mod;
 use App\Models\ModRule;
 use App\Models\Player;
+use App\Models\PlayerClanHistory;
 use App\Models\PlayerHistory;
 use App\Models\Server;
 use App\Models\ServerHistory;
@@ -89,12 +90,12 @@ class UpdateData extends Command
             $serverModel->stats()->create();
         }
 
-        /** @var Map $map */
-        $map = Map::firstOrCreate(['map' => $server['map']]);
-        /** @var Mod $mod */
-        list($mod, $originalMod) = $this->retrieveOrCreateMod($serverModel, $server['gametype']);
+        /** @var Map $mapModel */
+        $mapModel = Map::firstOrCreate(['map' => $server['map']]);
+        /** @var Mod $modModel */
+        list($modModel, $originalModModel) = $this->retrieveOrCreateMod($serverModel, $server['gametype']);
 
-        $this->updateServerHistory($serverModel, $map, $mod, $originalMod);
+        $this->updateServerHistory($serverModel, $mapModel, $modModel, $originalModModel);
 
         // persist our changes
         $serverModel->save();
@@ -188,32 +189,39 @@ class UpdateData extends Command
             // update player last seen stat
             $playerModel->setAttribute('last_seen', Carbon::now());
 
-            // update player clan stat
-            // if clan is set and player has no clan or different clan
-            if ($player['clan'] && (!$playerModel->clan()->first() || $playerModel->clan()->first()->getAttribute('name') != $player['clan'])) {
-                /** @var Clan $clanModel */
+            // if clan name is not empty and player has no clan associated
+            // or player has a clan associated but the clan name differs from the current one
+            if (($player['clan'] && !$playerModel->clan()) || ($playerModel->clan() && $playerModel->clan()->getAttribute('name') !== $player['clan'])) {
                 $clanModel = Clan::firstOrCreate(
                     [
                         'name' => $player['clan'],
                     ]
                 );
-                $playerModel->clan()->associate($clanModel);
-                $playerModel->setAttribute('clan_joined_at', Carbon::now());
-            } elseif (!$player['clan'] && $playerModel->clan()->first()) {
-                $playerModel->clan()->dissociate();
+
+                // remove clan if player has a current clan record
+                if ($playerModel->clan()) {
+                    $playerModel->currentClanRecord()->update(['left_at' => Carbon::now()]);
+                }
+
+                PlayerClanHistory::create(
+                    [
+                        'player_id' => $playerModel->getAttribute('id'),
+                        'clan_id' => $clanModel->getAttribute('id'),
+                    ]
+                );
             }
 
             // update player country stat
             $playerModel->setAttribute('country', TwRequest::getCountryName($player['country']));
 
-            /** @var Map $map */
-            $map = Map::firstOrCreate(['map' => $server['map']]);
-            /** @var Mod $mod */
-            list($mod, $originalMod) = $this->retrieveOrCreateMod($serverModel, $server['gametype']);
+            /** @var Map $mapModel */
+            $mapModel = Map::firstOrCreate(['map' => $server['map']]);
+            /** @var Mod $modModel */
+            list($modModel, $originalModModel) = $this->retrieveOrCreateMod($serverModel, $server['gametype']);
 
             // $player['ingame'] is false if the player is spectating and not playing
             // maybe don't update play history if not set?
-            $this->updatePlayerHistory($playerModel, $serverModel, $map, $mod, $originalMod);
+            $this->updatePlayerHistory($playerModel, $serverModel, $mapModel, $modModel, $originalModModel);
 
             $playerModel->save();
         }

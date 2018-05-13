@@ -5,6 +5,7 @@ namespace App\Models;
 use App\Utility\ChartUtility;
 use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Facades\DB;
 use Khill\Duration\Duration;
 
 /**
@@ -28,6 +29,115 @@ class Clan extends Model
     }
 
     /**
+     * Get the player records associated with the clan
+     * players who were seen recently appear on top of the list
+     *
+     * @return \Illuminate\Database\Eloquent\Relations\BelongsToMany
+     */
+    public function players()
+    {
+        return $this->belongsToMany(Player::class, (new PlayerClanHistory)->getTable(), 'clan_id', 'player_id')
+            ->where('left_at', null)
+            ->orderByRaw('last_seen >= ? DESC', [(string)Carbon::now()->subMinutes(env('CRONTASK_INTERVAL') * 1.5)])
+            ->orderBy('name');
+    }
+
+    /**
+     * @return \Illuminate\Database\Eloquent\Collection
+     */
+    public function exPlayers()
+    {
+        $exPlayers = $this->belongsToMany(Player::class, (new PlayerClanHistory)->getTable(), 'clan_id', 'player_id')
+            ->where('left_at', '!=', null)
+            ->orderByRaw('last_seen >= ? DESC', [(string)Carbon::now()->subMinutes(env('CRONTASK_INTERVAL') * 1.5)])
+            ->orderBy('name')
+            ->distinct()
+            ->get();
+
+        foreach ($exPlayers as $index => $exPlayer) {
+            if ($this->players->contains($exPlayer)) {
+                $exPlayers->forget($exPlayer);
+            }
+        }
+        return $exPlayers;
+    }
+
+    /**
+     * function to retrieve the most played map of the guild
+     *
+     * @return PlayerHistory|\Illuminate\Database\Query\Builder
+     */
+    public function mostPlayedMaps()
+    {
+        return PlayerHistory::selectRaw('`' . (new PlayerHistory)->getTable() . '`.*, SUM(`' . (new PlayerHistory)->getTable() . '`.`minutes`) as `sum_minutes`')
+            ->join((new PlayerClanHistory)->getTable(), (new PlayerHistory)->getTable() . '.player_id', '=', (new PlayerClanHistory)->getTable() . '.player_id')
+            ->where((new PlayerClanHistory)->getTable() . '.clan_id', '=', $this->getAttribute('id'))
+            ->where((new PlayerClanHistory)->getTable() . '.left_at', null)
+            ->groupBy(DB::raw((new PlayerHistory)->getTable() . '.map_id'))
+            ->orderByDesc('sum_minutes');
+    }
+
+    /**
+     * function to retrieve the most played mod of the guild
+     *
+     * @return PlayerHistory|\Illuminate\Database\Query\Builder
+     */
+    public function mostPlayedMods()
+    {
+        return PlayerHistory::selectRaw('`' . (new PlayerHistory)->getTable() . '`.*, SUM(`' . (new PlayerHistory)->getTable() . '`.`minutes`) as `sum_minutes`')
+            ->join((new PlayerClanHistory)->getTable(), (new PlayerHistory)->getTable() . '.player_id', '=', (new PlayerClanHistory)->getTable() . '.player_id')
+            ->where((new PlayerClanHistory)->getTable() . '.clan_id', '=', $this->getAttribute('id'))
+            ->where((new PlayerClanHistory)->getTable() . '.left_at', null)
+            ->groupBy(DB::raw((new PlayerHistory)->getTable() . '.mod_id'))
+            ->orderByDesc('sum_minutes');
+    }
+
+    /**
+     * function to retrieve the oldest player of the guild
+     *
+     * @return Model|\Illuminate\Database\Eloquent\Relations\HasMany|null|object
+     */
+    public function statsOldestPlayer()
+    {
+        return $this->hasMany(PlayerClanHistory::class, 'clan_id')
+            ->where('left_at', null)
+            ->orderBy('joined_at')
+            ->first();
+    }
+
+    /**
+     * function to retrieve the youngest player of the guild
+     *
+     * @return Model|\Illuminate\Database\Eloquent\Relations\HasMany|null|object
+     */
+    public function statsYoungestPlayer()
+    {
+        return $this->hasMany(PlayerClanHistory::class, 'clan_id')
+            ->where('left_at', null)
+            ->orderByDesc('joined_at')
+            ->first();
+    }
+
+    /**
+     * function to retrieve the most active player of the guild
+     *
+     * @return Player
+     */
+    public function statsMostActivePlayer()
+    {
+        return $this->belongsToMany(Player::class, (new PlayerClanHistory)->getTable(), 'clan_id', 'player_id')
+            ->join((new PlayerStatus)->getTable(), (new PlayerStatus())->getTable() . '.player_id', '=', (new Player())->getTable() . '.id')
+            ->where('left_at', null)
+            ->orderByRaw('SUM(`player_statuses`.`hour_0`+`player_statuses`.`hour_1`+`player_statuses`.`hour_2`+`player_statuses`.`hour_3`+
+                `player_statuses`.`hour_4`+`player_statuses`.`hour_5`+`player_statuses`.`hour_6`+`player_statuses`.`hour_7`+
+                `player_statuses`.`hour_8`+`player_statuses`.`hour_9`+`player_statuses`.`hour_10`+`player_statuses`.`hour_11`+
+                `player_statuses`.`hour_12`+`player_statuses`.`hour_13`+`player_statuses`.`hour_14`+`player_statuses`.`hour_15`+
+                `player_statuses`.`hour_16`+`player_statuses`.`hour_17`+`player_statuses`.`hour_18`+`player_statuses`.`hour_19`+
+                `player_statuses`.`hour_20`+`player_statuses`.`hour_21`+`player_statuses`.`hour_22`+`player_statuses`.`hour_23`) DESC')
+            ->groupBy([DB::raw((new Player())->getTable() . '.id')])->first();
+    }
+
+    /**
      * build an array of the played maps for Chart.js in the frontend
      *
      * @param int $amount
@@ -36,13 +146,8 @@ class Clan extends Model
      */
     public function chartPlayedMaps($amount = 10, $displayOthers = False)
     {
-        $clanPlayedMaps = $this->hasManyThrough(PlayerHistory::class, Player::class)
-            ->selectRaw('`' . (new PlayerHistory)->getTable() . '`.*, SUM(`' . (new PlayerHistory)->getTable() . '`.`minutes`) as `sum_minutes`')
-            ->groupBy('map_id')
-            ->orderByDesc('sum_minutes')->get();
-
         /** @var PlayerHistory $playedMap */
-        foreach ($clanPlayedMaps as $playedMap) {
+        foreach ($this->mostPlayedMaps()->get() as $playedMap) {
             $results[$playedMap->map->getAttribute('map')] = (int)$playedMap->getAttribute('sum_minutes');
         }
         ChartUtility::applyLimits($results, $amount, $displayOthers);
@@ -59,13 +164,8 @@ class Clan extends Model
      */
     public function chartPlayedMods($amount = 10, $displayOthers = False)
     {
-        $clanPlayedMods = $this->hasManyThrough(PlayerHistory::class, Player::class)
-            ->selectRaw('`' . (new PlayerHistory)->getTable() . '`.*, SUM(`' . (new PlayerHistory)->getTable() . '`.`minutes`) as `sum_minutes`')
-            ->groupBy('mod_id')
-            ->orderByDesc('sum_minutes')->get();
-
         /** @var PlayerHistory $playedMod */
-        foreach ($clanPlayedMods as $playedMod) {
+        foreach ($this->mostPlayedMods()->get() as $playedMod) {
             $results[$playedMod->mod->getAttribute('mod')] = (int)$playedMod->getAttribute('sum_minutes');
         }
         ChartUtility::applyLimits($results, $amount, $displayOthers);
@@ -147,57 +247,6 @@ class Clan extends Model
     }
 
     /**
-     * function to retrieve the oldest player of the guild
-     *
-     * @return Model|\Illuminate\Database\Eloquent\Relations\HasOne|null|object
-     */
-    public function statsOldestPlayer()
-    {
-        return $this->hasOne(Player::class, 'clan_id')->orderBy('clan_joined_at')->first();
-    }
-
-    /**
-     * function to retrieve the youngest player of the guild
-     *
-     * @return Model|\Illuminate\Database\Eloquent\Relations\HasOne|null|object
-     */
-    public function statsYoungestPlayer()
-    {
-        return $this->hasOne(Player::class, 'clan_id')->orderByDesc('clan_joined_at')->first();
-    }
-
-    /**
-     * function to retrieve the most active player of the guild
-     *
-     * @return Player
-     */
-    public function statsMostActivePlayer()
-    {
-        return $this->hasManyThrough(PlayerStatus::class, Player::class)->orderByRaw('
-        SUM(`player_statuses`.`hour_0`+`player_statuses`.`hour_1`+`player_statuses`.`hour_2`+`player_statuses`.`hour_3`+
-        `player_statuses`.`hour_4`+`player_statuses`.`hour_5`+`player_statuses`.`hour_6`+`player_statuses`.`hour_7`+
-        `player_statuses`.`hour_8`+`player_statuses`.`hour_9`+`player_statuses`.`hour_10`+`player_statuses`.`hour_11`+
-        `player_statuses`.`hour_12`+`player_statuses`.`hour_13`+`player_statuses`.`hour_14`+`player_statuses`.`hour_15`+
-        `player_statuses`.`hour_16`+`player_statuses`.`hour_17`+`player_statuses`.`hour_18`+`player_statuses`.`hour_19`+
-        `player_statuses`.`hour_20`+`player_statuses`.`hour_21`+`player_statuses`.`hour_22`+`player_statuses`.`hour_23`) DESC')->groupBy(['player_id'])->first()->player;
-    }
-
-    /**
-     * function to retrieve the most played map of the guild
-     *
-     * @return \Illuminate\Database\Eloquent\Collection|\Illuminate\Support\Collection
-     */
-    public function chartMostPlayedMaps()
-    {
-        return $this->hasManyThrough(PlayerHistory::class, Player::class)
-            ->join((new Map)->getTable(), (new PlayerHistory())->getTable() . '.map_id', '=', (new Map())->getTable() . '.id')
-            ->selectRaw('`maps`.*, SUM(`' . (new PlayerHistory)->getTable() . '`.`minutes`) as `sum_minutes`')
-            ->groupBy(['map'])
-            ->orderByDesc('sum_minutes')
-            ->get();
-    }
-
-    /**
      * function to humanize the tracked minutes into a human time(h-m-s or if needed even d-h-m-s etc)
      *
      * @param $minutes
@@ -206,18 +255,5 @@ class Clan extends Model
     public static function humanizeDuration($minutes)
     {
         return (new Duration($minutes * 60))->humanize();
-    }
-
-    /**
-     * Get the player records associated with the clan
-     * players who were seen recently appear on top of the list
-     *
-     * @return \Illuminate\Database\Eloquent\Relations\HasMany
-     */
-    public function players()
-    {
-        return $this->hasMany(Player::class)
-            ->orderByRaw('last_seen >= ? DESC', [(string)Carbon::now()->subMinutes(env('CRONTASK_INTERVAL') * 1.5)])
-            ->orderBy('name');
     }
 }
