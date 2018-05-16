@@ -37,6 +37,15 @@ Auth::routes();
 
 # Test routes
 Route::get('/test', function () {
+    $masterServers = \App\TwStats\Controller\MasterServerController::getServers();
+    $servers = [];
+    foreach ($masterServers as $masterServer) {
+        if (isset($masterServer['servers'])) {
+            $servers = array_merge($servers, $masterServer['servers']);
+        }
+    }
+
+    \App\TwStats\Controller\GameServerController::fillServerInfo($servers);
     return "huge success";
 });
 
