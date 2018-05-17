@@ -3,6 +3,7 @@
 namespace App\TwStats\Controller;
 
 use App\TwStats\Models\GameServer;
+use App\TwStats\Models\Player;
 
 /**
  * Class GameServerController
@@ -82,20 +83,104 @@ class GameServerController
         switch (substr($data, 6, 8)) {
             case NetworkController::PACKETS['SERVERBROWSE_INFO']:
                 // vanilla
+                $server->setAttribute('server_type', 'vanilla');
+                $server->setAttribute('version', strval($slots[1]));
+                $server->setAttribute('name', strval($slots[2]));
+                $server->setAttribute('map', strval($slots[3]));
+
+                $server->setAttribute('gametype', strval($slots[4]));
+                $server->setAttribute('flags', intval($slots[5]));
+                $server->setAttribute('numplayers', intval($slots[6]));
+                $server->setAttribute('maxplayers', intval($slots[7]));
+                $server->setAttribute('numclients', intval($slots[8]));
+                $server->setAttribute('maxclients', intval($slots[9]));
+
+                $players = $server->getAttribute('players');
+                for ($i = 10; $i < count($slots); $i += 5) {
+                    $players[] = Player::make([
+                        'name' => strval($slots[$i]),
+                        'clan' => strval($slots[$i + 1]),
+                        'country' => intval($slots[$i + 2]),
+                        'score' => intval($slots[$i + 3]),
+                        'ingame' => intval($slots[$i + 4]),
+                    ]);
+                }
+                $server->setAttribute('players', $players);
                 break;
             case NetworkController::PACKETS['SERVERBROWSE_INFO_64_LEGACY']:
                 // 64 legacy version
+                if ($server->getAttribute('server_type') != '64_legacy') {
+                    $server->setAttribute('server_type', '64_legacy');
+                    $server->setAttribute('players', []);
+                }
+                $server->setAttribute('version', strval($slots[1]));
+                $server->setAttribute('name', strval($slots[2]));
+                $server->setAttribute('map', strval($slots[3]));
+
+                $server->setAttribute('gametype', strval($slots[4]));
+                $server->setAttribute('flags', intval($slots[5]));
+                $server->setAttribute('numplayers', intval($slots[6]));
+                $server->setAttribute('maxplayers', intval($slots[7]));
+                $server->setAttribute('numclients', intval($slots[8]));
+                $server->setAttribute('maxclients', intval($slots[9]));
+
+                $players = $server->getAttribute('players');
+                for ($i = 11; $i < count($slots); $i += 5) {
+                    $players[] = Player::make([
+                        'name' => strval($slots[$i]),
+                        'clan' => strval($slots[$i + 1]),
+                        'country' => intval($slots[$i + 2]),
+                        'score' => intval($slots[$i + 3]),
+                        'ingame' => intval($slots[$i + 4]),
+                    ]);
+                }
+                $server->setAttribute('players', $players);
                 break;
             case NetworkController::PACKETS['SERVERBROWSE_INFO_EXTENDED']:
+                // extended response (contains current map size & crc)
+                if ($server->getAttribute('server_type') != 'ext') {
+                    $server->setAttribute('server_type', 'ext');
+                    $server->setAttribute('players', []);
+                }
                 if (($slots[0] & 0xffff00) >> 8 !== ((ord($server->getAttribute('_request_token')[0]) << 8) + ord($server->getAttribute('_request_token')[1]))) {
                     // additional server token validation failed
                     echo "request token validation failed";
                     return;
                 }
-                // extended response (contains current map size & crc)
+
+                $server->setAttribute('version', strval($slots[1]));
+                $server->setAttribute('name', strval($slots[2]));
+                $server->setAttribute('map', strval($slots[3]));
+
+                $server->setAttribute('mapcrc', intval($slots[4]));
+                $server->setAttribute('mapsize', intval($slots[5]));
+
+                $server->setAttribute('gametype', strval($slots[6]));
+                $server->setAttribute('flags', intval($slots[7]));
+                $server->setAttribute('numplayers', intval($slots[8]));
+                $server->setAttribute('maxplayers', intval($slots[9]));
+                $server->setAttribute('numclients', intval($slots[10]));
+                $server->setAttribute('maxclients', intval($slots[11]));
+
+                $players = $server->getAttribute('players');
+                for ($i = 13; $i < count($slots); $i += 6) {
+                    $players[] = Player::make([
+                        'name' => strval($slots[$i]),
+                        'clan' => strval($slots[$i + 1]),
+                        'country' => intval($slots[$i + 2]),
+                        'score' => intval($slots[$i + 3]),
+                        'ingame' => intval($slots[$i + 4]),
+                        'unknown' => intval($slots[$i + 5]),
+                    ]);
+                }
+                $server->setAttribute('players', $players);
+
+                var_dump($server->getAttributes());
                 break;
-            case NetworkController::PACKETS['SERVERBROWSE_INFO_EXTENDED_MORE']:
+            case
+            NetworkController::PACKETS['SERVERBROWSE_INFO_EXTENDED_MORE']:
                 // extended response even more
+                $server->setAttribute('server_type', 'ext+');
                 break;
         }
     }
