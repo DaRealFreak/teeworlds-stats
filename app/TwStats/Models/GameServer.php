@@ -15,7 +15,7 @@ class GameServer extends Server
     ];
 
     protected $additionalFillables = [
-        'servers', 'num_servers'
+        'players', 'num_servers'
     ];
 
     public function __construct(array $attributes = [])
