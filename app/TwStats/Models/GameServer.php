@@ -24,4 +24,22 @@ class GameServer extends Server
         $this->fillable = array_merge(parent::getFillable(), $this->additionalFillables);
         parent::__construct($attributes);
     }
+
+    /**
+     * some servers return me the same players in multiple packets
+     * so we check if a player with identical attributes is already indexed
+     *
+     * @param Player $player
+     * @return bool
+     */
+    public function doesPlayerAlreadyExist(Player $player)
+    {
+        /** @var Player $indexedPlayer */
+        foreach ($this->getAttribute('players') as $indexedPlayer) {
+            if ($player->getAttributes() === $indexedPlayer->getAttributes()) {
+                return True;
+            }
+        }
+        return False;
+    }
 }
