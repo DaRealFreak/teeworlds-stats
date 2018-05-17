@@ -32,16 +32,34 @@ Route::get('/server', 'SearchController@searchServer')->name('server');
 Route::get('/server/{server_name}/', ['as' => 'searchServerByName', 'uses' => 'SearchController@searchServerByName']);
 Route::get('/server/{server_id}/{server_name}/', ['as' => 'searchServerByIdAndName', 'uses' => 'SearchController@searchServerByIdAndName']);
 
-# Ajax search routes
-Route::get('/search/tee', 'AjaxSearchController@searchTee')->name('searchTeeAjax');
-Route::get('/search/clan', 'AjaxSearchController@searchClan')->name('searchClanAjax');
-Route::get('/search/server', 'AjaxSearchController@searchServer')->name('searchServerAjax');
-
 # Authentication routes
 Auth::routes();
 
 # Test routes
 Route::get('/test', function () {
+    $masterServers = \App\TwStats\Controller\MasterServerController::getServers();
+
+    /** @var \App\TwStats\Models\GameServer[] $servers */
+    $servers = [];
+    foreach ($masterServers as $masterServer) {
+        $servers = array_merge($servers, $masterServer->getAttribute('servers'));
+    }
+
+    \App\TwStats\Controller\GameServerController::fillServerInfo($servers);
+    foreach ($servers as $server) {
+        if ($server->getAttribute('players')) {
+            $serverInfo = sprintf("%s, %s:%s [%d/%d] (%d)",
+                $server->getAttribute('name'),
+                $server->getAttribute('ip'),
+                $server->getAttribute('port'),
+                $server->getAttribute('numplayers'),
+                $server->getAttribute('maxplayers'),
+                count($server->getAttribute('players'))
+            );
+            var_dump($serverInfo);
+            var_dump($server->getAttribute('players'));
+        }
+    }
     return "huge success";
 });
 
@@ -51,8 +69,7 @@ Route::get('/rules', function () {
         [
             'decider' => 'mod',
             'rule' => '%fng%',
-            'mod_id' => \App\Models\Mod::firstOrCreate(['mod' => 'FNG'])->getAttribute('id'),
-            'priority' => 1
+            'mod_id' => \App\Models\Mod::firstOrCreate(['mod' => 'FNG'])->getAttribute('id')
         ]
     );
 
@@ -60,26 +77,7 @@ Route::get('/rules', function () {
         [
             'decider' => 'server',
             'rule' => '%gores%',
-            'mod_id' => \App\Models\Mod::firstOrCreate(['mod' => 'Gores'])->getAttribute('id'),
-            'priority' => 1
-        ]
-    );
-
-    \App\Models\ModRule::firstOrCreate(
-        [
-            'decider' => 'mod',
-            'rule' => '%BW%',
-            'mod_id' => \App\Models\Mod::firstOrCreate(['mod' => 'BW'])->getAttribute('id'),
-            'priority' => 2
-        ]
-    );
-
-    \App\Models\ModRule::firstOrCreate(
-        [
-            'decider' => 'server',
-            'rule' => '%Block%',
-            'mod_id' => \App\Models\Mod::firstOrCreate(['mod' => 'BW'])->getAttribute('id'),
-            'priority' => 1
+            'mod_id' => \App\Models\Mod::firstOrCreate(['mod' => 'Gores'])->getAttribute('id')
         ]
     );
 });
