@@ -38,10 +38,13 @@ Auth::routes();
 # Test routes
 Route::get('/test', function () {
     $masterServers = \App\TwStats\Controller\MasterServerController::getServers();
+
+    /** @var \App\TwStats\Models\GameServer[] $servers */
     $servers = [];
     foreach ($masterServers as $masterServer) {
-        if (isset($masterServer['servers'])) {
-            $servers = array_merge($servers, $masterServer['servers']);
+        $servers = array_merge($servers, $masterServer->getAttribute('servers'));
+        if (count($servers) > 0) {
+            break;
         }
     }
 
