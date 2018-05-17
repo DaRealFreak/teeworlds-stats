@@ -17,8 +17,7 @@ class GameServerController
     const SERVER_CHUNK_SLEEP_MS = 1000;
 
     /**
-     * send the SERVERBROWSE_GETINFO and SERVERBROWSE_GETINFO_64_LEGACY packet to each server
-     * in chunks to prevent connection loss thanks to ~900 connections at the same time
+     * ToDo: request the information in chunks instead of running ~900 connections parallel with one socket
      *
      * @param GameServer[] $servers
      */
@@ -31,6 +30,7 @@ class GameServerController
 
 
         $i = 0;
+        /** @var GameServer $server */
         foreach ($servers as &$server) {
             NetworkController::send_packet($sock, NetworkController::PACKETS['SERVERBROWSE_GETINFO'], $server);
             NetworkController::send_packet($sock, NetworkController::PACKETS['SERVERBROWSE_GETINFO_64_LEGACY'], $server);
@@ -79,7 +79,6 @@ class GameServerController
         $slots = explode("\x00", substr($data, 14, strlen($data) - 15));
         $token = intval(array_shift($slots));
         if (($token & 0xff) !== ord($server->getAttribute('_token'))) {
-            $server->setAttribute('response', false);
             // server token validation failed
             return;
         }
@@ -164,7 +163,7 @@ class GameServerController
 
                 if (($token & 0xffff00) >> 8 !== ((ord($server->getAttribute('_request_token')[0]) << 8) + ord($server->getAttribute('_request_token')[1]))) {
                     // additional server token validation failed
-                    $server->setAttribute('response', false);
+                    echo "request token validation failed";
                     return;
                 }
 
