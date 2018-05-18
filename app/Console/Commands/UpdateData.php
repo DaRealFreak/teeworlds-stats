@@ -11,7 +11,10 @@ use App\Models\PlayerClanHistory;
 use App\Models\PlayerHistory;
 use App\Models\Server;
 use App\Models\ServerHistory;
-use App\TwRequest\TwRequest;
+use App\TwStats\Controller\GameServerController;
+use App\TwStats\Controller\MasterServerController;
+use App\TwStats\Models\GameServer;
+use App\TwStats\Utility\Countries;
 use Carbon\Carbon;
 use Illuminate\Console\Command;
 
@@ -32,35 +35,25 @@ class UpdateData extends Command
     protected $description = 'Command description';
 
     /**
-     * @var TwRequest
-     */
-    protected $twRequest;
-
-    /**
-     * Create a new command instance.
-     *
-     * @param TwRequest $twRequest
-     */
-    public function __construct(TwRequest $twRequest)
-    {
-        $this->twRequest = $twRequest;
-        parent::__construct();
-    }
-
-    /**
      * Execute the console command.
      */
     public function handle()
     {
-        $this->twRequest->loadServersFromMasterservers();
-        $this->twRequest->loadServerInfo();
-        $this->twRequest->reloadFailedServerInfo();
+        // get the master servers with the game server information loaded
+        $masterServers = MasterServerController::getServers();
 
-        $servers = $this->twRequest->getServers();
+        $servers = [];
+        foreach ($masterServers as $masterServer) {
+            $servers = array_merge($servers, $masterServer->getAttribute('servers'));
+        }
+
+        GameServerController::fillServerInfo($servers);
 
         foreach ($servers as $server) {
-            $serverModel = $this->updateServer($server);
-            $this->updatePlayers($server, $serverModel);
+            if ($server->getAttribute('response')) {
+                $serverModel = $this->updateServer($server);
+                $this->updatePlayers($server, $serverModel);
+            }
         }
 
         $this->info('update server data');
@@ -70,20 +63,20 @@ class UpdateData extends Command
     /**
      * update the server data of the server we reached
      *
-     * @param array $server
+     * @param GameServer $server
      * @return Server
      */
-    private function updateServer(array $server)
+    private function updateServer(GameServer $server)
     {
         /** @var Server $serverModel */
         $serverModel = Server::firstOrCreate(
             [
-                'ip' => $server[0],
-                'port' => $server[1]
+                'ip' => $server->getAttribute('ip'),
+                'port' => $server->getAttribute('port')
             ]
         );
-        $serverModel->setAttribute('name', $server['name']);
-        $serverModel->setAttribute('version', $server['version']);
+        $serverModel->setAttribute('name', $server->getAttribute('name'));
+        $serverModel->setAttribute('version', $server->getAttribute('version'));
         $serverModel->setAttribute('last_seen', Carbon::now());
 
         if (!$serverModel->stats()->first()) {
@@ -91,9 +84,9 @@ class UpdateData extends Command
         }
 
         /** @var Map $mapModel */
-        $mapModel = Map::firstOrCreate(['map' => $server['map']]);
+        $mapModel = Map::firstOrCreate(['map' => $server->getAttribute('map')]);
         /** @var Mod $modModel */
-        list($modModel, $originalModModel) = $this->retrieveOrCreateMod($serverModel, $server['gametype']);
+        list($modModel, $originalModModel) = $this->retrieveOrCreateMod($serverModel, $server->getAttribute('gametype'));
 
         $this->updateServerHistory($serverModel, $mapModel, $modModel, $originalModModel);
 
@@ -154,22 +147,23 @@ class UpdateData extends Command
     /**
      * update the player data with the data extracted from the server
      *
-     * @param array $server
+     * @param GameServer $server
      * @param Server $serverModel
      * @return void
      */
-    private function updatePlayers(array $server, Server $serverModel)
+    private function updatePlayers(GameServer $server, Server $serverModel)
     {
-        foreach ($server['players'] as $player) {
+        /** @var \App\TwStats\Models\Player $player */
+        foreach ($server->getAttribute('players') as $player) {
             // players not yet connected to the server have a unique entry, skip these
-            if ($player['name'] == '(connecting)' && $player['country'] === -1 && $player['clan'] == '' && $player['score'] === 0) {
+            if ($player->getAttribute('name') == '(connecting)' && $player->getAttribute('country') === -1 && $player->getAttribute('clan') == '' && $player->getAttribute('score') === 0) {
                 continue;
             }
 
             /** @var Player $playerModel */
             $playerModel = Player::firstOrCreate(
                 [
-                    'name' => $player['name'],
+                    'name' => $player->getAttribute('name'),
                 ]
             );
 
@@ -189,16 +183,16 @@ class UpdateData extends Command
             // update player last seen stat
             $playerModel->setAttribute('last_seen', Carbon::now());
 
-            if ($player['clan'] == '' && $playerModel->clan()) {
+            if ($player->getAttribute('clan') == '' && $playerModel->clan()) {
                 $playerModel->currentClanRecord()->update(['left_at' => Carbon::now()]);
             }
 
             // if clan name is not empty and player has no clan associated
             // or player has a clan associated but the clan name differs from the current one
-            if ($player['clan'] != '') {
+            if ($player->getAttribute('clan') != '') {
                 $clanModel = Clan::firstOrCreate(
                     [
-                        'name' => $player['clan']
+                        'name' => $player->getAttribute('clan')
                     ]
                 );
 
@@ -220,14 +214,14 @@ class UpdateData extends Command
             }
 
             // update player country stat
-            $playerModel->setAttribute('country', TwRequest::getCountryName($player['country']));
+            $playerModel->setAttribute('country', Countries::getCountryName($player->getAttribute('country')));
 
             /** @var Map $mapModel */
-            $mapModel = Map::firstOrCreate(['map' => $server['map']]);
+            $mapModel = Map::firstOrCreate(['map' => $server->getAttribute('map')]);
             /** @var Mod $modModel */
-            list($modModel, $originalModModel) = $this->retrieveOrCreateMod($serverModel, $server['gametype']);
+            list($modModel, $originalModModel) = $this->retrieveOrCreateMod($serverModel, $server->getAttribute('gametype'));
 
-            // $player['ingame'] is false if the player is spectating and not playing
+            // $player->getAttribute('ingame') is false if the player is spectating and not playing
             // maybe don't update play history if not set?
             $this->updatePlayerHistory($playerModel, $serverModel, $mapModel, $modModel, $originalModModel);
 
