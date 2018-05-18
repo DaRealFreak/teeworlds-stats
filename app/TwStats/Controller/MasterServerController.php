@@ -32,8 +32,6 @@ class MasterServerController
     ];
 
     /**
-     * return a generator object for the master servers
-     *
      * @return \Generator
      */
     public static function getMasterServers()
