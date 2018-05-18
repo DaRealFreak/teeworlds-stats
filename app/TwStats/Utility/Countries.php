@@ -1024,4 +1024,40 @@ class Countries
             'name' => 'Zimbabwe'
         ],
     ];
+
+    /**
+     * retrieve the array with the country name and country code based on the country id
+     *
+     * @param $number
+     * @return array
+     */
+    public static function getCountry($number)
+    {
+        $number = (int)$number;
+        return isset(self::COUNTRIES[$number]) ? self::COUNTRIES[$number] :self::COUNTRIES[-1];
+    }
+
+    /**
+     * retrieve the country code based on the country id
+     *
+     * @param $number
+     * @return string
+     */
+    public static function getCountryCode($number)
+    {
+        $number = (int)$number;
+        return isset(self::COUNTRIES[$number]) ? self::COUNTRIES[$number]['code'] : self::COUNTRIES[-1]['code'];
+    }
+
+    /**
+     * retrieve the country name based on the country id
+     *
+     * @param $number
+     * @return string
+     */
+    public static function getCountryName($number)
+    {
+        $number = (int)$number;
+        return isset(self::COUNTRIES[$number]) ? self::COUNTRIES[$number]['name'] : self::COUNTRIES[-1]['name'];
+    }
 }
