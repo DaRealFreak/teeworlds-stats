@@ -31,6 +31,9 @@ class MasterServerController
         ]
     ];
 
+    /**
+     * @return \Generator
+     */
     public static function getMasterServers()
     {
         foreach (self::$masterServers as $masterServer) {
@@ -46,7 +49,7 @@ class MasterServerController
      * check the master servers for the game server count
      * and retrieve the server list
      *
-     * @return MasterServer[]
+     * @return GameServer[]
      */
     public static function getServers()
     {
