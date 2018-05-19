@@ -9,7 +9,7 @@ use Illuminate\Database\Eloquent\Model;
  *
  * @mixin \Eloquent
  */
-class Server extends Model
+abstract class Server extends Model
 {
     protected $fillable = [
         'hostname', 'ip', 'port', 'response'
