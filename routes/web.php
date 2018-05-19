@@ -37,29 +37,6 @@ Auth::routes();
 
 # Test routes
 Route::get('/test', function () {
-    $masterServers = \App\TwStats\Controller\MasterServerController::getServers();
-
-    /** @var \App\TwStats\Models\GameServer[] $servers */
-    $servers = [];
-    foreach ($masterServers as $masterServer) {
-        $servers = array_merge($servers, $masterServer->getAttribute('servers'));
-    }
-
-    \App\TwStats\Controller\GameServerController::fillServerInfo($servers);
-    foreach ($servers as $server) {
-        if ($server->getAttribute('players')) {
-            $serverInfo = sprintf("%s, %s:%s [%d/%d] (%d)",
-                $server->getAttribute('name'),
-                $server->getAttribute('ip'),
-                $server->getAttribute('port'),
-                $server->getAttribute('numplayers'),
-                $server->getAttribute('maxplayers'),
-                count($server->getAttribute('players'))
-            );
-            var_dump($serverInfo);
-            var_dump($server->getAttribute('players'));
-        }
-    }
     return "huge success";
 });
 
