@@ -11,40 +11,71 @@
             </h2>
         </div>
     </div>
+
     <section class="section-content">
         <div class="container-fluid">
-            <div class="row">
-                <div class="col-lg-6">
-                    <div class="line-chart block chart">
-                        <div class="title"><strong>{{ $player->name }}'s online probability</strong></div>
-                        <canvas id="onlineLineChartDays"></canvas>
+            <!-- Nav tabs -->
+            <ul class="nav nav-tabs nav-justified">
+                <li class="nav-item">
+                    <a class="nav-link active" data-toggle="tab" href="#all">All-Time</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" data-toggle="tab" href="#week">This week</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" data-toggle="tab" href="#day">Today</a>
+                </li>
+            </ul>
+
+            <!-- Tab panes -->
+            <div class="tab-content">
+                <div class="tab-pane active" id="all">
+                    <div class="row">
+                        <div class="col-lg-6">
+                            <div class="line-chart block chart">
+                                <div class="title"><strong>{{ $player->name }}'s online probability</strong></div>
+                                <canvas id="onlineLineChartDays"></canvas>
+                            </div>
+                        </div>
+                        <div class="col-lg-6">
+                            <div class="line-chart block chart">
+                                <div class="title"><strong>{{ $player->name }}'s online probability per day</strong>
+                                </div>
+                                <canvas id="onlineLineChartHours"></canvas>
+                            </div>
+                        </div>
                     </div>
-                </div>
-                <div class="col-lg-6">
-                    <div class="line-chart block chart">
-                        <div class="title"><strong>{{ $player->name }}'s online probability per day</strong></div>
-                        <canvas id="onlineLineChartHours"></canvas>
-                    </div>
-                </div>
-            </div>
-            <div class="row">
-                <div class="col-lg-6">
-                    <div class="radar-chart chart block">
-                        <div class="title"><strong>{{ $player->name }}'s most played mods</strong></div>
-                        <div class="radar-chart chart margin-bottom-sm">
-                            <canvas id="playedModsChart"></canvas>
+                    <div class="row">
+                        <div class="col-lg-6">
+                            <div class="radar-chart chart block">
+                                <div class="title"><strong>{{ $player->name }}'s most played mods</strong></div>
+                                <div class="radar-chart chart margin-bottom-sm">
+                                    <canvas id="playedModsChart"></canvas>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-lg-6">
+                            <div class="radar-chart chart block">
+                                <div class="title"><strong>{{ $player->name }}'s most played maps</strong></div>
+                                <div class="radar-chart chart margin-bottom-sm">
+                                    <canvas id="playedMapsChart"></canvas>
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </div>
-                <div class="col-lg-6">
-                    <div class="radar-chart chart block">
-                        <div class="title"><strong>{{ $player->name }}'s most played maps</strong></div>
-                        <div class="radar-chart chart margin-bottom-sm">
-                            <canvas id="playedMapsChart"></canvas>
-                        </div>
-                    </div>
+                <div class="tab-pane container fade" id="week">
+
+                </div>
+                <div class="tab-pane container fade" id="day">
+
                 </div>
             </div>
+        </div>
+    </section>
+    <section class="section-content">
+        <div class="container-fluid">
+
         </div>
     </section>
 @endsection
@@ -203,9 +234,6 @@
 
             let playedMods = $('#playedModsChart');
             @if (count($player->chartPlayedMods()) >= 3)
-                // ------------------------------------------------------- //
-                // Played mods radar chart
-                // ------------------------------------------------------ //
                 new Chart(playedMods, {
                     type: 'radar',
                     options: {
@@ -261,9 +289,6 @@
                     }
                 });
             @else
-                // ------------------------------------------------------- //
-                // Played mods pie chart for less than 3 played mods
-                // ------------------------------------------------------ //
                 new Chart(playedMods, {
                     type: 'pie',
                     options: {
