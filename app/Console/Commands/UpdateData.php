@@ -13,6 +13,7 @@ use App\Models\Server;
 use App\Models\ServerHistory;
 use App\TwStats\Controller\GameServerController;
 use App\TwStats\Controller\MasterServerController;
+use App\TwStats\Controller\NetworkController;
 use App\TwStats\Models\GameServer;
 use App\TwStats\Utility\Countries;
 use Carbon\Carbon;
@@ -50,13 +51,26 @@ class UpdateData extends Command
         GameServerController::fillServerInfo($servers);
 
         foreach ($servers as $server) {
-            if ($server->getAttribute('response')) {
-                $serverModel = $this->updateServer($server);
-                $this->updatePlayers($server, $serverModel);
+            if (!$server->getAttribute('response')) {
+                $failedServers[] = $server;
             }
         }
 
-        $this->info('update server data');
+        if (isset($failedServers)) {
+            usleep(NetworkController::CONNECTION_SLEEP_DURATION * 1000);
+            GameServerController::fillServerInfo($failedServers);
+            $servers = array_merge($servers, $failedServers);
+        }
+
+        foreach ($servers as $server) {
+            if ($server->getAttribute('response')) {
+                $serverModel = $this->updateServer($server);
+                $this->updatePlayers($server, $serverModel);
+            } else {
+                $failedServers[] = $server;
+                $this->info("could not receive a response of: " . $server->getAttribute('ip') . ":" . $server->getAttribute('port'));
+            }
+        }
         return True;
     }
 
