@@ -17,7 +17,8 @@ class GameServerController
     const SERVER_CHUNK_SLEEP_MS = 1000;
 
     /**
-     * ToDo: request the information in chunks instead of running ~900 connections parallel with one socket
+     * send the SERVERBROWSE_GETINFO and SERVERBROWSE_GETINFO_64_LEGACY packet to each server
+     * in chunks to prevent connection loss thanks to ~900 connections at the same time
      *
      * @param GameServer[] $servers
      */
@@ -30,7 +31,6 @@ class GameServerController
 
 
         $i = 0;
-        /** @var GameServer $server */
         foreach ($servers as &$server) {
             NetworkController::send_packet($sock, NetworkController::PACKETS['SERVERBROWSE_GETINFO'], $server);
             NetworkController::send_packet($sock, NetworkController::PACKETS['SERVERBROWSE_GETINFO_64_LEGACY'], $server);
