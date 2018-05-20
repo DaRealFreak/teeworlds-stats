@@ -16,6 +16,9 @@ class CreateServerHistories extends Migration
         Schema::create('server_histories', function (Blueprint $table) {
             $table->increments('id');
             $table->timestamps();
+            // as we are selecting online time etc using the weekday mysql function can
+            // impact the performance greatly, so add another column for that
+            $table->unsignedInteger('weekday');
 
             $table->unsignedInteger('server_id');
             $table->unsignedInteger('map_id');
