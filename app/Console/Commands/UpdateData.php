@@ -145,6 +145,7 @@ class UpdateData extends Command
             || $latestHistoryEntry->getAttribute('updated_at') < Carbon::now()->subMinutes(env('CRONTASK_INTERVAL') * 1.5)) {
             $historyEntry = ServerHistory::create(
                 [
+                    'weekday' => Carbon::now()->dayOfWeekIso - 1,
                     'server_id' => $serverModel->getAttribute('id'),
                     'map_id' => $mapModel->getAttribute('id'),
                     'mod_id' => $modModel->getAttribute('id'),
@@ -211,8 +212,7 @@ class UpdateData extends Command
                 );
 
                 // leave the current clan if the player has a clan already and is having currently a different clan tag
-                if ($playerModel->clan() && $playerModel->clan()->getAttribute('name') !== $clanModel->getAttribute('name'))
-                {
+                if ($playerModel->clan() && $playerModel->clan()->getAttribute('name') !== $clanModel->getAttribute('name')) {
                     $playerModel->currentClanRecord()->update(['left_at' => Carbon::now()]);
                 }
 
@@ -311,6 +311,7 @@ class UpdateData extends Command
             || $latestHistoryEntry->getAttribute('updated_at') < Carbon::now()->subMinutes(env('CRONTASK_INTERVAL') * 1.5)) {
             $historyEntry = PlayerHistory::create(
                 [
+                    'weekday' => Carbon::now()->dayOfWeekIso - 1,
                     'player_id' => $playerModel->getAttribute('id'),
                     'server_id' => $serverModel->getAttribute('id'),
                     'map_id' => $mapModel->getAttribute('id'),

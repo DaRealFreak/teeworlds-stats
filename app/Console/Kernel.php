@@ -30,7 +30,7 @@ class Kernel extends ConsoleKernel
     protected function schedule(Schedule $schedule)
     {
         $schedule->command(UpdateData::class)->everyTenMinutes()
-            ->sendOutputTo('storage/logs/update_data_' . (int)time() . '.log')
+            ->sendOutputTo('storage/logs/update_data/' . (int)time() . '.log')
             ->after(function () {
                 Artisan::call(UpdateDailySummary::class);
                 Artisan::call(Clear::class);
