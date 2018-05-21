@@ -11,8 +11,9 @@ use Khill\Duration\Duration;
  * App\Models\Player
  *
  * @property-read \Illuminate\Database\Eloquent\Collection|\App\Models\PlayerClanHistory[] $clanRecords
+ * @property-read \Illuminate\Database\Eloquent\Collection|\App\Models\PlayerHistory[] $onlineDays
+ * @property-read \Illuminate\Database\Eloquent\Collection|\App\Models\PlayerHistory[] $onlineHours
  * @property-read \Illuminate\Database\Eloquent\Collection|\App\Models\PlayerHistory[] $playRecords
- * @property-read \App\Models\PlayerStatus $stats
  * @mixin \Eloquent
  */
 class Player extends Model
@@ -109,7 +110,7 @@ class Player extends Model
      * @param bool $formatted
      * @return float|int
      */
-    public function totalHoursPlayed($duration = 0, $formatted = False)
+    public function totalHoursOnline($duration = 0, $formatted = False)
     {
         $playerHistory = $this->playRecords()
             ->selectRaw('`' . (new PlayerHistory)->getTable() . '`.*, SUM(`' . (new PlayerHistory)->getTable() . '`.`minutes`) as `sum_minutes`')
