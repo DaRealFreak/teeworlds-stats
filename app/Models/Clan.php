@@ -126,15 +126,10 @@ class Clan extends Model
     public function statsMostActivePlayer()
     {
         return $this->belongsToMany(Player::class, (new PlayerClanHistory)->getTable(), 'clan_id', 'player_id')
-            ->join((new PlayerStatus)->getTable(), (new PlayerStatus())->getTable() . '.player_id', '=', (new Player())->getTable() . '.id')
+            ->join((new PlayerHistory())->getTable(), (new PlayerHistory())->getTable() . '.player_id', '=', (new Player())->getTable() . '.id')
             ->where('left_at', null)
-            ->orderByRaw('SUM(`player_statuses`.`hour_0`+`player_statuses`.`hour_1`+`player_statuses`.`hour_2`+`player_statuses`.`hour_3`+
-                `player_statuses`.`hour_4`+`player_statuses`.`hour_5`+`player_statuses`.`hour_6`+`player_statuses`.`hour_7`+
-                `player_statuses`.`hour_8`+`player_statuses`.`hour_9`+`player_statuses`.`hour_10`+`player_statuses`.`hour_11`+
-                `player_statuses`.`hour_12`+`player_statuses`.`hour_13`+`player_statuses`.`hour_14`+`player_statuses`.`hour_15`+
-                `player_statuses`.`hour_16`+`player_statuses`.`hour_17`+`player_statuses`.`hour_18`+`player_statuses`.`hour_19`+
-                `player_statuses`.`hour_20`+`player_statuses`.`hour_21`+`player_statuses`.`hour_22`+`player_statuses`.`hour_23`) DESC')
-            ->groupBy([DB::raw((new Player())->getTable() . '.id')])->first();
+            ->orderByRaw('SUM(`' . (new PlayerHistory())->getTable() . '`.`hour`) DESC')
+            ->groupBy(DB::raw((new Player())->getTable() . '.id'))->first();
     }
 
     /**
@@ -205,15 +200,12 @@ class Clan extends Model
      */
     public function chartOnlineHours()
     {
-        $clanOnlineHours = [];
+        $clanOnlineHours = array_fill(0, 24, 0);
+
         foreach ($this->players as $player) {
-            $playerOnlineStats = iterator_to_array($player->stats->onlineHours());
-            foreach ($playerOnlineStats as $playerOnlineHour => $playerOnlineTimes) {
-                if (!array_key_exists($playerOnlineHour, $clanOnlineHours)) {
-                    $clanOnlineHours[$playerOnlineHour] = $playerOnlineTimes;
-                } else {
-                    $clanOnlineHours[$playerOnlineHour] += $playerOnlineTimes;
-                }
+            $playerOnlineHours = $player->onlineHours()->get();
+            foreach ($playerOnlineHours as $playerOnlineHour) {
+                $clanOnlineHours[$playerOnlineHour->hour] += $playerOnlineHour->sum_minutes;
             }
         }
 
@@ -228,15 +220,12 @@ class Clan extends Model
      */
     public function chartOnlineDays()
     {
-        $clanOnlineDays = [];
+        $clanOnlineDays = array_fill(0, 7, 0);
+
         foreach ($this->players as $player) {
-            $playerOnlineDayStats = $player->stats->onlineDays();
-            foreach ($playerOnlineDayStats as $playerOnlineDay => $playerOnlineTimes) {
-                if (!array_key_exists($playerOnlineDay, $clanOnlineDays)) {
-                    $clanOnlineDays[$playerOnlineDay] = $playerOnlineTimes;
-                } else {
-                    $clanOnlineDays[$playerOnlineDay] += $playerOnlineTimes;
-                }
+            $playerOnlineDays = $player->onlineDays()->get();
+            foreach ($playerOnlineDays as $playerOnlineDay) {
+                $clanOnlineDays[$playerOnlineDay->weekday] += $playerOnlineDay->sum_minutes;
             }
         }
 

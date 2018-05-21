@@ -112,7 +112,7 @@
                                 </div>
                                 <div class="col-lg-6 text-center">
                                     <div class="contributions">
-                                        Played: {{ $clan->statsMostActivePlayer()->stats()->first()->totalHoursPlayed(True) }}</div>
+                                        Played: {{ $clan->statsMostActivePlayer()->totalHoursPlayed(0, True) }}</div>
                                 </div>
                             </div>
                         </div>
