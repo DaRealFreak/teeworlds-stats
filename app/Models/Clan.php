@@ -52,13 +52,16 @@ class Clan extends Model
             ->orderByRaw('last_seen >= ? DESC', [(string)Carbon::now()->subMinutes(env('CRONTASK_INTERVAL') * 1.5)])
             ->orderBy('name')
             ->distinct()
-            ->get();
+            ->get()
+            ->unique();
 
-        foreach ($exPlayers as $index => $exPlayer) {
-            if ($this->players->contains($exPlayer)) {
-                $exPlayers->forget($exPlayer);
+        /** @var Player $player */
+        foreach ($exPlayers as $playerIndex => $player) {
+            if ($player->clan() && $player->clan()->getAttribute('name') == $this->getAttribute('name')) {
+                $exPlayers->forget($playerIndex);
             }
         }
+
         return $exPlayers;
     }
 

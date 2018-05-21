@@ -64,6 +64,16 @@ class Player extends Model
     }
 
     /**
+     * @param Clan $clan
+     * @return \Illuminate\Database\Eloquent\Relations\HasMany
+     */
+    public function exClanRecord(Clan $clan)
+    {
+        return $this->clanRecords()
+            ->where('clan_id', '=', $clan->getAttribute('id'));
+    }
+
+    /**
      * Get the server play records associated with the tee
      *
      * @return \Illuminate\Database\Eloquent\Relations\HasMany
