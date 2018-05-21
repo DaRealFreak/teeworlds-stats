@@ -174,6 +174,10 @@ class UpdateData extends Command
                 continue;
             }
 
+            if (!$player->getAttribute('name')) {
+                continue;
+            }
+
             /** @var Player $playerModel */
             $playerModel = Player::firstOrCreate(
                 [
