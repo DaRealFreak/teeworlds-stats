@@ -22,8 +22,8 @@
                         </div>
                         <div class="progress progress-template">
                             <div role="progressbar"
-                                 style="width: {{ round(($general['online']/$dailySummary->players_online) * 100, 2) }}%"
-                                 aria-valuenow="{{ round(($general['online']/$dailySummary->players_online) * 100, 2) }}"
+                                 style="width: {{ round(($general['online']/($dailySummary->players_online > 0 ? $dailySummary->players_online : 1)) * 100, 2) }}%"
+                                 aria-valuenow="{{ round(($general['online']/($dailySummary->players_online > 0 ? $dailySummary->players_online : 1)) * 100, 2) }}"
                                  aria-valuemin="0"
                                  aria-valuemax="100" class="progress-bar progress-bar-template dashbg-2"></div>
                         </div>
