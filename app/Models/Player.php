@@ -62,16 +62,6 @@ class Player extends Model
     }
 
     /**
-     * Get the stats record associated with the tee
-     *
-     * @return \Illuminate\Database\Eloquent\Relations\HasOne
-     */
-    public function stats()
-    {
-        return $this->hasOne(PlayerStatus::class, 'player_id');
-    }
-
-    /**
      * Get the server play records associated with the tee
      *
      * @return \Illuminate\Database\Eloquent\Relations\HasMany
@@ -84,16 +74,21 @@ class Player extends Model
     /**
      * build an array of the played maps for Chart.js in the frontend
      *
+     * @param int $duration
      * @param int $amount
      * @param bool $displayOthers
      * @return array
      */
-    public function chartPlayedMaps($amount = 10, $displayOthers = True)
+    public function chartPlayedMaps($duration = 0, $amount = 10, $displayOthers = True)
     {
         $playerMaps = $this->playRecords()
             ->selectRaw('`' . (new PlayerHistory)->getTable() . '`.*, SUM(`' . (new PlayerHistory)->getTable() . '`.`minutes`) as `sum_minutes`')
             ->groupBy('map_id')
             ->orderByDesc('sum_minutes')->get();
+
+        if ($duration) {
+            $playerMaps->where('created_at', '>=', Carbon::today()->subDay($duration));
+        }
 
         /** @var PlayerHistory $playedMap */
         foreach ($playerMaps as $playedMap) {
@@ -107,16 +102,21 @@ class Player extends Model
     /**
      * build an array of the played mods for Chart.js in the frontend
      *
+     * @param int $duration
      * @param int $amount
      * @param bool $displayOthers
      * @return array
      */
-    public function chartPlayedMods($amount = 10, $displayOthers = True)
+    public function chartPlayedMods($duration = 0, $amount = 10, $displayOthers = True)
     {
         $playerMods = $this->playRecords()
             ->selectRaw('`' . (new PlayerHistory)->getTable() . '`.*, SUM(`' . (new PlayerHistory)->getTable() . '`.`minutes`) as `sum_minutes`')
             ->groupBy('mod_id')
             ->orderByDesc('sum_minutes')->get();
+
+        if ($duration) {
+            $playerMods->where('created_at', '>=', Carbon::today()->subDay($duration));
+        }
 
         /** @var PlayerHistory $playedMod */
         foreach ($playerMods as $playedMod) {
@@ -129,6 +129,61 @@ class Player extends Model
             ksort($results);
         }
 
+        return $results;
+    }
+
+    /**
+     * @param int $duration
+     * @return array
+     */
+    public function chartOnlineHours($duration=0)
+    {
+        $historyEntries = $this->hasMany(PlayerHistory::class)
+            ->selectRaw('`' . (new PlayerHistory)->getTable() . '`.*, SUM(`' . (new PlayerHistory)->getTable() . '`.`minutes`) as `sum_minutes`')
+            ->groupBy('hour')
+            ->orderByDesc('hour');
+
+        if ($duration) {
+            $historyEntries->where('created_at', '>=', Carbon::today()->subDay($duration));
+        }
+
+        $historyEntries = $historyEntries->get();
+        // initialize array for all hours to fill the slots
+        $results = array_fill(0, 24, 0);
+
+        /** @var PlayerHistory $entryHour */
+        $max = $historyEntries->sortByDesc('sum_minutes')->first()->sum_minutes;
+
+        foreach ($historyEntries as $historyEntry) {
+            $results[$historyEntry->hour] = round($historyEntry->sum_minutes / $max * 100, 2);
+        }
+        return $results;
+    }
+
+    /**
+     * @param int $duration
+     * @return array
+     */
+    public function chartOnlineDays($duration=0)
+    {
+        $historyEntries = $this->hasMany(PlayerHistory::class)
+            ->selectRaw('`' . (new PlayerHistory)->getTable() . '`.*, SUM(`' . (new PlayerHistory)->getTable() . '`.`minutes`) as `sum_minutes`')
+            ->groupBy('weekday')
+            ->orderByDesc('weekday');
+
+        if ($duration) {
+            $historyEntries->where('created_at', '>=', Carbon::today()->subDay($duration));
+        }
+
+        $historyEntries = $historyEntries->get();
+        // initialize array for all hours to fill the slots
+        $results = array_fill(0, 7, 0);
+
+        /** @var PlayerHistory $entryHour */
+        $max = $historyEntries->sortByDesc('sum_minutes')->first()->sum_minutes;
+        foreach ($historyEntries as $historyEntry) {
+            $results[$historyEntry->hour] = round($historyEntry->sum_minutes / $max * 100, 2);
+        }
         return $results;
     }
 }

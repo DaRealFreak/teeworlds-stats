@@ -93,10 +93,6 @@ class UpdateData extends Command
         $serverModel->setAttribute('version', $server->getAttribute('version'));
         $serverModel->setAttribute('last_seen', Carbon::now());
 
-        if (!$serverModel->stats()->first()) {
-            $serverModel->stats()->create();
-        }
-
         /** @var Map $mapModel */
         $mapModel = Map::firstOrCreate(['map' => $server->getAttribute('map')]);
         /** @var Mod $modModel */
@@ -132,6 +128,8 @@ class UpdateData extends Command
         /** @var ServerHistory $historyEntry */
         $historyEntry = ServerHistory::orderByDesc('updated_at')->where(
             [
+                'weekday' => Carbon::now()->dayOfWeekIso - 1,
+                'hour' => Carbon::now()->hour,
                 'server_id' => $serverModel->getAttribute('id'),
                 'map_id' => $mapModel->getAttribute('id'),
                 'mod_id' => $modModel->getAttribute('id')
@@ -182,19 +180,6 @@ class UpdateData extends Command
                     'name' => $player->getAttribute('name'),
                 ]
             );
-
-            // create stats if no stats set yet
-            if (!$playerModel->stats()->first()) {
-                $playerModel->stats()->create();
-            }
-
-            // update player online stats
-            $currentHour = (int)Carbon::now()->format('H');
-            $currentDay = strtolower(Carbon::now()->format('l'));
-            $playerModel->stats()->first()->update([
-                'hour_' . $currentHour => $playerModel->stats()->first()->getAttribute('hour_' . $currentHour) + env('CRONTASK_INTERVAL'),
-                $currentDay => $playerModel->stats()->first()->getAttribute($currentDay) + env('CRONTASK_INTERVAL')
-            ]);
 
             // update player last seen stat
             $playerModel->setAttribute('last_seen', Carbon::now());
@@ -299,6 +284,8 @@ class UpdateData extends Command
         /** @var PlayerHistory $historyEntry */
         $historyEntry = PlayerHistory::orderByDesc('updated_at')->where(
             [
+                'weekday' => Carbon::now()->dayOfWeekIso - 1,
+                'hour' => Carbon::now()->hour,
                 'player_id' => $playerModel->getAttribute('id'),
                 'server_id' => $serverModel->getAttribute('id'),
                 'map_id' => $mapModel->getAttribute('id'),
