@@ -52,61 +52,44 @@ class Clan extends Model
             ->orderByRaw('last_seen >= ? DESC', [(string)Carbon::now()->subMinutes(env('CRONTASK_INTERVAL') * 1.5)])
             ->orderBy('name')
             ->distinct()
-            ->get()
-            ->unique();
+            ->get();
 
-        /** @var Player $player */
-        foreach ($exPlayers as $playerIndex => $player) {
-            if ($player->clan() && $player->clan()->getAttribute('name') == $this->getAttribute('name')) {
-                $exPlayers->forget($playerIndex);
+        foreach ($exPlayers as $index => $exPlayer) {
+            if ($this->players->contains($exPlayer)) {
+                $exPlayers->forget($exPlayer);
             }
         }
-
         return $exPlayers;
     }
 
     /**
      * function to retrieve the most played map of the guild
      *
-     * @param int $duration
      * @return PlayerHistory|\Illuminate\Database\Query\Builder
      */
-    public function mostPlayedMaps($duration=0)
+    public function mostPlayedMaps()
     {
-        $maps = PlayerHistory::selectRaw('`' . (new PlayerHistory)->getTable() . '`.*, SUM(`' . (new PlayerHistory)->getTable() . '`.`minutes`) as `sum_minutes`')
+        return PlayerHistory::selectRaw('`' . (new PlayerHistory)->getTable() . '`.*, SUM(`' . (new PlayerHistory)->getTable() . '`.`minutes`) as `sum_minutes`')
             ->join((new PlayerClanHistory)->getTable(), (new PlayerHistory)->getTable() . '.player_id', '=', (new PlayerClanHistory)->getTable() . '.player_id')
             ->where((new PlayerClanHistory)->getTable() . '.clan_id', '=', $this->getAttribute('id'))
             ->where((new PlayerClanHistory)->getTable() . '.left_at', null)
             ->groupBy(DB::raw((new PlayerHistory)->getTable() . '.map_id'))
             ->orderByDesc('sum_minutes');
-
-        if ($duration) {
-            $maps->where((new PlayerHistory)->getTable() . '.created_at', '>=', Carbon::today()->subDay($duration));
-        }
-
-        return $maps;
     }
 
     /**
      * function to retrieve the most played mod of the guild
      *
-     * @param int $duration
      * @return PlayerHistory|\Illuminate\Database\Query\Builder
      */
-    public function mostPlayedMods($duration=0)
+    public function mostPlayedMods()
     {
-        $mods = PlayerHistory::selectRaw('`' . (new PlayerHistory)->getTable() . '`.*, SUM(`' . (new PlayerHistory)->getTable() . '`.`minutes`) as `sum_minutes`')
+        return PlayerHistory::selectRaw('`' . (new PlayerHistory)->getTable() . '`.*, SUM(`' . (new PlayerHistory)->getTable() . '`.`minutes`) as `sum_minutes`')
             ->join((new PlayerClanHistory)->getTable(), (new PlayerHistory)->getTable() . '.player_id', '=', (new PlayerClanHistory)->getTable() . '.player_id')
             ->where((new PlayerClanHistory)->getTable() . '.clan_id', '=', $this->getAttribute('id'))
             ->where((new PlayerClanHistory)->getTable() . '.left_at', null)
             ->groupBy(DB::raw((new PlayerHistory)->getTable() . '.mod_id'))
             ->orderByDesc('sum_minutes');
-
-        if ($duration) {
-            $mods->where((new PlayerHistory)->getTable() . '.created_at', '>=', Carbon::today()->subDay($duration));
-        }
-
-        return $mods;
     }
 
     /**
@@ -143,24 +126,23 @@ class Clan extends Model
     public function statsMostActivePlayer()
     {
         return $this->belongsToMany(Player::class, (new PlayerClanHistory)->getTable(), 'clan_id', 'player_id')
-            ->join((new PlayerHistory)->getTable(), (new PlayerHistory)->getTable() . '.player_id', '=', (new Player())->getTable() . '.id')
+            ->join((new PlayerHistory())->getTable(), (new PlayerHistory())->getTable() . '.player_id', '=', (new Player())->getTable() . '.id')
             ->where('left_at', null)
-            ->orderByRaw('SUM(`' . (new PlayerHistory)->getTable() . '`.`hour`) DESC')
+            ->orderByRaw('SUM(`' . (new PlayerHistory())->getTable() . '`.`hour`) DESC')
             ->groupBy(DB::raw((new Player())->getTable() . '.id'))->first();
     }
 
     /**
      * build an array of the played maps for Chart.js in the frontend
      *
-     * @param int $duration
      * @param int $amount
      * @param bool $displayOthers
      * @return array
      */
-    public function chartPlayedMaps($duration=0, $amount = 10, $displayOthers = False)
+    public function chartPlayedMaps($amount = 10, $displayOthers = False)
     {
         /** @var PlayerHistory $playedMap */
-        foreach ($this->mostPlayedMaps($duration)->get() as $playedMap) {
+        foreach ($this->mostPlayedMaps()->get() as $playedMap) {
             $results[$playedMap->map->getAttribute('map')] = (int)$playedMap->getAttribute('sum_minutes');
         }
         ChartUtility::applyLimits($results, $amount, $displayOthers);
@@ -171,15 +153,14 @@ class Clan extends Model
     /**
      * build an array of the played mods for Chart.js in the frontend
      *
-     * @param int $duration
      * @param int $amount
      * @param bool $displayOthers
      * @return array
      */
-    public function chartPlayedMods($duration=0, $amount = 10, $displayOthers = False)
+    public function chartPlayedMods($amount = 10, $displayOthers = False)
     {
         /** @var PlayerHistory $playedMod */
-        foreach ($this->mostPlayedMods($duration)->get() as $playedMod) {
+        foreach ($this->mostPlayedMods()->get() as $playedMod) {
             $results[$playedMod->mod->getAttribute('mod')] = (int)$playedMod->getAttribute('sum_minutes');
         }
         ChartUtility::applyLimits($results, $amount, $displayOthers);
@@ -203,7 +184,7 @@ class Clan extends Model
     {
         $clanPlayers = $this->players()->selectRaw('`players`.*, COUNT(`players`.`country`) as `count_countries`')
             ->groupBy('country')
-            ->orderByDesc('country')->get();
+            ->orderByRaw('COUNT(`players`.`country`) DESC')->get();
 
         /** @var Player $player */
         foreach ($clanPlayers as $player) {
@@ -215,15 +196,14 @@ class Clan extends Model
     }
 
     /**
-     * @param int $duration
      * @return \Generator
      */
-    public function chartOnlineHours($duration=0)
+    public function chartOnlineHours()
     {
         $clanOnlineHours = array_fill(0, 24, 0);
 
         foreach ($this->players as $player) {
-            $playerOnlineHours = $player->onlineHours($duration)->get();
+            $playerOnlineHours = $player->onlineHours()->get();
             foreach ($playerOnlineHours as $playerOnlineHour) {
                 $clanOnlineHours[$playerOnlineHour->hour] += $playerOnlineHour->sum_minutes;
             }
@@ -236,15 +216,14 @@ class Clan extends Model
     }
 
     /**
-     * @param int $duration
      * @return \Generator
      */
-    public function chartOnlineDays($duration=0)
+    public function chartOnlineDays()
     {
         $clanOnlineDays = array_fill(0, 7, 0);
 
         foreach ($this->players as $player) {
-            $playerOnlineDays = $player->onlineDays($duration)->get();
+            $playerOnlineDays = $player->onlineDays()->get();
             foreach ($playerOnlineDays as $playerOnlineDay) {
                 $clanOnlineDays[$playerOnlineDay->weekday] += $playerOnlineDay->sum_minutes;
             }
