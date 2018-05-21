@@ -19,6 +19,7 @@ class CreateServerHistories extends Migration
             // as we are selecting online time etc using the weekday mysql function can
             // impact the performance greatly, so add another column for that
             $table->unsignedInteger('weekday');
+            $table->unsignedInteger('hour');
 
             $table->unsignedInteger('server_id');
             $table->unsignedInteger('map_id');

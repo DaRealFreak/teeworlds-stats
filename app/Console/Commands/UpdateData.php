@@ -146,6 +146,7 @@ class UpdateData extends Command
             $historyEntry = ServerHistory::create(
                 [
                     'weekday' => Carbon::now()->dayOfWeekIso - 1,
+                    'hour' => Carbon::now()->hour,
                     'server_id' => $serverModel->getAttribute('id'),
                     'map_id' => $mapModel->getAttribute('id'),
                     'mod_id' => $modModel->getAttribute('id'),
@@ -312,6 +313,7 @@ class UpdateData extends Command
             $historyEntry = PlayerHistory::create(
                 [
                     'weekday' => Carbon::now()->dayOfWeekIso - 1,
+                    'hour' => Carbon::now()->hour,
                     'player_id' => $playerModel->getAttribute('id'),
                     'server_id' => $serverModel->getAttribute('id'),
                     'map_id' => $mapModel->getAttribute('id'),
