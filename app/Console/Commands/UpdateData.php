@@ -50,9 +50,11 @@ class UpdateData extends Command
 
         GameServerController::fillServerInfo($servers);
 
-        foreach ($servers as $server) {
+        /** @var GameServer $server */
+        foreach ($servers as $index => $server) {
             if (!$server->getAttribute('response')) {
                 $failedServers[] = $server;
+                unset($servers[$index]);
             }
         }
 
