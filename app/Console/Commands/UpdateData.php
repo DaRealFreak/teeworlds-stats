@@ -47,6 +47,7 @@ class UpdateData extends Command
         foreach ($masterServers as $masterServer) {
             $servers = array_merge($servers, $masterServer->getAttribute('servers'));
         }
+        $servers = array_unique($servers);
 
         GameServerController::fillServerInfo($servers);
 
