@@ -81,7 +81,7 @@ class Clan extends Model
             ->orderByDesc('sum_minutes');
 
         if ($duration) {
-            $maps->where((new PlayerClanHistory)->getTable() . '.created_at', '>=', Carbon::today()->subDay($duration));
+            $maps->where((new PlayerHistory)->getTable() . '.created_at', '>=', Carbon::today()->subDay($duration));
         }
 
         return $maps;
@@ -103,7 +103,7 @@ class Clan extends Model
             ->orderByDesc('sum_minutes');
 
         if ($duration) {
-            $mods->where((new PlayerClanHistory)->getTable() . '.created_at', '>=', Carbon::today()->subDay($duration));
+            $mods->where((new PlayerHistory)->getTable() . '.created_at', '>=', Carbon::today()->subDay($duration));
         }
 
         return $mods;
