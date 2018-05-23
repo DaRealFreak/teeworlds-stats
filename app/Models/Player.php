@@ -60,7 +60,8 @@ class Player extends Model
      */
     public function clanRecords()
     {
-        return $this->hasMany(PlayerClanHistory::class);
+        return $this->hasMany(PlayerClanHistory::class)
+            ->orderByDesc('updated_at');
     }
 
     /**
