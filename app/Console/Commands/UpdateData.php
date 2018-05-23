@@ -215,6 +215,7 @@ class UpdateData extends Command
                         [
                             'player_id' => $playerModel->getAttribute('id'),
                             'clan_id' => $clanModel->getAttribute('id'),
+                            'joined_at' => Carbon::now()
                         ]
                     );
                 }
