@@ -23,6 +23,19 @@
     @else
         <section class="section-content">
             <div class="container-fluid">
+                <!-- Nav tabs -->
+                <ul class="nav nav-tabs nav-justified">
+                    <li class="nav-item">
+                        <a class="nav-link active" id="toggle-all" data-toggle="tab" href="#all">All-Time</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" id="toggle-month" data-toggle="tab" href="#month">This month</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" id="toggle-week" data-toggle="tab" href="#week">This week</a>
+                    </li>
+                </ul>
+
                 <div class="row">
                     <div class="col-lg-12">
                         <div class="messages-block block">
@@ -143,19 +156,6 @@
                     </div>
                 </div>
 
-                <!-- Nav tabs -->
-                <ul class="nav nav-tabs nav-justified">
-                    <li class="nav-item">
-                        <a class="nav-link active" id="toggle-all" data-toggle="tab" href="#all">All-Time</a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link" id="toggle-month" data-toggle="tab" href="#month">This month</a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link" id="toggle-week" data-toggle="tab" href="#week">This week</a>
-                    </li>
-                </ul>
-
                 <!-- Tab panes -->
                 <div class="tab-content">
                     <div class="tab-pane active" id="all">
@@ -197,13 +197,13 @@
                         <div class="row">
                             <div class="col-lg-6">
                                 <div class="line-chart block chart">
-                                    <div class="title"><strong>{{ $clan->name }}'s online probability</strong></div>
+                                    <div class="title"><strong>{{ $clan->name }}'s online probability this month</strong></div>
                                     <canvas id="monthOnlineLineChartDays"></canvas>
                                 </div>
                             </div>
                             <div class="col-lg-6">
                                 <div class="line-chart block chart">
-                                    <div class="title"><strong>{{ $clan->name }}'s online probability per day</strong>
+                                    <div class="title"><strong>{{ $clan->name }}'s online probability per day this month</strong>
                                     </div>
                                     <canvas id="monthOnlineLineChartHours"></canvas>
                                 </div>
@@ -212,7 +212,7 @@
                         <div class="row">
                             <div class="col-lg-6">
                                 <div class="radar-chart chart block">
-                                    <div class="title"><strong>{{ $clan->name }}'s most played mods</strong></div>
+                                    <div class="title"><strong>{{ $clan->name }}'s most played mods this month</strong></div>
                                     <div class="radar-chart chart margin-bottom-sm">
                                         <canvas id="monthPlayedModsChart"></canvas>
                                     </div>
@@ -220,7 +220,7 @@
                             </div>
                             <div class="col-lg-6">
                                 <div class="radar-chart chart block">
-                                    <div class="title"><strong>{{ $clan->name }}'s most played maps</strong></div>
+                                    <div class="title"><strong>{{ $clan->name }}'s most played maps this month</strong></div>
                                     <div class="radar-chart chart margin-bottom-sm">
                                         <canvas id="monthPlayedMapsChart"></canvas>
                                     </div>
@@ -232,13 +232,13 @@
                         <div class="row">
                             <div class="col-lg-6">
                                 <div class="line-chart block chart">
-                                    <div class="title"><strong>{{ $clan->name }}'s online probability</strong></div>
+                                    <div class="title"><strong>{{ $clan->name }}'s online probability this week</strong></div>
                                     <canvas id="weekOnlineLineChartDays"></canvas>
                                 </div>
                             </div>
                             <div class="col-lg-6">
                                 <div class="line-chart block chart">
-                                    <div class="title"><strong>{{ $clan->name }}'s online probability per day</strong>
+                                    <div class="title"><strong>{{ $clan->name }}'s online probability per day this week</strong>
                                     </div>
                                     <canvas id="weekOnlineLineChartHours"></canvas>
                                 </div>
@@ -247,7 +247,7 @@
                         <div class="row">
                             <div class="col-lg-6">
                                 <div class="radar-chart chart block">
-                                    <div class="title"><strong>{{ $clan->name }}'s most played mods</strong></div>
+                                    <div class="title"><strong>{{ $clan->name }}'s most played mods this week</strong></div>
                                     <div class="radar-chart chart margin-bottom-sm">
                                         <canvas id="weekPlayedModsChart"></canvas>
                                     </div>
@@ -255,7 +255,7 @@
                             </div>
                             <div class="col-lg-6">
                                 <div class="radar-chart chart block">
-                                    <div class="title"><strong>{{ $clan->name }}'s most played maps</strong></div>
+                                    <div class="title"><strong>{{ $clan->name }}'s most played maps this week</strong></div>
                                     <div class="radar-chart chart margin-bottom-sm">
                                         <canvas id="weekPlayedMapsChart"></canvas>
                                     </div>
