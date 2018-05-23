@@ -23,6 +23,126 @@
     @else
         <section class="section-content">
             <div class="container-fluid">
+                <div class="row">
+                    <div class="col-lg-12">
+                        <div class="messages-block block">
+                            <div class="title">
+                                <strong>Players</strong>
+                            </div>
+                            <div class="messages pre-scrollable pre-scrollable-needed">
+                                @foreach ($clan->players as $player)
+                                    <a href="{{ url("tee", urlencode($player->name)) }}"
+                                       class="message d-flex align-items-center">
+                                        <div class="profile">
+                                            <img src="{{ asset('images/user.png') }}" alt="{{ $player->name }}"
+                                                 class="img-fluid">
+                                            @if ($player->online())
+                                                <div class="status online"></div>
+                                            @else
+                                                <div class="status offline"></div>
+                                            @endif
+                                        </div>
+                                        <div class="content">
+                                            <strong class="d-block">{{ $player->name }}</strong>
+                                            <span class="d-block">{{ $clan->name }} </span>
+                                            <small class="date d-block">Last
+                                                seen: {{ $player->last_seen }}</small>
+                                        </div>
+                                    </a>
+                                @endforeach
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="row">
+                    <div class="col-lg-6">
+                        <div class="pie-chart chart block">
+                            <div class="title"><strong>{{ $clan->name }}'s player countries</strong></div>
+                            <div class="radar-chart chart margin-bottom-sm">
+                                <canvas id="playerCountries"></canvas>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-lg-6">
+                        <div class="public-user-block block">
+                            <div class="row d-flex align-items-center">
+                                <div class="col-lg-2 d-flex align-items-center">
+                                    <div class="order">Newest member:</div>
+                                </div>
+                                <div class="col-lg-4 d-flex align-items-center">
+                                    <div class="avatar"><img src="{{ asset('images/user.png') }}" alt="..."
+                                                             class="img-fluid"></div>
+                                    <a href="{{ url("tee", urlencode($clan->statsYoungestPlayer()->player->name)) }}"
+                                       class="name">
+                                        <strong class="d-block">{{ $clan->statsYoungestPlayer()->player->name }}</strong>
+                                    </a>
+                                </div>
+                                <div class="col-lg-6 text-center">
+                                    <div class="contributions">
+                                        Joined: {{ $clan->statsYoungestPlayer()->joined_at }}</div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="public-user-block block">
+                            <div class="row d-flex align-items-center">
+                                <div class="col-lg-2 d-flex align-items-center">
+                                    <div class="order">Oldest member:</div>
+                                </div>
+                                <div class="col-lg-4 d-flex align-items-center">
+                                    <div class="avatar"><img src="{{ asset('images/user.png') }}" alt="..."
+                                                             class="img-fluid"></div>
+                                    <a href="{{ url("tee", urlencode($clan->statsOldestPlayer()->player->name)) }}"
+                                       class="name">
+                                        <strong class="d-block">{{ $clan->statsOldestPlayer()->player->name }}</strong>
+                                    </a>
+                                </div>
+                                <div class="col-lg-6 text-center">
+                                    <div class="contributions">
+                                        Joined: {{ $clan->statsOldestPlayer()->joined_at }}</div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="public-user-block block">
+                            <div class="row d-flex align-items-center">
+                                <div class="col-lg-2 d-flex align-items-center">
+                                    <div class="order">Most active member:</div>
+                                </div>
+                                <div class="col-lg-4 d-flex align-items-center">
+                                    <div class="avatar"><img src="{{ asset('images/user.png') }}" alt="..."
+                                                             class="img-fluid"></div>
+                                    <a href="{{ url("tee", urlencode($clan->statsMostActivePlayer()->name)) }}"
+                                       class="name">
+                                        <strong class="d-block">{{ $clan->statsMostActivePlayer()->name }}</strong>
+                                    </a>
+                                </div>
+                                <div class="col-lg-6 text-center">
+                                    <div class="contributions">
+                                        Played: {{ $clan->statsMostActivePlayer()->totalHoursOnline(0, True) }}</div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="public-user-block block">
+                            <div class="row d-flex align-items-center">
+                                <div class="col-lg-2 d-flex align-items-center">
+                                    <div class="order">Most played map:</div>
+                                </div>
+                                <div class="col-lg-4 d-flex align-items-center">
+                                    <div class="avatar"><img src="{{ asset('images/teehut.png') }}" alt="..."
+                                                             class="img-fluid"></div>
+                                    <a href="#" class="name">
+                                        <strong class="d-block">{{ $clan->mostPlayedMaps()->first()->map->map }}</strong>
+                                    </a>
+                                </div>
+                                <div class="col-lg-6 text-center">
+                                    <div class="contributions">
+                                        Played: {{ $clan->humanizeDuration($clan->mostPlayedMaps()->first()->sum_minutes) }}</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
                 <!-- Nav tabs -->
                 <ul class="nav nav-tabs nav-justified">
                     <li class="nav-item">
@@ -36,127 +156,45 @@
                     </li>
                 </ul>
 
+                @if (count($clan->exPlayers()) > 0)
+                    <div class="row">
+                        <div class="col-lg-12">
+                            <div class="messages-block block">
+                                <div class="title">
+                                    <strong>Ex-Players</strong>
+                                </div>
+                                <div class="messages pre-scrollable pre-scrollable-needed">
+                                    @foreach ($clan->exPlayers() as $exPlayer)
+                                        <a href="{{ url("tee", urlencode($exPlayer->name)) }}"
+                                           class="message d-flex align-items-center">
+                                            <div class="profile">
+                                                <img src="{{ asset('images/user.png') }}" alt="{{ $exPlayer->name }}"
+                                                     class="img-fluid">
+                                                @if ($exPlayer->online())
+                                                    <div class="status online"></div>
+                                                @else
+                                                    <div class="status offline"></div>
+                                                @endif
+                                            </div>
+                                            <div class="content">
+                                                <strong class="d-block">{{ $exPlayer->name }}</strong>
+                                                @if ($exPlayer->clan())
+                                                    <span class="d-block">{{ $exPlayer->clan()->name }} </span>
+                                                @endif
+                                                <small class="date d-block">Joined: {{ $exPlayer->exClanRecord($clan)->first()->joined_at }}</small>
+                                                <small class="date d-block">Left: {{ $exPlayer->exClanRecord($clan)->first()->left_at }}</small>
+                                            </div>
+                                        </a>
+                                    @endforeach
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                @endif
+
                 <!-- Tab panes -->
                 <div class="tab-content">
                     <div class="tab-pane active" id="all">
-                        <div class="row">
-                            <div class="col-lg-12">
-                                <div class="messages-block block">
-                                    <div class="title">
-                                        <strong>Players</strong>
-                                    </div>
-                                    <div class="messages pre-scrollable pre-scrollable-needed">
-                                        @foreach ($clan->players as $player)
-                                            <a href="{{ url("tee", urlencode($player->name)) }}"
-                                               class="message d-flex align-items-center">
-                                                <div class="profile">
-                                                    <img src="{{ asset('images/user.png') }}" alt="{{ $player->name }}"
-                                                         class="img-fluid">
-                                                    @if ($player->online())
-                                                        <div class="status online"></div>
-                                                    @else
-                                                        <div class="status offline"></div>
-                                                    @endif
-                                                </div>
-                                                <div class="content">
-                                                    <strong class="d-block">{{ $player->name }}</strong>
-                                                    <span class="d-block">{{ $clan->name }} </span>
-                                                    <small class="date d-block">Last
-                                                        seen: {{ $player->last_seen }}</small>
-                                                </div>
-                                            </a>
-                                        @endforeach
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="row">
-                            <div class="col-lg-6">
-                                <div class="pie-chart chart block">
-                                    <div class="title"><strong>{{ $clan->name }}'s player countries</strong></div>
-                                    <div class="radar-chart chart margin-bottom-sm">
-                                        <canvas id="playerCountries"></canvas>
-                                    </div>
-                                </div>
-                            </div>
-                            <div class="col-lg-6">
-                                <div class="public-user-block block">
-                                    <div class="row d-flex align-items-center">
-                                        <div class="col-lg-2 d-flex align-items-center">
-                                            <div class="order">Newest member:</div>
-                                        </div>
-                                        <div class="col-lg-4 d-flex align-items-center">
-                                            <div class="avatar"><img src="{{ asset('images/user.png') }}" alt="..."
-                                                                     class="img-fluid"></div>
-                                            <a href="{{ url("tee", urlencode($clan->statsYoungestPlayer()->player->name)) }}"
-                                               class="name">
-                                                <strong class="d-block">{{ $clan->statsYoungestPlayer()->player->name }}</strong>
-                                            </a>
-                                        </div>
-                                        <div class="col-lg-6 text-center">
-                                            <div class="contributions">
-                                                Joined: {{ $clan->statsYoungestPlayer()->joined_at }}</div>
-                                        </div>
-                                    </div>
-                                </div>
-                                <div class="public-user-block block">
-                                    <div class="row d-flex align-items-center">
-                                        <div class="col-lg-2 d-flex align-items-center">
-                                            <div class="order">Oldest member:</div>
-                                        </div>
-                                        <div class="col-lg-4 d-flex align-items-center">
-                                            <div class="avatar"><img src="{{ asset('images/user.png') }}" alt="..."
-                                                                     class="img-fluid"></div>
-                                            <a href="{{ url("tee", urlencode($clan->statsOldestPlayer()->player->name)) }}"
-                                               class="name">
-                                                <strong class="d-block">{{ $clan->statsOldestPlayer()->player->name }}</strong>
-                                            </a>
-                                        </div>
-                                        <div class="col-lg-6 text-center">
-                                            <div class="contributions">
-                                                Joined: {{ $clan->statsOldestPlayer()->joined_at }}</div>
-                                        </div>
-                                    </div>
-                                </div>
-                                <div class="public-user-block block">
-                                    <div class="row d-flex align-items-center">
-                                        <div class="col-lg-2 d-flex align-items-center">
-                                            <div class="order">Most active member:</div>
-                                        </div>
-                                        <div class="col-lg-4 d-flex align-items-center">
-                                            <div class="avatar"><img src="{{ asset('images/user.png') }}" alt="..."
-                                                                     class="img-fluid"></div>
-                                            <a href="{{ url("tee", urlencode($clan->statsMostActivePlayer()->name)) }}"
-                                               class="name">
-                                                <strong class="d-block">{{ $clan->statsMostActivePlayer()->name }}</strong>
-                                            </a>
-                                        </div>
-                                        <div class="col-lg-6 text-center">
-                                            <div class="contributions">
-                                                Played: {{ $clan->statsMostActivePlayer()->totalHoursOnline(0, True) }}</div>
-                                        </div>
-                                    </div>
-                                </div>
-                                <div class="public-user-block block">
-                                    <div class="row d-flex align-items-center">
-                                        <div class="col-lg-2 d-flex align-items-center">
-                                            <div class="order">Most played map:</div>
-                                        </div>
-                                        <div class="col-lg-4 d-flex align-items-center">
-                                            <div class="avatar"><img src="{{ asset('images/teehut.png') }}" alt="..."
-                                                                     class="img-fluid"></div>
-                                            <a href="#" class="name">
-                                                <strong class="d-block">{{ $clan->mostPlayedMaps()->first()->map->map }}</strong>
-                                            </a>
-                                        </div>
-                                        <div class="col-lg-6 text-center">
-                                            <div class="contributions">
-                                                Played: {{ $clan->humanizeDuration($clan->mostPlayedMaps()->first()->sum_minutes) }}</div>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
                         <div class="row">
                             <div class="col-lg-6">
                                 <div class="line-chart block chart">
@@ -190,41 +228,6 @@
                                 </div>
                             </div>
                         </div>
-                        @if (count($clan->exPlayers()) > 0)
-                            <div class="row">
-                                <div class="col-lg-12">
-                                    <div class="messages-block block">
-                                        <div class="title">
-                                            <strong>Ex-Players</strong>
-                                        </div>
-                                        <div class="messages pre-scrollable pre-scrollable-needed">
-                                            @foreach ($clan->exPlayers() as $exPlayer)
-                                                <a href="{{ url("tee", urlencode($exPlayer->name)) }}"
-                                                   class="message d-flex align-items-center">
-                                                    <div class="profile">
-                                                        <img src="{{ asset('images/user.png') }}" alt="{{ $exPlayer->name }}"
-                                                             class="img-fluid">
-                                                        @if ($exPlayer->online())
-                                                            <div class="status online"></div>
-                                                        @else
-                                                            <div class="status offline"></div>
-                                                        @endif
-                                                    </div>
-                                                    <div class="content">
-                                                        <strong class="d-block">{{ $exPlayer->name }}</strong>
-                                                        @if ($exPlayer->clan())
-                                                            <span class="d-block">{{ $exPlayer->clan()->name }} </span>
-                                                        @endif
-                                                        <small class="date d-block">Joined: {{ $exPlayer->exClanRecord($clan)->first()->joined_at }}</small>
-                                                        <small class="date d-block">Left: {{ $exPlayer->exClanRecord($clan)->first()->left_at }}</small>
-                                                    </div>
-                                                </a>
-                                            @endforeach
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        @endif
                     </div>
                     <div class="tab-pane fade" id="month">
                         <div class="row">
