@@ -30,6 +30,35 @@
             <!-- Tab panes -->
             <div class="tab-content">
                 <div class="tab-pane active" id="all">
+                    @if ($player->clanRecords()->count() >= 1)
+                        <div class="row">
+                            <div class="col-lg-12">
+                                <div class="messages-block block">
+                                    <div class="title">
+                                        <strong>Clan History</strong>
+                                    </div>
+                                    <div class="messages pre-scrollable pre-scrollable-needed">
+                                        @foreach ($player->clanRecords()->get() as $clanRecord)
+                                            <a href="{{ url("clan", urlencode($clanRecord->clan->name)) }}"
+                                               class="message d-flex align-items-center">
+                                                <div class="profile">
+                                                    <img src="{{ asset('images/user.png') }}" alt="{{ $clanRecord->clan->name }}"
+                                                         class="img-fluid">
+                                                </div>
+                                                <div class="content">
+                                                    <strong class="d-block">{{ $clanRecord->clan->name }}</strong>
+                                                    <small class="date d-block">Joined: {{ $clanRecord->joined_at }}</small>
+                                                    @if ($clanRecord->left_at)
+                                                        <small class="date d-block">Left: {{ $clanRecord->left_at }}</small>
+                                                    @endif
+                                                </div>
+                                            </a>
+                                        @endforeach
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    @endif
                     <div class="row">
                         <div class="col-lg-6">
                             <div class="line-chart block chart">
