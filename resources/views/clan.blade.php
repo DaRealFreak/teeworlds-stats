@@ -190,7 +190,7 @@
                                 </div>
                             </div>
                         </div>
-                        @if ($clan->exPlayers())
+                        @if (count($clan->exPlayers()) > 0)
                             <div class="row">
                                 <div class="col-lg-12">
                                     <div class="messages-block block">
