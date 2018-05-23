@@ -156,42 +156,6 @@
                     </li>
                 </ul>
 
-                @if (count($clan->exPlayers()) > 0)
-                    <div class="row">
-                        <div class="col-lg-12">
-                            <div class="messages-block block">
-                                <div class="title">
-                                    <strong>Ex-Players</strong>
-                                </div>
-                                <div class="messages pre-scrollable pre-scrollable-needed">
-                                    @foreach ($clan->exPlayers() as $exPlayer)
-                                        <a href="{{ url("tee", urlencode($exPlayer->name)) }}"
-                                           class="message d-flex align-items-center">
-                                            <div class="profile">
-                                                <img src="{{ asset('images/user.png') }}" alt="{{ $exPlayer->name }}"
-                                                     class="img-fluid">
-                                                @if ($exPlayer->online())
-                                                    <div class="status online"></div>
-                                                @else
-                                                    <div class="status offline"></div>
-                                                @endif
-                                            </div>
-                                            <div class="content">
-                                                <strong class="d-block">{{ $exPlayer->name }}</strong>
-                                                @if ($exPlayer->clan())
-                                                    <span class="d-block">{{ $exPlayer->clan()->name }} </span>
-                                                @endif
-                                                <small class="date d-block">Joined: {{ $exPlayer->exClanRecord($clan)->first()->joined_at }}</small>
-                                                <small class="date d-block">Left: {{ $exPlayer->exClanRecord($clan)->first()->left_at }}</small>
-                                            </div>
-                                        </a>
-                                    @endforeach
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                @endif
-
                 <!-- Tab panes -->
                 <div class="tab-content">
                     <div class="tab-pane active" id="all">
@@ -300,6 +264,41 @@
                         </div>
                     </div>
                 </div>
+                @if (count($clan->exPlayers()) > 0)
+                    <div class="row">
+                        <div class="col-lg-12">
+                            <div class="messages-block block">
+                                <div class="title">
+                                    <strong>Ex-Players</strong>
+                                </div>
+                                <div class="messages pre-scrollable pre-scrollable-needed">
+                                    @foreach ($clan->exPlayers() as $exPlayer)
+                                        <a href="{{ url("tee", urlencode($exPlayer->name)) }}"
+                                           class="message d-flex align-items-center">
+                                            <div class="profile">
+                                                <img src="{{ asset('images/user.png') }}" alt="{{ $exPlayer->name }}"
+                                                     class="img-fluid">
+                                                @if ($exPlayer->online())
+                                                    <div class="status online"></div>
+                                                @else
+                                                    <div class="status offline"></div>
+                                                @endif
+                                            </div>
+                                            <div class="content">
+                                                <strong class="d-block">{{ $exPlayer->name }}</strong>
+                                                @if ($exPlayer->clan())
+                                                    <span class="d-block">{{ $exPlayer->clan()->name }} </span>
+                                                @endif
+                                                <small class="date d-block">Joined: {{ $exPlayer->exClanRecord($clan)->first()->joined_at }}</small>
+                                                <small class="date d-block">Left: {{ $exPlayer->exClanRecord($clan)->first()->left_at }}</small>
+                                            </div>
+                                        </a>
+                                    @endforeach
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                @endif
             </div>
         </section>
     @endif
