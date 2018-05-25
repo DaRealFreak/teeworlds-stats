@@ -16,25 +16,15 @@
     <link rel="icon" href="{{ asset('images/favicon.ico') }}" type="image/x-icon">
 
     <!-- Scripts -->
-    <script src="{{ asset('vendor/jquery/jquery.min.js') }}"></script>
-    <script src="{{ asset('vendor/humanize-duration/humanize-duration.js') }}" defer></script>
-    <script src="{{ asset('vendor/popper.js/umd/popper.min.js') }}" defer></script>
-
-    <script src="{{ asset('vendor/jquery.cookie/jquery.cookie.js') }}" defer></script>
-    <script src="{{ asset('vendor/chart.js/Chart.min.js') }}" defer></script>
-    <script src="{{ asset('vendor/jquery-validation/jquery.validate.min.js') }}" defer></script>
-    <script src="{{ asset('js/app.js') }}" defer></script>
-    <script src="{{ asset('js/bundle/bundle.js') }}"></script>
+    <script src="{{ asset('js/app.js') }}"></script>
 
     <!-- Fonts -->
     <link rel="dns-prefetch" href="https://fonts.gstatic.com">
-    <link href="https://fonts.googleapis.com/css?family=Raleway:300,400,600" rel="stylesheet" type="text/css">
 
     <!-- Styles -->
+    <!-- custom font css since putting it into the app.css would cause a small lag before the font ions are appearing -->
+    <link href="{{ asset('css/font.css') }}" rel="stylesheet">
     <link href="{{ asset('css/app.css') }}" rel="stylesheet">
-    <link href="{{ asset('vendor/font-awesome/css/font-awesome.min.css') }}" rel="stylesheet">
-    <link href="{{ asset('vendor/bootstrap/css/bootstrap.min.css') }}" rel="stylesheet">
-    <link href="{{ asset('css/bundle/bundle.min.css') }}" rel="stylesheet">
 
     @yield('head')
 </head>
