@@ -68,7 +68,6 @@ class AjaxSearchController extends Controller
         $serverSuggestions = Server::where('name', 'like', '%' . $term . '%')
             ->orderByRaw('`name` LIKE ? DESC', $term . '%')
             ->orderBy('name')
-            ->groupBy('name')
             ->limit(10)
             ->get();
 
