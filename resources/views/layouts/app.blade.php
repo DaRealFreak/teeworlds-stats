@@ -20,10 +20,6 @@
     <script src="{{ asset('vendor/humanize-duration/humanize-duration.js') }}" defer></script>
     <script src="{{ asset('vendor/popper.js/umd/popper.min.js') }}" defer></script>
 
-    <!-- FixMe: currently breaking logout form
-    <script src="{{ asset('vendor/bootstrap/js/bootstrap.min.js') }}" defer></script>
-    -->
-
     <script src="{{ asset('vendor/jquery.cookie/jquery.cookie.js') }}" defer></script>
     <script src="{{ asset('vendor/chart.js/Chart.min.js') }}" defer></script>
     <script src="{{ asset('vendor/jquery-validation/jquery.validate.min.js') }}" defer></script>
@@ -39,6 +35,8 @@
     <link href="{{ asset('vendor/font-awesome/css/font-awesome.min.css') }}" rel="stylesheet">
     <link href="{{ asset('vendor/bootstrap/css/bootstrap.min.css') }}" rel="stylesheet">
     <link href="{{ asset('css/bundle/bundle.min.css') }}" rel="stylesheet">
+
+    @yield('head')
 </head>
 <body>
 <div id="app">
