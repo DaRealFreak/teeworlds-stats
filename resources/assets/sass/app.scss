@@ -1,4 +1,3 @@
-
 // Fonts
 @import url("https://fonts.googleapis.com/css?family=Raleway:300,400,600");
 
@@ -8,7 +7,32 @@
 // Bootstrap
 @import '~bootstrap/scss/bootstrap';
 
+// Font Awesome
+@import '~font-awesome/scss/font-awesome';
+
+// Template SCSS
+@import 'dark_admin_bootstrapius';
+
 .navbar-laravel {
   background-color: #fff;
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.04);
+}
+
+html {
+  background-color: #2d3034;
+}
+
+.list-group-item-transparent {
+  background-color: transparent;
+  border-radius: 0;
+  color: #2d3034;
+}
+
+section.section-content {
+  padding-top: 30px;
+}
+
+.pre-scrollable-needed {
+  overflow-x: auto;
+  overflow-y: auto;
 }
