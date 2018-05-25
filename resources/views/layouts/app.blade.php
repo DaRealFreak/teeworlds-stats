@@ -100,7 +100,7 @@
 
             @php
                 // if we are on the player page and the player has a clan define the clan as local variable
-                if (isset($player) && $player->clan()) {
+                if (!isset($server) && isset($player) && $player->clan()) {
                     $clan = $player->clan();
                 }
             @endphp
