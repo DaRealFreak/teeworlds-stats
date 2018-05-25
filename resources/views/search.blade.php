@@ -16,12 +16,11 @@
                             <strong>Player statistics</strong>
                         </div>
                         <div class="block-body">
-                            <form action="{{ url('tee') }}" method="get">
+                            {{ Form::open(['url' => url('tee') , 'method' => 'get']) }}
                                 <div class="form-group">
-                                    <label class="form-control-label">Tee name</label>
+                                    {{ Form::label('tee_name', 'Tee name', ['class' => 'form-control-label']) }}
                                     @if ($errors->has('tee'))
-                                        <input name="tee_name" id="tee_name" placeholder="Tee name"
-                                               class="form-control is-invalid" type="text">
+                                        {{ Form::text('tee_name', null, array_merge(['class' => 'form-control is-invalid'], ['placeholder' => 'Tee name'])) }}
                                         <div class="invalid-feedback">{{ $errors->get('tee')[0] }}
                                             @if (session('teeSuggestions') !== null && !session('teeSuggestions')->isEmpty())
                                                 , try one of the following :
@@ -35,14 +34,13 @@
                                             @endif
                                         </div>
                                     @else
-                                        <input name="tee_name" id="tee_name" placeholder="Tee name"
-                                               class="mr-sm-3 form-control" type="text">
+                                        {{ Form::text('tee_name', null, array_merge(['class' => 'mr-sm-3 form-control'], ['placeholder' => 'Tee name'])) }}
                                     @endif
                                 </div>
                                 <div class="form-group">
-                                    <input value="Submit" class="btn btn-primary" type="submit">
+                                    {{ Form::submit('Submit', ['class' => 'btn btn-primary']) }}
                                 </div>
-                            </form>
+                            {{ Form::close() }}
                         </div>
                     </div>
                 </div>
@@ -54,12 +52,11 @@
                             <strong>Clan statistics</strong>
                         </div>
                         <div class="block-body">
-                            <form action="{{ url('clan') }}" method="get">
+                            {{ Form::open(['url' => url('clan') , 'method' => 'get']) }}
                                 <div class="form-group">
-                                    <label class="form-control-label">Clan name</label>
+                                    {{ Form::label('clan_name', 'Clan name', ['class' => 'form-control-label']) }}
                                     @if ($errors->has('clan'))
-                                        <input name="clan_name" id="clan_name" placeholder="Clan name"
-                                               class="form-control is-invalid" type="text">
+                                        {{ Form::text('clan_name', null, array_merge(['class' => 'form-control is-invalid'], ['placeholder' => 'Clan name'])) }}
                                         <div class="invalid-feedback">{{ $errors->get('clan')[0] }}
                                             @if (session('clanSuggestions') !== null && !session('clanSuggestions')->isEmpty())
                                                 , try one of the following :
@@ -73,14 +70,13 @@
                                             @endif
                                         </div>
                                     @else
-                                        <input name="clan_name" id="clan_name" placeholder="Clan name"
-                                               class="mr-sm-3 form-control" type="text">
+                                        {{ Form::text('clan_name', null, array_merge(['class' => 'mr-sm-3 form-control'], ['placeholder' => 'Clan name'])) }}
                                     @endif
                                 </div>
                                 <div class="form-group">
-                                    <input value="Submit" class="btn btn-primary" type="submit">
+                                    {{ Form::submit('Submit', ['class' => 'btn btn-primary']) }}
                                 </div>
-                            </form>
+                            {{ Form::close() }}
                         </div>
                     </div>
                 </div>
@@ -92,12 +88,11 @@
                             <strong>Server statistics</strong>
                         </div>
                         <div class="block-body">
-                            <form action="{{ url('server') }}" method="get">
+                            {{ Form::open(['url' => url('server') , 'method' => 'get']) }}
                                 <div class="form-group">
-                                    <label class="form-control-label">Server name</label>
+                                    {{ Form::label('server_name', 'Server name', ['class' => 'form-control-label']) }}
                                     @if ($errors->has('server'))
-                                        <input name="server_name" id="server_name" placeholder="Server name"
-                                               class="form-control is-invalid" type="text">
+                                        {{ Form::text('server_name', null, array_merge(['class' => 'form-control is-invalid'], ['placeholder' => 'Server name'])) }}
                                         <div class="invalid-feedback">{{ $errors->get('server')[0] }}
                                             @if (session('serverSuggestions') !== null && !session('serverSuggestions')->isEmpty())
                                                 , try one of the following :
@@ -111,18 +106,49 @@
                                             @endif
                                         </div>
                                     @else
-                                        <input name="server_name" id="server_name" placeholder="Server name"
-                                               class="mr-sm-3 form-control" type="text">
+                                        {{ Form::text('server_name', null, array_merge(['class' => 'mr-sm-3 form-control'], ['placeholder' => 'Server name'])) }}
                                     @endif
                                 </div>
                                 <div class="form-group">
-                                    <input value="Submit" class="btn btn-primary" type="submit">
+                                    {{ Form::submit('Submit', ['class' => 'btn btn-primary']) }}
                                 </div>
-                            </form>
+                            {{ Form::close() }}
                         </div>
                     </div>
                 </div>
             </div>
         </div>
     </section>
+@endsection
+@section('scripts')
+    <script>
+        $(function() {
+            $("#tee_name").autocomplete({
+                source: "search/tee",
+                minLength: 1,
+                select: function( event, ui ) {
+                    $('#tee_name').val(ui.item.id);
+                }
+            });
+
+            $("#clan_name").autocomplete({
+                source: "search/clan",
+                minLength: 1,
+                select: function( event, ui ) {
+                    $('#tee_name').val(ui.item.id);
+                }
+            });
+
+            $("#server_name").autocomplete({
+                source: "search/server",
+                minLength: 1,
+                select: function( event, ui ) {
+                    $('#tee_name').val(ui.item.id);
+                }
+            });
+        });
+    </script>
+@endsection
+@section('head')
+    <link rel="stylesheet" href="http://code.jquery.com/ui/1.11.4/themes/dark-hive/jquery-ui.css" />
 @endsection
