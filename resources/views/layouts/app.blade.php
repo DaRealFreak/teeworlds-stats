@@ -20,7 +20,7 @@
 
     <!-- Styles -->
     <!-- custom font css since putting it into the app.css would cause a small lag before the font ions are appearing -->
-    <link href="{{ asset('css/font.css') }}" rel="stylesheet">
+    <link href="{{ asset('css/font-awesome.css') }}" rel="stylesheet">
     <link href="{{ asset('css/app.css') }}" rel="stylesheet">
 
     @yield('head')
