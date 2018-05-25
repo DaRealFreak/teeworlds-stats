@@ -26,14 +26,16 @@ Route::get('/server/edit/{server_id}/{server_name}', 'InformationController@edit
 # App specific routes
 Route::get('/tee', 'SearchController@searchTee')->name('tee');
 Route::get('/tee/{tee_name}/', ['as' => 'searchTeeByName', 'uses' => 'SearchController@searchTeeByName']);
-Route::get('/tee/search/{tee_name}/', ['as' => 'searchTeeByNameAjax', 'uses' => 'SearchController@searchTeeByNameAjax']);
 Route::get('/clan', 'SearchController@searchClan')->name('clan');
 Route::get('/clan/{clan_name}/', ['as' => 'searchClanByName', 'uses' => 'SearchController@searchClanByName']);
-Route::get('/clan/search/{clan_name}/', ['as' => 'searchClanByNameAjax', 'uses' => 'SearchController@searchClanByNameAjax']);
 Route::get('/server', 'SearchController@searchServer')->name('server');
 Route::get('/server/{server_name}/', ['as' => 'searchServerByName', 'uses' => 'SearchController@searchServerByName']);
 Route::get('/server/{server_id}/{server_name}/', ['as' => 'searchServerByIdAndName', 'uses' => 'SearchController@searchServerByIdAndName']);
-Route::get('/server/search/{server_name}/', ['as' => 'searchServerByNameAjax', 'uses' => 'SearchController@searchServerByNameAjax']);
+
+# Ajax search routes
+Route::get('/search/tee', 'AjaxSearchController@searchTee')->name('searchTeeAjax');
+Route::get('/search/clan', 'AjaxSearchController@searchClan')->name('searchClanAjax');
+Route::get('/search/server', 'AjaxSearchController@searchServer')->name('searchServerAjax');
 
 # Authentication routes
 Auth::routes();
