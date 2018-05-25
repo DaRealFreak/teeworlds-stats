@@ -161,6 +161,7 @@ return [
         App\Providers\EventServiceProvider::class,
         App\Providers\RouteServiceProvider::class,
 
+        \Collective\Html\HtmlServiceProvider::class,
     ],
 
     /*
@@ -210,7 +211,8 @@ return [
         'Validator' => Illuminate\Support\Facades\Validator::class,
         'View' => Illuminate\Support\Facades\View::class,
         'Searchy' => TomLingham\Searchy\Facades\Searchy::class,
-
+        'Form' => \Collective\Html\FormFacade::class,
+        'Html' => \Collective\Html\HtmlFacade::class,
     ],
 
 ];
