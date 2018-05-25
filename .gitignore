@@ -24,7 +24,6 @@ _ide_helper.php
 .rocketeer/
 
 # generated files from assets
-/public/js/all.js
-/public/js/all.min.js
-/public/*/bundle/*
-/public/css/fonts/*
+/public/css/*
+/public/js/*
+/public/fonts/*

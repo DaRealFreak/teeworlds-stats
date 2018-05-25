@@ -149,6 +149,3 @@
         });
     </script>
 @endsection
-@section('head')
-    <link rel="stylesheet" href="http://code.jquery.com/ui/1.11.4/themes/dark-hive/jquery-ui.css" />
-@endsection
