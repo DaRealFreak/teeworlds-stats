@@ -14,6 +14,9 @@ use Khill\Duration\Duration;
  * @property-read \Illuminate\Database\Eloquent\Collection|\App\Models\PlayerHistory[] $playerRecords
  * @property-read \Illuminate\Database\Eloquent\Collection|\App\Models\ServerHistory[] $serverRecords
  * @mixin \Eloquent
+ * @property-read \Illuminate\Database\Eloquent\Collection|\App\Models\ServerHistory[] $onlineDays
+ * @property-read \Illuminate\Database\Eloquent\Collection|\App\Models\ServerHistory[] $onlineHours
+ * @property-read \Illuminate\Database\Eloquent\Collection|\App\Models\Player[] $players
  */
 class Server extends Model
 {
