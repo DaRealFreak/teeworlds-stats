@@ -18,9 +18,6 @@
     <!-- Scripts -->
     <script src="{{ asset('js/app.js') }}"></script>
 
-    <!-- Fonts -->
-    <link rel="dns-prefetch" href="https://fonts.gstatic.com">
-
     <!-- Styles -->
     <!-- custom font css since putting it into the app.css would cause a small lag before the font ions are appearing -->
     <link href="{{ asset('css/font.css') }}" rel="stylesheet">
