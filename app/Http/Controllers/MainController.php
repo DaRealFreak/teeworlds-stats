@@ -50,6 +50,33 @@ class MainController extends Controller
     }
 
     /**
+     * @return \Illuminate\Contracts\View\Factory|\Illuminate\View\View
+     */
+    public function players()
+    {
+        return view('list.player')
+            ->with('players', Player::orderBy('name')->paginate(50));
+    }
+
+    /**
+     * @return \Illuminate\Contracts\View\Factory|\Illuminate\View\View
+     */
+    public function clans()
+    {
+        return view('list.clan')
+            ->with('clans', Clan::orderBy('name')->paginate(50));
+    }
+
+    /**
+     * @return \Illuminate\Contracts\View\Factory|\Illuminate\View\View
+     */
+    public function servers()
+    {
+        return view('list.server')
+            ->with('servers', Server::orderBy('name')->paginate(50));
+    }
+
+    /**
      * build an array of the played maps for Chart.js in the frontend
      *
      * @param int $amount
