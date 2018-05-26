@@ -23,10 +23,10 @@
                                 </tr>
                                 </thead>
                                 <tbody>
-                                @foreach($servers as $server)
+                                @foreach($servers as $serverEntry)
                                     <tr>
                                         <th scope="row">
-                                            <a href="{{ url("server", [urlencode($server->id), urlencode($server->name)]) }}">{{ $server->name }}</a>
+                                            <a href="{{ url("server", [urlencode($serverEntry->id), urlencode($serverEntry->name)]) }}">{{ $serverEntry->name }}</a>
                                         </th>
                                         <td>
                                             Dummy Entry

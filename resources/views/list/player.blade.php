@@ -24,20 +24,20 @@
                                 </tr>
                                 </thead>
                                 <tbody>
-                                @foreach($players as $player)
+                                @foreach($players as $playerEntry)
                                     <tr>
                                         <th scope="row">
-                                            <a href="{{ url("tee", urlencode($player->name)) }}">{{ $player->name }}</a>
+                                            <a href="{{ url("tee", urlencode($playerEntry->name)) }}">{{ $playerEntry->name }}</a>
                                         </th>
                                         <td>
-                                            @if ($player->clan())
-                                                <a href="{{ url("clan", urlencode($player->clan()->name)) }}">{{ $player->clan()->name }}</a>
+                                            @if ($playerEntry->clan())
+                                                <a href="{{ url("clan", urlencode($playerEntry->clan()->name)) }}">{{ $playerEntry->clan()->name }}</a>
                                             @else
                                                 -
                                             @endif
                                         </td>
                                         <td>
-                                            {{ $player->totalHoursOnline(0, True) }}
+                                            {{ $playerEntry->totalHoursOnline(0, True) }}
                                         </td>
                                     </tr>
                                 @endforeach

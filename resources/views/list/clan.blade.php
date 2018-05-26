@@ -23,10 +23,10 @@
                                 </tr>
                                 </thead>
                                 <tbody>
-                                @foreach($clans as $clan)
+                                @foreach($clans as $clanEntry)
                                     <tr>
                                         <th scope="row">
-                                            <a href="{{ url("clan", urlencode($clan->name)) }}">{{ $clan->name }}</a>
+                                            <a href="{{ url("clan", urlencode($clanEntry->name)) }}">{{ $clanEntry->name }}</a>
                                         </th>
                                         <td>
                                             Dummy Entry
