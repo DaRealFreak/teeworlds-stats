@@ -32,6 +32,10 @@ Route::get('/server', 'SearchController@searchServer')->name('server');
 Route::get('/server/{server_name}/', ['as' => 'searchServerByName', 'uses' => 'SearchController@searchServerByName']);
 Route::get('/server/{server_id}/{server_name}/', ['as' => 'searchServerByIdAndName', 'uses' => 'SearchController@searchServerByIdAndName']);
 
+Route::get('/tees', 'MainController@players')->name('players');
+Route::get('/clans', 'MainController@clans')->name('clans');
+Route::get('/servers', 'MainController@servers')->name('servers');
+
 # Ajax search routes
 Route::get('/search/tee', 'AjaxSearchController@searchTee')->name('searchTeeAjax');
 Route::get('/search/clan', 'AjaxSearchController@searchClan')->name('searchClanAjax');
