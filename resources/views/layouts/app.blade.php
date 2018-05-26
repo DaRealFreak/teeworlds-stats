@@ -91,11 +91,27 @@
     <div class="d-flex align-items-stretch">
         <!-- Sidebar Navigation-->
         <nav id="sidebar">
-            <!-- Sidebar Navidation Menus--><span class="heading">Main</span>
+            <!-- Sidebar Navigation Menus-->
+            <span class="heading">Main</span>
             <ul class="list-unstyled">
                 <li><a href="{{ url('/') }}"> <i class="icon-home"></i>Home </a></li>
                 <li><a href="{{ url('general') }}"> <i class="fa fa-bar-chart"></i>Game Statistics </a></li>
                 <li><a href="{{ url('search') }}"> <i class="icon-magnifying-glass-browser"></i>Search </a></li>
+            </ul>
+
+            <!-- List View Navigation Entries -->
+            <span class="heading">Overview</span>
+            <ul class="list-unstyled">
+                <li>
+                    <a href="#list_view_dropdown" aria-expanded="false" data-toggle="collapse">
+                        <i class="icon-grid"></i>Lists
+                    </a>
+                    <ul id="list_view_dropdown" class="collapse list-unstyled ">
+                        <li><a href="{{ url('tees') }}">Tees</a></li>
+                        <li><a href="{{ url('clans') }}">Clans</a></li>
+                        <li><a href="{{ url('servers') }}">Servers</a></li>
+                    </ul>
+                </li>
             </ul>
 
             @php
