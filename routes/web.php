@@ -23,7 +23,7 @@ Route::get('/tee/edit/{tee_name}', 'InformationController@editPlayer')->name('ed
 Route::get('/clan/edit/{clan_name}', 'InformationController@editClan')->name('editClan');
 Route::get('/server/edit/{server_id}/{server_name}', 'InformationController@editServer')->name('editServer');
 
-# App specific routes
+# Search and detail pages routes
 Route::get('/tee', 'SearchController@searchTee')->name('tee');
 Route::get('/tee/{tee_name}/', ['as' => 'searchTeeByName', 'uses' => 'SearchController@searchTeeByName']);
 Route::get('/clan', 'SearchController@searchClan')->name('clan');
@@ -32,9 +32,12 @@ Route::get('/server', 'SearchController@searchServer')->name('server');
 Route::get('/server/{server_name}/', ['as' => 'searchServerByName', 'uses' => 'SearchController@searchServerByName']);
 Route::get('/server/{server_id}/{server_name}/', ['as' => 'searchServerByIdAndName', 'uses' => 'SearchController@searchServerByIdAndName']);
 
+# List pages routes
 Route::get('/tees', 'MainController@players')->name('players');
 Route::get('/clans', 'MainController@clans')->name('clans');
 Route::get('/servers', 'MainController@servers')->name('servers');
+Route::get('/mods', 'MainController@mods')->name('mods');
+Route::get('/maps', 'MainController@maps')->name('maps');
 
 # Ajax search routes
 Route::get('/search/tee', 'AjaxSearchController@searchTee')->name('searchTeeAjax');

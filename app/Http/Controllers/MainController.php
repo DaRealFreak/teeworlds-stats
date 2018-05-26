@@ -77,6 +77,24 @@ class MainController extends Controller
     }
 
     /**
+     * @return \Illuminate\Contracts\View\Factory|\Illuminate\View\View
+     */
+    public function mods()
+    {
+        return view('list.mods')
+            ->with('mods', Mod::orderBy('mod')->paginate(50));
+    }
+
+    /**
+     * @return \Illuminate\Contracts\View\Factory|\Illuminate\View\View
+     */
+    public function maps()
+    {
+        return view('list.maps')
+            ->with('maps', Map::orderBy('map')->paginate(50));
+    }
+
+    /**
      * build an array of the played maps for Chart.js in the frontend
      *
      * @param int $amount

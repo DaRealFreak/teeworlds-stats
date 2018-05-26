@@ -110,6 +110,8 @@
                         <li><a href="{{ url('tees') }}">Tees</a></li>
                         <li><a href="{{ url('clans') }}">Clans</a></li>
                         <li><a href="{{ url('servers') }}">Servers</a></li>
+                        <li><a href="{{ url('mods') }}">Mods</a></li>
+                        <li><a href="{{ url('maps') }}">Maps</a></li>
                     </ul>
                 </li>
             </ul>
