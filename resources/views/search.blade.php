@@ -127,7 +127,7 @@
                 source: "search/tee",
                 minLength: 1,
                 select: function( event, ui ) {
-                    $('#tee_name').val(ui.item.id);
+                    $(this).val(ui.item.id);
                 }
             });
 
@@ -135,7 +135,7 @@
                 source: "search/clan",
                 minLength: 1,
                 select: function( event, ui ) {
-                    $('#clan_name').val(ui.item.id);
+                    $(this).val(ui.item.id);
                 }
             });
 
@@ -143,7 +143,7 @@
                 source: "search/server",
                 minLength: 1,
                 select: function( event, ui ) {
-                    $('#server_name').val(ui.item.id);
+                    $(this).val(ui.item.id);
                 }
             });
         });
