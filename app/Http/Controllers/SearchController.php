@@ -62,7 +62,7 @@ class SearchController extends Controller
                 ->with('teeSuggestions', $suggestedPlayers);
         }
 
-        return view('player')->with('player', $player);
+        return view('detail.player')->with('player', $player);
     }
 
     /**
@@ -105,7 +105,7 @@ class SearchController extends Controller
                 ->with('clanSuggestions', $clanSuggestions);
         }
 
-        return view('clan')->with('clan', $clan);
+        return view('detail.clan')->with('clan', $clan);
     }
 
     /**
@@ -179,6 +179,6 @@ class SearchController extends Controller
                 ->withErrors(['server' => 'This server does not exist'])
                 ->with('serverSuggestions', $serverSuggestions);
         }
-        return view('server')->with('server', $server);
+        return view('detail.server')->with('server', $server);
     }
 }
