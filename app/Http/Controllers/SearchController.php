@@ -3,6 +3,8 @@
 namespace App\Http\Controllers;
 
 use App\Models\Clan;
+use App\Models\Map;
+use App\Models\Mod;
 use App\Models\Player;
 use App\Models\Server;
 use Illuminate\Http\Request;
@@ -180,5 +182,91 @@ class SearchController extends Controller
                 ->with('serverSuggestions', $serverSuggestions);
         }
         return view('detail.server')->with('server', $server);
+    }
+
+    /**
+     * @param Request $request
+     * @return \Illuminate\Http\RedirectResponse
+     */
+    public function searchMod(Request $request)
+    {
+        $name = $request->input('mod_name');
+        if (!$name) {
+            return Redirect::back()->withErrors([
+                'mod' => 'The name field is required'
+            ]);
+        } else {
+            return Redirect::to(url('mod', urlencode($name)));
+        }
+    }
+
+    /**
+     * @param Request $request
+     * @param $mod_name
+     * @return \Illuminate\Contracts\View\Factory|\Illuminate\Http\RedirectResponse|\Illuminate\View\View
+     */
+    public function searchModByName(Request $request, $mod_name)
+    {
+        $mod_name = urldecode($mod_name);
+
+        if (!$mod = (new Mod)->where('mod', $mod_name)->first()) {
+            $suggestedPlayers = Player::hydrate(
+                Searchy::search('mods')
+                    ->fields('mod')
+                    ->query($mod_name)->getQuery()
+                    ->having('relevance', '>', 20)
+                    ->limit(10)
+                    ->get()->toArray()
+            );
+
+            return Redirect::to("search")
+                ->withErrors(['mod' => 'This mod does not exist'])
+                ->with('modSuggestions', $suggestedPlayers);
+        }
+
+        return view('detail.mod')->with('mod', $mod);
+    }
+
+    /**
+     * @param Request $request
+     * @return \Illuminate\Http\RedirectResponse
+     */
+    public function searchMap(Request $request)
+    {
+        $name = $request->input('map_name');
+        if (!$name) {
+            return Redirect::back()->withErrors([
+                'map' => 'The name field is required'
+            ]);
+        } else {
+            return Redirect::to(url('map', urlencode($name)));
+        }
+    }
+
+    /**
+     * @param Request $request
+     * @param $map_name
+     * @return \Illuminate\Contracts\View\Factory|\Illuminate\Http\RedirectResponse|\Illuminate\View\View
+     */
+    public function searchMapByName(Request $request, $map_name)
+    {
+        $map_name = urldecode($map_name);
+
+        if (!$map = (new Map)->where('map', $map_name)->first()) {
+            $suggestedPlayers = Player::hydrate(
+                Searchy::search('maps')
+                    ->fields('map')
+                    ->query($map_name)->getQuery()
+                    ->having('relevance', '>', 20)
+                    ->limit(10)
+                    ->get()->toArray()
+            );
+
+            return Redirect::to("search")
+                ->withErrors(['map' => 'This map does not exist'])
+                ->with('mapSuggestions', $suggestedPlayers);
+        }
+
+        return view('detail.map')->with('map', $map);
     }
 }

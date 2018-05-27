@@ -3,6 +3,8 @@
 namespace App\Http\Controllers;
 
 use App\Models\Clan;
+use App\Models\Map;
+use App\Models\Mod;
 use App\Models\Player;
 use App\Models\Server;
 use Illuminate\Database\Eloquent\Collection;
@@ -75,6 +77,50 @@ class AjaxSearchController extends Controller
         $suggestions = new Collection();
         foreach ($serverSuggestions as $suggestion) {
             $suggestions->add($suggestion->name);
+        }
+
+        return $suggestions->toJson();
+    }
+
+    /**
+     * @param Request $request
+     * @return string
+     */
+    public function searchMod(Request $request)
+    {
+        $term = Str::lower(Input::get('term'));
+
+        $modSuggestions = Mod::where('mod', 'like', '%' . $term . '%')
+            ->orderByRaw('`mod` LIKE ? DESC', $term . '%')
+            ->orderBy('mod')
+            ->limit(10)
+            ->get();
+
+        $suggestions = new Collection();
+        foreach ($modSuggestions as $suggestion) {
+            $suggestions->add($suggestion->mod);
+        }
+
+        return $suggestions->toJson();
+    }
+
+    /**
+     * @param Request $request
+     * @return string
+     */
+    public function searchMap(Request $request)
+    {
+        $term = Str::lower(Input::get('term'));
+
+        $mapSuggestions = Map::where('map', 'like', '%' . $term . '%')
+            ->orderByRaw('`map` LIKE ? DESC', $term . '%')
+            ->orderBy('map')
+            ->limit(10)
+            ->get();
+
+        $suggestions = new Collection();
+        foreach ($mapSuggestions as $suggestion) {
+            $suggestions->add($suggestion->map);
         }
 
         return $suggestions->toJson();

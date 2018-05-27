@@ -31,6 +31,10 @@ Route::get('/clan/{clan_name}/', ['as' => 'searchClanByName', 'uses' => 'SearchC
 Route::get('/server', 'SearchController@searchServer')->name('server');
 Route::get('/server/{server_name}/', ['as' => 'searchServerByName', 'uses' => 'SearchController@searchServerByName']);
 Route::get('/server/{server_id}/{server_name}/', ['as' => 'searchServerByIdAndName', 'uses' => 'SearchController@searchServerByIdAndName']);
+Route::get('/mod', 'SearchController@searchMod')->name('mod');
+Route::get('/mod/{mod_name}/', ['as' => 'searchModByName', 'uses' => 'SearchController@searchModByName']);
+Route::get('/map', 'SearchController@searchMap')->name('map');
+Route::get('/map/{map_name}/', ['as' => 'searchMapByName', 'uses' => 'SearchController@searchMapByName']);
 
 # List pages routes
 Route::get('/tees', 'MainController@players')->name('players');
@@ -43,6 +47,8 @@ Route::get('/maps', 'MainController@maps')->name('maps');
 Route::get('/search/tee', 'AjaxSearchController@searchTee')->name('searchTeeAjax');
 Route::get('/search/clan', 'AjaxSearchController@searchClan')->name('searchClanAjax');
 Route::get('/search/server', 'AjaxSearchController@searchServer')->name('searchServerAjax');
+Route::get('/search/mod', 'AjaxSearchController@searchMod')->name('searchModAjax');
+Route::get('/search/map', 'AjaxSearchController@searchMap')->name('searchMapAjax');
 
 # Authentication routes
 Auth::routes();
