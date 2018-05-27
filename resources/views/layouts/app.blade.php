@@ -92,7 +92,7 @@
         <!-- Sidebar Navigation-->
         <nav id="sidebar">
             <!-- Sidebar Navigation Menus-->
-            <span class="heading">Main</span>
+            <span class="heading heading-first">Main</span>
             <ul class="list-unstyled">
                 <li><a href="{{ url('/') }}"> <i class="icon-home"></i>Home </a></li>
                 <li><a href="{{ url('general') }}"> <i class="fa fa-bar-chart"></i>Game Statistics </a></li>
