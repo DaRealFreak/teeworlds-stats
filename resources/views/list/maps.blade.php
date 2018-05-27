@@ -26,7 +26,7 @@
                                 @foreach($maps as $map)
                                     <tr>
                                         <th scope="row">
-                                            <a href="{{ url("map", urlencode($map->map)) }}">{{ $map->map }}</a>
+                                            <a href="{{ url("map", urlencode($map->name)) }}">{{ $map->name }}</a>
                                         </th>
                                         <td>
                                             Dummy Entry

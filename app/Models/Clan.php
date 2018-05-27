@@ -161,7 +161,7 @@ class Clan extends Model
     {
         /** @var PlayerHistory $playedMap */
         foreach ($this->mostPlayedMaps($duration)->get() as $playedMap) {
-            $results[$playedMap->map->getAttribute('map')] = (int)$playedMap->getAttribute('sum_minutes');
+            $results[$playedMap->map->getAttribute('name')] = (int)$playedMap->getAttribute('sum_minutes');
         }
         ChartUtility::applyLimits($results, $amount, $displayOthers);
 
@@ -180,7 +180,7 @@ class Clan extends Model
     {
         /** @var PlayerHistory $playedMod */
         foreach ($this->mostPlayedMods($duration)->get() as $playedMod) {
-            $results[$playedMod->mod->getAttribute('mod')] = (int)$playedMod->getAttribute('sum_minutes');
+            $results[$playedMod->mod->getAttribute('name')] = (int)$playedMod->getAttribute('sum_minutes');
         }
         ChartUtility::applyLimits($results, $amount, $displayOthers);
 

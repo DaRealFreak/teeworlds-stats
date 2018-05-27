@@ -209,10 +209,10 @@ class SearchController extends Controller
     {
         $mod_name = urldecode($mod_name);
 
-        if (!$mod = (new Mod)->where('mod', $mod_name)->first()) {
+        if (!$mod = (new Mod)->where('name', $mod_name)->first()) {
             $suggestedPlayers = Player::hydrate(
                 Searchy::search('mods')
-                    ->fields('mod')
+                    ->fields('name')
                     ->query($mod_name)->getQuery()
                     ->having('relevance', '>', 20)
                     ->limit(10)
@@ -252,10 +252,10 @@ class SearchController extends Controller
     {
         $map_name = urldecode($map_name);
 
-        if (!$map = (new Map)->where('map', $map_name)->first()) {
+        if (!$map = (new Map)->where('name', $map_name)->first()) {
             $suggestedPlayers = Player::hydrate(
                 Searchy::search('maps')
-                    ->fields('map')
+                    ->fields('name')
                     ->query($map_name)->getQuery()
                     ->having('relevance', '>', 20)
                     ->limit(10)

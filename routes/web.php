@@ -64,7 +64,7 @@ Route::get('/rules', function () {
         [
             'decider' => 'mod',
             'rule' => '%fng%',
-            'mod_id' => \App\Models\Mod::firstOrCreate(['mod' => 'FNG'])->getAttribute('id'),
+            'mod_id' => \App\Models\Mod::firstOrCreate(['name' => 'FNG'])->getAttribute('id'),
             'priority' => 1
         ]
     );
@@ -73,7 +73,7 @@ Route::get('/rules', function () {
         [
             'decider' => 'server',
             'rule' => '%gores%',
-            'mod_id' => \App\Models\Mod::firstOrCreate(['mod' => 'Gores'])->getAttribute('id'),
+            'mod_id' => \App\Models\Mod::firstOrCreate(['name' => 'Gores'])->getAttribute('id'),
             'priority' => 1
         ]
     );
@@ -82,7 +82,7 @@ Route::get('/rules', function () {
         [
             'decider' => 'mod',
             'rule' => '%BW%',
-            'mod_id' => \App\Models\Mod::firstOrCreate(['mod' => 'BW'])->getAttribute('id'),
+            'mod_id' => \App\Models\Mod::firstOrCreate(['name' => 'BW'])->getAttribute('id'),
             'priority' => 2
         ]
     );
@@ -91,7 +91,7 @@ Route::get('/rules', function () {
         [
             'decider' => 'server',
             'rule' => '%Block%',
-            'mod_id' => \App\Models\Mod::firstOrCreate(['mod' => 'BW'])->getAttribute('id'),
+            'mod_id' => \App\Models\Mod::firstOrCreate(['name' => 'BW'])->getAttribute('id'),
             'priority' => 1
         ]
     );

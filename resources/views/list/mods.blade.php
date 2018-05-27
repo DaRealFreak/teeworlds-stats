@@ -26,7 +26,7 @@
                                 @foreach($mods as $mod)
                                     <tr>
                                         <th scope="row">
-                                            <a href="{{ url("mod", urlencode($mod->mod)) }}">{{ $mod->mod }}</a>
+                                            <a href="{{ url("mod", urlencode($mod->name)) }}">{{ $mod->name }}</a>
                                         </th>
                                         <td>
                                             Dummy Entry

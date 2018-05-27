@@ -143,8 +143,8 @@
                                 <div class="col-lg-4 d-flex align-items-center">
                                     <div class="avatar"><img src="{{ asset('images/teehut.png') }}" alt="..."
                                                              class="img-fluid"></div>
-                                    <a href="#" class="name">
-                                        <strong class="d-block">{{ $clan->mostPlayedMaps()->first()->map->map }}</strong>
+                                    <a href="{{ url("map", urlencode($clan->mostPlayedMaps()->first()->map->name)) }}" class="name">
+                                        <strong class="d-block">{{ $clan->mostPlayedMaps()->first()->map->name }}</strong>
                                     </a>
                                 </div>
                                 <div class="col-lg-6 text-center">

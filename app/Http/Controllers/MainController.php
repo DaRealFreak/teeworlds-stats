@@ -34,8 +34,8 @@ class MainController extends Controller
                 'servers' => Server::count(),
                 'clans' => Clan::count(),
                 'countries' => count(Player::groupBy(['country'])->get()),
-                'maps' => count(Map::groupBy(['map'])->get()),
-                'mods' => count(Mod::groupBy(['mod'])->get()),
+                'maps' => count(Map::groupBy(['name'])->get()),
+                'mods' => count(Mod::groupBy(['name'])->get()),
             ])
             ->with('dailySummary', DailySummary::firstOrCreate(['date' => Carbon::today()]))
             ->with('controller', $this);
@@ -82,7 +82,7 @@ class MainController extends Controller
     public function mods()
     {
         return view('list.mods')
-            ->with('mods', Mod::orderBy('mod')->paginate(50));
+            ->with('mods', Mod::orderBy('name')->paginate(50));
     }
 
     /**
@@ -91,7 +91,7 @@ class MainController extends Controller
     public function maps()
     {
         return view('list.maps')
-            ->with('maps', Map::orderBy('map')->paginate(50));
+            ->with('maps', Map::orderBy('name')->paginate(50));
     }
 
     /**
@@ -109,7 +109,7 @@ class MainController extends Controller
 
         /** @var PlayerHistory $playedMap */
         foreach ($playedMaps as $playedMap) {
-            $results[$playedMap->map->getAttribute('map')] = (int)$playedMap->getAttribute('sum_minutes');
+            $results[$playedMap->map->getAttribute('name')] = (int)$playedMap->getAttribute('sum_minutes');
         }
         ChartUtility::applyLimits($results, $amount, $displayOthers);
 
@@ -131,7 +131,7 @@ class MainController extends Controller
 
         /** @var PlayerHistory $playedMod */
         foreach ($playedMods as $playedMod) {
-            $results[$playedMod->mod->getAttribute('mod')] = (int)$playedMod->getAttribute('sum_minutes');
+            $results[$playedMod->mod->getAttribute('name')] = (int)$playedMod->getAttribute('sum_minutes');
         }
         ChartUtility::applyLimits($results, $amount, $displayOthers);
 

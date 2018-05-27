@@ -146,7 +146,7 @@ class Server extends Model
 
         /** @var ServerHistory $playedMap */
         foreach ($playerMaps as $playedMap) {
-            $results[$playedMap->map->getAttribute('map')] = (int)$playedMap->getAttribute('sum_minutes');
+            $results[$playedMap->map->getAttribute('name')] = (int)$playedMap->getAttribute('sum_minutes');
         }
         ChartUtility::applyLimits($results, $amount, $displayOthers);
 
@@ -174,7 +174,7 @@ class Server extends Model
 
         /** @var ServerHistory $playedMod */
         foreach ($playerMods as $playedMod) {
-            $results[$playedMod->mod->getAttribute('mod')] = (int)$playedMod->getAttribute('sum_minutes');
+            $results[$playedMod->mod->getAttribute('name')] = (int)$playedMod->getAttribute('sum_minutes');
         }
         ChartUtility::applyLimits($results, $amount, $displayOthers);
 

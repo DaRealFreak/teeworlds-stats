@@ -97,7 +97,7 @@ class UpdateData extends Command
         $serverModel->setAttribute('last_seen', Carbon::now());
 
         /** @var Map $mapModel */
-        $mapModel = Map::firstOrCreate(['map' => $server->getAttribute('map')]);
+        $mapModel = Map::firstOrCreate(['name' => $server->getAttribute('map')]);
         /** @var Mod $modModel */
         list($modModel, $originalModModel) = $this->retrieveOrCreateMod($serverModel, $server->getAttribute('gametype'));
 
@@ -225,7 +225,7 @@ class UpdateData extends Command
             $playerModel->setAttribute('country', Countries::getCountryName($player->getAttribute('country')));
 
             /** @var Map $mapModel */
-            $mapModel = Map::firstOrCreate(['map' => $server->getAttribute('map')]);
+            $mapModel = Map::firstOrCreate(['name' => $server->getAttribute('map')]);
             /** @var Mod $modModel */
             list($modModel, $originalModModel) = $this->retrieveOrCreateMod($serverModel, $server->getAttribute('gametype'));
 
@@ -244,7 +244,7 @@ class UpdateData extends Command
      */
     private function retrieveOrCreateMod(Server $serverModel, string $gameType)
     {
-        $mod = Mod::firstOrCreate(['mod' => $gameType]);
+        $mod = Mod::firstOrCreate(['name' => $gameType]);
 
         /** @var ModRule $modRule */
         foreach (ModRule::orderBy('priority')->get() as $modRule) {

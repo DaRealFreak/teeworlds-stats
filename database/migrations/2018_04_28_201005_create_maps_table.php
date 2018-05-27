@@ -17,7 +17,7 @@ class CreateMapsTable extends Migration
             $table->increments('id');
             $table->timestamps();
 
-            $table->string('map');
+            $table->string('name');
         });
     }
 

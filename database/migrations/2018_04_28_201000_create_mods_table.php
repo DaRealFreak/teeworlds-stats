@@ -17,7 +17,7 @@ class CreateModsTable extends Migration
             $table->increments('id');
             $table->timestamps();
 
-            $table->string('mod');
+            $table->string('name');
         });
     }
 

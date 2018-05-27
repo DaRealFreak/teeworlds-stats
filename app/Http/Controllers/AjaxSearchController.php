@@ -90,15 +90,15 @@ class AjaxSearchController extends Controller
     {
         $term = Str::lower(Input::get('term'));
 
-        $modSuggestions = Mod::where('mod', 'like', '%' . $term . '%')
-            ->orderByRaw('`mod` LIKE ? DESC', $term . '%')
-            ->orderBy('mod')
+        $modSuggestions = Mod::where('name', 'like', '%' . $term . '%')
+            ->orderByRaw('`name` LIKE ? DESC', $term . '%')
+            ->orderBy('name')
             ->limit(10)
             ->get();
 
         $suggestions = new Collection();
         foreach ($modSuggestions as $suggestion) {
-            $suggestions->add($suggestion->mod);
+            $suggestions->add($suggestion->name);
         }
 
         return $suggestions->toJson();
@@ -112,15 +112,15 @@ class AjaxSearchController extends Controller
     {
         $term = Str::lower(Input::get('term'));
 
-        $mapSuggestions = Map::where('map', 'like', '%' . $term . '%')
-            ->orderByRaw('`map` LIKE ? DESC', $term . '%')
-            ->orderBy('map')
+        $mapSuggestions = Map::where('name', 'like', '%' . $term . '%')
+            ->orderByRaw('`name` LIKE ? DESC', $term . '%')
+            ->orderBy('name')
             ->limit(10)
             ->get();
 
         $suggestions = new Collection();
         foreach ($mapSuggestions as $suggestion) {
-            $suggestions->add($suggestion->map);
+            $suggestions->add($suggestion->name);
         }
 
         return $suggestions->toJson();

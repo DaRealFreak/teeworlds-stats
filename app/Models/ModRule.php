@@ -31,7 +31,7 @@ class ModRule extends Model
         if ($this->getAttribute('decider') !== 'mod') {
             return new Collection();
         }
-        return Mod::where('mod', 'like', $this->getAttribute('rule'))
+        return Mod::where('name', 'like', $this->getAttribute('rule'))
             ->where('id', '!=', $this->getAttribute('mod_id'))
             ->get();
     }

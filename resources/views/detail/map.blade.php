@@ -4,7 +4,7 @@
     <!-- Page Header-->
     <div class="page-header no-margin-bottom">
         <div class="container-fluid">
-            <h2 class="h5 no-margin-bottom">{{ $map->map }}'s statistics</h2>
+            <h2 class="h5 no-margin-bottom">Map: {{ $map->name }}</h2>
         </div>
     </div>
     <section class="section-content">
