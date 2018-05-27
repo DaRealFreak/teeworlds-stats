@@ -1,18 +1,13 @@
 // Fonts
 @import 'font-raleway';
-
 // Variables
 @import "variables";
-
 // Bootstrap
 @import '~bootstrap/scss/bootstrap';
-
 // Font Awesome
 @import '~font-awesome/scss/font-awesome';
-
 // Template SCSS
 @import 'dark_admin_bootstrapius';
-
 // JqueryUI theme
 @import 'jquery-ui-dark-hive';
 
@@ -44,6 +39,8 @@ section.section-content {
   overflow-y: auto;
 }
 
-.pagination {
-  justify-content: center;
+@media only screen and (min-width: 768px) {
+  .pagination {
+    justify-content: center;
+  }
 }
