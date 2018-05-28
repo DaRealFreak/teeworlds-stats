@@ -30,14 +30,21 @@ class GameServer extends Server
      * so we check if a player with identical attributes is already indexed
      *
      * @param Player $player
+     * @param bool $caseInsensitive
      * @return bool
      */
-    public function doesPlayerAlreadyExist(Player $player)
+    public function doesPlayerAlreadyExist(Player $player, $caseInsensitive = True)
     {
         /** @var Player $indexedPlayer */
         foreach ($this->getAttribute('players') as $indexedPlayer) {
-            if ($player->getAttributes() === $indexedPlayer->getAttributes()) {
-                return True;
+            if ($caseInsensitive) {
+                if (array_map('mb_strtolower', $player->getAttributes()) === array_map('mb_strtolower', $indexedPlayer->getAttributes())) {
+                    return True;
+                }
+            } else {
+                if ($player->getAttributes() === $indexedPlayer->getAttributes()) {
+                    return True;
+                }
             }
         }
         return False;
