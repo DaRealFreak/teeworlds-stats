@@ -20,6 +20,7 @@ class CreateServerHistories extends Migration
             // impact the performance greatly, so add another column for that
             $table->unsignedInteger('weekday');
             $table->unsignedInteger('hour');
+            $table->boolean('continuous');
 
             $table->unsignedInteger('server_id');
             $table->unsignedInteger('map_id');
@@ -41,6 +42,6 @@ class CreateServerHistories extends Migration
      */
     public function down()
     {
-        //
+        Schema::dropIfExists('server_histories');
     }
 }

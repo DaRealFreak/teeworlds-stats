@@ -131,8 +131,6 @@ class UpdateData extends Command
         /** @var ServerHistory $historyEntry */
         $historyEntry = ServerHistory::orderByDesc('updated_at')->where(
             [
-                'weekday' => Carbon::now()->dayOfWeekIso - 1,
-                'hour' => Carbon::now()->hour,
                 'server_id' => $serverModel->getAttribute('id'),
                 'map_id' => $mapModel->getAttribute('id'),
                 'mod_id' => $modModel->getAttribute('id')
@@ -143,11 +141,26 @@ class UpdateData extends Command
         // or it's not the latest history entry or more than 1.5 times the cron interval ago create a new one
         if (!$historyEntry
             || ($latestHistoryEntry && $latestHistoryEntry->isNot($historyEntry))
-            || $latestHistoryEntry->getAttribute('updated_at') < Carbon::now()->subMinutes(env('CRONTASK_INTERVAL') * 1.5)) {
+            || $latestHistoryEntry->getAttribute('updated_at') < Carbon::now()->subMinutes(env('CRONTASK_INTERVAL') * 1.5)
+            || $latestHistoryEntry->getAttribute('hour') !== Carbon::now()->hour
+            || $latestHistoryEntry->getAttribute('weekday') !== Carbon::now()->dayOfWeekIso - 1
+        ) {
+            if (!$latestHistoryEntry
+                || $latestHistoryEntry->map->isNot($mapModel)
+                || $latestHistoryEntry->mod->isNot($modModel)
+                || $latestHistoryEntry->server->isNot($serverModel)) {
+                $continuous = False;
+            } else {
+                $continuous = $latestHistoryEntry->getAttribute('updated_at') >= Carbon::now()->subMinutes(env('CRONTASK_INTERVAL') * 1.5) &&
+                    ($latestHistoryEntry->getAttribute('hour') !== Carbon::now()->hour
+                        || $latestHistoryEntry->getAttribute('weekday') !== Carbon::now()->dayOfWeekIso - 1);
+            }
+
             $historyEntry = ServerHistory::create(
                 [
                     'weekday' => Carbon::now()->dayOfWeekIso - 1,
                     'hour' => Carbon::now()->hour,
+                    'continuous' => $continuous,
                     'server_id' => $serverModel->getAttribute('id'),
                     'map_id' => $mapModel->getAttribute('id'),
                     'mod_id' => $modModel->getAttribute('id'),
@@ -173,7 +186,7 @@ class UpdateData extends Command
         /** @var \App\TwStats\Models\Player $player */
         foreach ($server->getAttribute('players') as $player) {
             // players not yet connected to the server have a unique entry, skip these
-            if ($player->getAttribute('name') == '(connecting)' && $player->getAttribute('country') === -1 && $player->getAttribute('clan') == '' && $player->getAttribute('score') === 0) {
+            if ($player->getAttribute('name') == '(connecting)') {
                 continue;
             }
 
@@ -292,8 +305,6 @@ class UpdateData extends Command
         /** @var PlayerHistory $historyEntry */
         $historyEntry = PlayerHistory::orderByDesc('updated_at')->where(
             [
-                'weekday' => Carbon::now()->dayOfWeekIso - 1,
-                'hour' => Carbon::now()->hour,
                 'player_id' => $playerModel->getAttribute('id'),
                 'server_id' => $serverModel->getAttribute('id'),
                 'map_id' => $mapModel->getAttribute('id'),
@@ -303,12 +314,27 @@ class UpdateData extends Command
 
         // if no history for this server and map is set or it's not the latest history in general create a new one
         if (!$historyEntry
-            || ($latestHistoryEntry && $latestHistoryEntry->isNot($historyEntry))
-            || $latestHistoryEntry->getAttribute('updated_at') < Carbon::now()->subMinutes(env('CRONTASK_INTERVAL') * 1.5)) {
+            || $latestHistoryEntry->isNot($historyEntry)
+            || $latestHistoryEntry->getAttribute('updated_at') < Carbon::now()->subMinutes(env('CRONTASK_INTERVAL') * 1.5)
+            || $latestHistoryEntry->getAttribute('hour') !== Carbon::now()->hour
+            || $latestHistoryEntry->getAttribute('weekday') !== Carbon::now()->dayOfWeekIso - 1
+        ) {
+            if (!$latestHistoryEntry
+                || $latestHistoryEntry->map->isNot($mapModel)
+                || $latestHistoryEntry->mod->isNot($modModel)
+                || $latestHistoryEntry->server->isNot($serverModel)) {
+                $continuous = False;
+            } else {
+                $continuous = $latestHistoryEntry->getAttribute('updated_at') >= Carbon::now()->subMinutes(env('CRONTASK_INTERVAL') * 1.5) &&
+                    ($latestHistoryEntry->getAttribute('hour') !== Carbon::now()->hour
+                        || $latestHistoryEntry->getAttribute('weekday') !== Carbon::now()->dayOfWeekIso - 1);
+            }
+
             $historyEntry = PlayerHistory::create(
                 [
                     'weekday' => Carbon::now()->dayOfWeekIso - 1,
                     'hour' => Carbon::now()->hour,
+                    'continuous' => $continuous,
                     'player_id' => $playerModel->getAttribute('id'),
                     'server_id' => $serverModel->getAttribute('id'),
                     'map_id' => $mapModel->getAttribute('id'),

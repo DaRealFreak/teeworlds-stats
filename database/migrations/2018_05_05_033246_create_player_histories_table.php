@@ -20,6 +20,7 @@ class CreatePlayerHistoriesTable extends Migration
             // impact the performance greatly, so add another column for that
             $table->unsignedInteger('weekday');
             $table->unsignedInteger('hour');
+            $table->boolean('continuous');
 
             $table->unsignedInteger('server_id');
             $table->unsignedInteger('player_id');
