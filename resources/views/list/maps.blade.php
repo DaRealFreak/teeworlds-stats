@@ -19,17 +19,21 @@
                                 <thead>
                                 <tr>
                                     <th>Name</th>
-                                    <th>Dummy</th>
+                                    <th>Played by players</th>
+                                    <th>Played on servers</th>
                                 </tr>
                                 </thead>
                                 <tbody>
-                                @foreach($maps as $map)
+                                @foreach($maps as $mapEntry)
                                     <tr>
                                         <th scope="row">
-                                            <a href="{{ url("map", urlencode($map->name)) }}">{{ $map->name }}</a>
+                                            <a href="{{ url("map", urlencode($mapEntry->name)) }}">{{ $mapEntry->name }}</a>
                                         </th>
                                         <td>
-                                            Dummy Entry
+                                            {{ $mapEntry->statsPlayedBy()->get()->count() }}
+                                        </td>
+                                        <td>
+                                            {{ $mapEntry->statsPlayedOnServer()->get()->count() }}
                                         </td>
                                     </tr>
                                 @endforeach

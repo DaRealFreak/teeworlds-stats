@@ -18,8 +18,10 @@
                             <table class="table table-striped table-hover" id="clan_table">
                                 <thead>
                                 <tr>
-                                    <th>Name</th>
-                                    <th>Dummy</th>
+                                    <th>Clan</th>
+                                    <th>Players</th>
+                                    <th>Most played mod</th>
+                                    <th>Played time</th>
                                 </tr>
                                 </thead>
                                 <tbody>
@@ -29,7 +31,17 @@
                                             <a href="{{ url("clan", urlencode($clanEntry->name)) }}">{{ $clanEntry->name }}</a>
                                         </th>
                                         <td>
-                                            Dummy Entry
+                                            {{ $clanEntry->players()->count() }}
+                                        </td>
+                                        <td>
+                                            @if (count($clanEntry->mostPlayedMods()->get()) > 0)
+                                                {{ $clanEntry->mostPlayedMods()->first()->mod->name }}
+                                            @else
+                                                -
+                                            @endif
+                                        </td>
+                                        <td>
+                                            {{ $clanEntry->humanizeDuration($clanEntry->totalHoursOnline()->first()->sum_minutes) }}
                                         </td>
                                     </tr>
                                 @endforeach

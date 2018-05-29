@@ -19,17 +19,25 @@
                                 <thead>
                                 <tr>
                                     <th>Name</th>
-                                    <th>Dummy</th>
+                                    <th>Players</th>
+                                    <th>Most played map</th>
+                                    <th>Most played mod</th>
                                 </tr>
                                 </thead>
                                 <tbody>
                                 @foreach($servers as $serverEntry)
                                     <tr>
-                                        <th scope="row">
-                                            <a href="{{ url("server", [urlencode($serverEntry->id), urlencode($serverEntry->name)]) }}">{{ $serverEntry->name }}</a>
-                                        </th>
                                         <td>
-                                            Dummy Entry
+                                            <a href="{{ url("server", [urlencode($serverEntry->id), urlencode($serverEntry->name)]) }}">{{ $serverEntry->name }}</a>
+                                        </td>
+                                        <td>
+                                            {{ $serverEntry->players()->get()->count() }}
+                                        </td>
+                                        <td>
+                                            {{ array_keys($serverEntry->chartPlayedMaps())[0] }}
+                                        </td>
+                                        <td>
+                                            {{ array_keys($serverEntry->chartPlayedMods())[0] }}
                                         </td>
                                     </tr>
                                 @endforeach

@@ -19,17 +19,21 @@
                                 <thead>
                                 <tr>
                                     <th>Name</th>
-                                    <th>Dummy</th>
+                                    <th>Played by players</th>
+                                    <th>Played on servers</th>
                                 </tr>
                                 </thead>
                                 <tbody>
-                                @foreach($mods as $mod)
+                                @foreach($mods as $modEntry)
                                     <tr>
                                         <th scope="row">
-                                            <a href="{{ url("mod", urlencode($mod->name)) }}">{{ $mod->name }}</a>
+                                            <a href="{{ url("mod", urlencode($modEntry->name)) }}">{{ $modEntry->name }}</a>
                                         </th>
                                         <td>
-                                            Dummy Entry
+                                            {{ $modEntry->statsPlayedBy()->get()->count() }}
+                                        </td>
+                                        <td>
+                                            {{ $modEntry->statsPlayedOnServer()->get()->count() }}
                                         </td>
                                     </tr>
                                 @endforeach

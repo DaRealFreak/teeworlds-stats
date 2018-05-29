@@ -21,6 +21,8 @@
                                     <th>Name</th>
                                     <th>Clan</th>
                                     <th>Played time</th>
+                                    <th>Most played mod</th>
+                                    <th>Most played map</th>
                                 </tr>
                                 </thead>
                                 <tbody>
@@ -38,6 +40,16 @@
                                         </td>
                                         <td>
                                             {{ $playerEntry->totalHoursOnline(0, True) }}
+                                        </td>
+                                        <td>
+                                            <a href="{{ url("mod", urlencode(array_keys($playerEntry->chartPlayedMods())[0])) }}">
+                                                {{ array_keys($playerEntry->chartPlayedMods())[0] }}
+                                            </a>
+                                        </td>
+                                        <td>
+                                            <a href="{{ url("map", urlencode(array_keys($playerEntry->chartPlayedMaps())[0])) }}">
+                                                {{ array_keys($playerEntry->chartPlayedMaps())[0] }}
+                                            </a>
                                         </td>
                                     </tr>
                                 @endforeach
