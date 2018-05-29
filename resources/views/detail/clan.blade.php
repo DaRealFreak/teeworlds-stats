@@ -149,7 +149,7 @@
                                 </div>
                                 <div class="col-lg-6 text-center">
                                     <div class="contributions">
-                                        Played: {{ $clan->humanizeDuration($clan->mostPlayedMaps()->first()->sum_minutes) }}</div>
+                                        Played: {{ \App\Utility\ChartUtility::humanizeDuration($clan->mostPlayedMaps()->first()->sum_minutes) }}</div>
                                 </div>
                             </div>
                         </div>

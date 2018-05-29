@@ -2,6 +2,8 @@
 
 namespace App\Utility;
 
+use Khill\Duration\Duration;
+
 class ChartUtility
 {
 
@@ -34,5 +36,16 @@ class ChartUtility
             }
         }
         arsort($results, true);
+    }
+
+    /**
+     * function to humanize the tracked minutes into a human time(h-m-s or if needed even d-h-m-s etc)
+     *
+     * @param $minutes
+     * @return string
+     */
+    public static function humanizeDuration($minutes)
+    {
+        return (new Duration($minutes * 60))->humanize();
     }
 }
