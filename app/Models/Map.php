@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Model;
 
 /**
@@ -55,5 +56,25 @@ class Map extends Model
     {
         return $this->serverRecords()
             ->groupBy('server_id');
+    }
+
+    /**
+     * function to retrieve the total hours of the current players having played
+     *
+     * @param int $duration
+     * @return PlayerHistory|\Illuminate\Database\Query\Builder
+     */
+    public function totalHoursOnline($duration = 0)
+    {
+        $playerHistoryEntries = PlayerHistory::selectRaw('`' . (new PlayerHistory)->getTable() . '`.*, SUM(`' . (new PlayerHistory)->getTable() . '`.`minutes`) as `sum_minutes`')
+            ->where('map_id', '=', $this->getAttribute('id'))
+            ->groupBy('map_id')
+            ->orderByDesc('sum_minutes');
+
+        if ($duration) {
+            $playerHistoryEntries->where((new PlayerHistory)->getTable() . '.created_at', '>=', Carbon::today()->subDay($duration));
+        }
+
+        return $playerHistoryEntries;
     }
 }

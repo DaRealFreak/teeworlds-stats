@@ -6,7 +6,6 @@ use App\Utility\ChartUtility;
 use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\DB;
-use Khill\Duration\Duration;
 
 /**
  * App\Models\Clan
@@ -71,7 +70,7 @@ class Clan extends Model
      * @param int $duration
      * @return PlayerHistory|\Illuminate\Database\Query\Builder
      */
-    public function mostPlayedMaps($duration=0)
+    public function mostPlayedMaps($duration = 0)
     {
         $maps = PlayerHistory::selectRaw('`' . (new PlayerHistory)->getTable() . '`.*, SUM(`' . (new PlayerHistory)->getTable() . '`.`minutes`) as `sum_minutes`')
             ->join((new PlayerClanHistory)->getTable(), (new PlayerHistory)->getTable() . '.player_id', '=', (new PlayerClanHistory)->getTable() . '.player_id')
@@ -93,7 +92,7 @@ class Clan extends Model
      * @param int $duration
      * @return PlayerHistory|\Illuminate\Database\Query\Builder
      */
-    public function mostPlayedMods($duration=0)
+    public function mostPlayedMods($duration = 0)
     {
         $mods = PlayerHistory::selectRaw('`' . (new PlayerHistory)->getTable() . '`.*, SUM(`' . (new PlayerHistory)->getTable() . '`.`minutes`) as `sum_minutes`')
             ->join((new PlayerClanHistory)->getTable(), (new PlayerHistory)->getTable() . '.player_id', '=', (new PlayerClanHistory)->getTable() . '.player_id')
@@ -115,7 +114,7 @@ class Clan extends Model
      * @param int $duration
      * @return PlayerHistory|\Illuminate\Database\Query\Builder
      */
-    public function totalHoursOnline($duration=0)
+    public function totalHoursOnline($duration = 0)
     {
         $playerHistoryEntries = PlayerHistory::selectRaw('`' . (new PlayerHistory)->getTable() . '`.*, SUM(`' . (new PlayerHistory)->getTable() . '`.`minutes`) as `sum_minutes`')
             ->join((new PlayerClanHistory)->getTable(), (new PlayerHistory)->getTable() . '.player_id', '=', (new PlayerClanHistory)->getTable() . '.player_id')
@@ -178,7 +177,7 @@ class Clan extends Model
      * @param bool $displayOthers
      * @return array
      */
-    public function chartPlayedMaps($duration=0, $amount = 10, $displayOthers = False)
+    public function chartPlayedMaps($duration = 0, $amount = 10, $displayOthers = False)
     {
         /** @var PlayerHistory $playedMap */
         foreach ($this->mostPlayedMaps($duration)->get() as $playedMap) {
@@ -197,7 +196,7 @@ class Clan extends Model
      * @param bool $displayOthers
      * @return array
      */
-    public function chartPlayedMods($duration=0, $amount = 10, $displayOthers = False)
+    public function chartPlayedMods($duration = 0, $amount = 10, $displayOthers = False)
     {
         /** @var PlayerHistory $playedMod */
         foreach ($this->mostPlayedMods($duration)->get() as $playedMod) {
@@ -239,7 +238,7 @@ class Clan extends Model
      * @param int $duration
      * @return \Generator
      */
-    public function chartOnlineHours($duration=0)
+    public function chartOnlineHours($duration = 0)
     {
         $clanOnlineHours = array_fill(0, 24, 0);
 
@@ -260,7 +259,7 @@ class Clan extends Model
      * @param int $duration
      * @return \Generator
      */
-    public function chartOnlineDays($duration=0)
+    public function chartOnlineDays($duration = 0)
     {
         $clanOnlineDays = array_fill(0, 7, 0);
 
@@ -275,16 +274,5 @@ class Clan extends Model
         foreach ($clanOnlineDays as $clanOnlineDay) {
             yield round($clanOnlineDay / $max * 100, 2);
         }
-    }
-
-    /**
-     * function to humanize the tracked minutes into a human time(h-m-s or if needed even d-h-m-s etc)
-     *
-     * @param $minutes
-     * @return string
-     */
-    public static function humanizeDuration($minutes)
-    {
-        return (new Duration($minutes * 60))->humanize();
     }
 }
