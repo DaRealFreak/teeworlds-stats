@@ -18,20 +18,44 @@ class Mod extends Model
     /**
      * Get the player play records associated with the mod
      *
-     * @return \Illuminate\Database\Eloquent\Relations\HasMany
+     * @return PlayerHistory
      */
     public function playerRecords()
     {
-        return $this->hasMany(PlayerHistory::class);
+        return PlayerHistory::where('mod_id', '=', $this->getAttribute('id'))
+            ->orWhere('mod_original_id', '=', $this->getAttribute('id'));
     }
 
     /**
      * Get the server play records associated with the mod
      *
-     * @return \Illuminate\Database\Eloquent\Relations\HasMany
+     * @return ServerHistory
      */
     public function serverRecords()
     {
-        return $this->hasMany(ServerHistory::class);
+        return ServerHistory::where('mod_id', '=', $this->getAttribute('id'))
+            ->orWhere('mod_original_id', '=', $this->getAttribute('id'));
+    }
+
+    /**
+     * get the PlayerHistory records of the players who played the mod
+     *
+     * @return PlayerHistory
+     */
+    public function statsPlayedBy()
+    {
+        return $this->playerRecords()
+            ->groupBy('player_id');
+    }
+
+    /**
+     * get the ServerHistory records where the mod got played on
+     *
+     * @return ServerHistory
+     */
+    public function statsPlayedOnServer()
+    {
+        return $this->serverRecords()
+            ->groupBy('server_id');
     }
 }

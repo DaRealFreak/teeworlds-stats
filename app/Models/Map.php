@@ -34,4 +34,26 @@ class Map extends Model
     {
         return $this->hasMany(ServerHistory::class);
     }
+
+    /**
+     * get the PlayerHistory records of the players who played the map
+     *
+     * @return \Illuminate\Database\Eloquent\Relations\HasMany
+     */
+    public function statsPlayedBy()
+    {
+        return $this->playerRecords()
+            ->groupBy('player_id');
+    }
+
+    /**
+     * get the ServerHistory records where the map got played on
+     *
+     * @return \Illuminate\Database\Eloquent\Relations\HasMany
+     */
+    public function statsPlayedOnServer()
+    {
+        return $this->serverRecords()
+            ->groupBy('server_id');
+    }
 }
