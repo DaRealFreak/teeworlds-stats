@@ -110,6 +110,27 @@ class Clan extends Model
     }
 
     /**
+     * function to retrieve the total hours of the current players having played
+     *
+     * @param int $duration
+     * @return PlayerHistory|\Illuminate\Database\Query\Builder
+     */
+    public function totalHoursOnline($duration=0)
+    {
+        $playerHistoryEntries = PlayerHistory::selectRaw('`' . (new PlayerHistory)->getTable() . '`.*, SUM(`' . (new PlayerHistory)->getTable() . '`.`minutes`) as `sum_minutes`')
+            ->join((new PlayerClanHistory)->getTable(), (new PlayerHistory)->getTable() . '.player_id', '=', (new PlayerClanHistory)->getTable() . '.player_id')
+            ->where((new PlayerClanHistory)->getTable() . '.clan_id', '=', $this->getAttribute('id'))
+            ->where((new PlayerClanHistory)->getTable() . '.left_at', null)
+            ->orderByDesc('sum_minutes');
+
+        if ($duration) {
+            $playerHistoryEntries->where((new PlayerHistory)->getTable() . '.created_at', '>=', Carbon::today()->subDay($duration));
+        }
+
+        return $playerHistoryEntries;
+    }
+
+    /**
      * function to retrieve the oldest player of the guild
      *
      * @return Model|\Illuminate\Database\Eloquent\Relations\HasMany|null|object
