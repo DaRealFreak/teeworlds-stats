@@ -18,8 +18,9 @@
                             <table class="table table-striped table-hover" id="server_table">
                                 <thead>
                                 <tr>
-                                    <th>Name</th>
+                                    <th>Server</th>
                                     <th>Players</th>
+                                    <th>Total time played</th>
                                     <th>Most played map</th>
                                     <th>Most played mod</th>
                                 </tr>
@@ -34,10 +35,17 @@
                                             {{ $serverEntry->players()->get()->count() }}
                                         </td>
                                         <td>
-                                            {{ array_keys($serverEntry->chartPlayedMaps())[0] }}
+                                            {{ \App\Utility\ChartUtility::humanizeDuration($serverEntry->totalHoursOnline()) }}
                                         </td>
                                         <td>
-                                            {{ array_keys($serverEntry->chartPlayedMods())[0] }}
+                                            <a href="{{ url("mod", urlencode(array_keys($serverEntry->chartPlayedMaps())[0])) }}">
+                                                {{ array_keys($serverEntry->chartPlayedMaps())[0] }}
+                                            </a>
+                                        </td>
+                                        <td>
+                                            <a href="{{ url("mod", urlencode(array_keys($serverEntry->chartPlayedMods())[0])) }}">
+                                                {{ array_keys($serverEntry->chartPlayedMods())[0] }}
+                                            </a>
                                         </td>
                                     </tr>
                                 @endforeach

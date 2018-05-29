@@ -18,9 +18,10 @@
                             <table class="table table-striped table-hover" id="mod_table">
                                 <thead>
                                 <tr>
-                                    <th>Name</th>
+                                    <th>Mod</th>
                                     <th>Played by players</th>
                                     <th>Played on servers</th>
+                                    <th>Total time played(players)</th>
                                 </tr>
                                 </thead>
                                 <tbody>
@@ -34,6 +35,11 @@
                                         </td>
                                         <td>
                                             {{ $modEntry->statsPlayedOnServer()->get()->count() }}
+                                        </td>
+                                        <td>
+                                            @if($hourEntry = $modEntry->totalHoursOnline()->first())
+                                                {{ \App\Utility\ChartUtility::humanizeDuration($hourEntry->sum_minutes) }}
+                                            @endif
                                         </td>
                                     </tr>
                                 @endforeach

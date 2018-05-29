@@ -18,7 +18,7 @@
                             <table class="table table-striped table-hover" id="player_table">
                                 <thead>
                                 <tr>
-                                    <th>Name</th>
+                                    <th>Tee</th>
                                     <th>Clan</th>
                                     <th>Played time</th>
                                     <th>Most played mod</th>
@@ -34,8 +34,6 @@
                                         <td>
                                             @if ($playerEntry->clan())
                                                 <a href="{{ url("clan", urlencode($playerEntry->clan()->name)) }}">{{ $playerEntry->clan()->name }}</a>
-                                            @else
-                                                -
                                             @endif
                                         </td>
                                         <td>

@@ -19,7 +19,7 @@
                                 <thead>
                                 <tr>
                                     <th>Clan</th>
-                                    <th>Players</th>
+                                    <th>Members</th>
                                     <th>Most played mod</th>
                                     <th>Played time</th>
                                 </tr>
@@ -35,13 +35,15 @@
                                         </td>
                                         <td>
                                             @if (count($clanEntry->mostPlayedMods()->get()) > 0)
-                                                {{ $clanEntry->mostPlayedMods()->first()->mod->name }}
+                                                <a href="{{ url("mod", urlencode($clanEntry->mostPlayedMods()->first()->mod->name)) }}">
+                                                    {{ $clanEntry->mostPlayedMods()->first()->mod->name }}
+                                                </a>
                                             @else
                                                 -
                                             @endif
                                         </td>
                                         <td>
-                                            {{ $clanEntry->humanizeDuration($clanEntry->totalHoursOnline()->first()->sum_minutes) }}
+                                            {{ \App\Utility\ChartUtility::humanizeDuration($clanEntry->totalHoursOnline()->first()->sum_minutes) }}
                                         </td>
                                     </tr>
                                 @endforeach

@@ -18,9 +18,10 @@
                             <table class="table table-striped table-hover" id="map_table">
                                 <thead>
                                 <tr>
-                                    <th>Name</th>
+                                    <th>Map</th>
                                     <th>Played by players</th>
                                     <th>Played on servers</th>
+                                    <th>Total time played(players)</th>
                                 </tr>
                                 </thead>
                                 <tbody>
@@ -34,6 +35,11 @@
                                         </td>
                                         <td>
                                             {{ $mapEntry->statsPlayedOnServer()->get()->count() }}
+                                        </td>
+                                        <td>
+                                            @if($hourEntry = $mapEntry->totalHoursOnline()->first())
+                                                {{ \App\Utility\ChartUtility::humanizeDuration($hourEntry->sum_minutes) }}
+                                            @endif
                                         </td>
                                     </tr>
                                 @endforeach
