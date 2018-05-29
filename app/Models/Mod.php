@@ -70,6 +70,7 @@ class Mod extends Model
     {
         $playerHistoryEntries = PlayerHistory::selectRaw('`' . (new PlayerHistory)->getTable() . '`.*, SUM(`' . (new PlayerHistory)->getTable() . '`.`minutes`) as `sum_minutes`')
             ->where('mod_id', '=', $this->getAttribute('id'))
+            ->orWhere('mod_original_id', '=', $this->getAttribute('id'))
             ->groupBy('mod_id')
             ->orderByDesc('sum_minutes');
 
