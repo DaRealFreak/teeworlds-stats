@@ -12,6 +12,9 @@ use App\TwStats\Models\Server;
  */
 class NetworkController
 {
+    /** @var int www.teeworlds.com has no AAAA domain record and doesn't support IPv6 only requests */
+    const PROTOCOL_FAMILY = AF_INET;
+
     /** @var int connection timeout in ms */
     const CONNECTION_TIMEOUT = 1000;
 

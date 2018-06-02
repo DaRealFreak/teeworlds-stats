@@ -1,8 +1,10 @@
 <?php
 
 namespace App\TwStats\Controller;
+
 use App\TwStats\Models\GameServer;
 use App\TwStats\Models\MasterServer;
+use App\TwStats\Utility\IPv6Utility;
 
 /**
  * Class MasterServerController
@@ -41,7 +43,8 @@ class MasterServerController
         foreach (self::$masterServers as $masterServer) {
             yield MasterServer::make([
                 'hostname' => $masterServer['hostname'],
-                'ip' => gethostbyname($masterServer['hostname']),
+                'ip' => NetworkController::PROTOCOL_FAMILY === AF_INET6 ?
+                    IPv6Utility::gethostbyname6($masterServer['hostname']) : gethostbyname($masterServer['hostname']),
                 'port' => $masterServer['port'],
             ]);
         }
@@ -56,7 +59,7 @@ class MasterServerController
     public static function getServers()
     {
         // create an udp protocol socket
-        $sock = socket_create(AF_INET, SOCK_DGRAM, SOL_UDP);
+        $sock = socket_create(NetworkController::PROTOCOL_FAMILY, SOCK_DGRAM, SOL_UDP);
         // set the socket to non blocking to allow parallel requests
         socket_set_nonblock($sock);
 

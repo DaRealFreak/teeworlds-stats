@@ -25,7 +25,7 @@ class GameServerController
     public static function fillServerInfo(array &$servers)
     {
         // create an udp protocol socket
-        $sock = socket_create(AF_INET, SOCK_DGRAM, SOL_UDP);
+        $sock = socket_create(NetworkController::PROTOCOL_FAMILY, SOCK_DGRAM, SOL_UDP);
         // set the socket to non blocking to allow parallel requests
         socket_set_nonblock($sock);
 
