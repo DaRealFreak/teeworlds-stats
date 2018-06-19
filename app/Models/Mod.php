@@ -11,6 +11,14 @@ use Illuminate\Database\Eloquent\Model;
  * @property-read \Illuminate\Database\Eloquent\Collection|\App\Models\PlayerHistory[] $playerRecords
  * @property-read \Illuminate\Database\Eloquent\Collection|\App\Models\ServerHistory[] $serverRecords
  * @mixin \Eloquent
+ * @property int $id
+ * @property \Carbon\Carbon|null $created_at
+ * @property \Carbon\Carbon|null $updated_at
+ * @property string $name
+ * @method static \Illuminate\Database\Eloquent\Builder|\App\Models\Mod whereCreatedAt($value)
+ * @method static \Illuminate\Database\Eloquent\Builder|\App\Models\Mod whereId($value)
+ * @method static \Illuminate\Database\Eloquent\Builder|\App\Models\Mod whereName($value)
+ * @method static \Illuminate\Database\Eloquent\Builder|\App\Models\Mod whereUpdatedAt($value)
  */
 class Mod extends Model
 {

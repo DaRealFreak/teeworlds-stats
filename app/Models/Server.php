@@ -17,6 +17,22 @@ use Khill\Duration\Duration;
  * @property-read \Illuminate\Database\Eloquent\Collection|\App\Models\ServerHistory[] $onlineDays
  * @property-read \Illuminate\Database\Eloquent\Collection|\App\Models\ServerHistory[] $onlineHours
  * @property-read \Illuminate\Database\Eloquent\Collection|\App\Models\Player[] $players
+ * @property int $id
+ * @property \Carbon\Carbon|null $created_at
+ * @property \Carbon\Carbon|null $updated_at
+ * @property string $last_seen
+ * @property string $name
+ * @property string $version
+ * @property string $ip
+ * @property int $port
+ * @method static \Illuminate\Database\Eloquent\Builder|\App\Models\Server whereCreatedAt($value)
+ * @method static \Illuminate\Database\Eloquent\Builder|\App\Models\Server whereId($value)
+ * @method static \Illuminate\Database\Eloquent\Builder|\App\Models\Server whereIp($value)
+ * @method static \Illuminate\Database\Eloquent\Builder|\App\Models\Server whereLastSeen($value)
+ * @method static \Illuminate\Database\Eloquent\Builder|\App\Models\Server whereName($value)
+ * @method static \Illuminate\Database\Eloquent\Builder|\App\Models\Server wherePort($value)
+ * @method static \Illuminate\Database\Eloquent\Builder|\App\Models\Server whereUpdatedAt($value)
+ * @method static \Illuminate\Database\Eloquent\Builder|\App\Models\Server whereVersion($value)
  */
 class Server extends Model
 {

@@ -12,6 +12,18 @@ use Illuminate\Support\Facades\DB;
  *
  * @property-read \Illuminate\Database\Eloquent\Collection|\App\Models\Player[] $players
  * @mixin \Eloquent
+ * @property int $id
+ * @property \Carbon\Carbon|null $created_at
+ * @property \Carbon\Carbon|null $updated_at
+ * @property string $name
+ * @property string $introduction
+ * @property string $website
+ * @method static \Illuminate\Database\Eloquent\Builder|\App\Models\Clan whereCreatedAt($value)
+ * @method static \Illuminate\Database\Eloquent\Builder|\App\Models\Clan whereId($value)
+ * @method static \Illuminate\Database\Eloquent\Builder|\App\Models\Clan whereIntroduction($value)
+ * @method static \Illuminate\Database\Eloquent\Builder|\App\Models\Clan whereName($value)
+ * @method static \Illuminate\Database\Eloquent\Builder|\App\Models\Clan whereUpdatedAt($value)
+ * @method static \Illuminate\Database\Eloquent\Builder|\App\Models\Clan whereWebsite($value)
  */
 class Clan extends Model
 {

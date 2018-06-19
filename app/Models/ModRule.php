@@ -10,6 +10,20 @@ use Illuminate\Database\Eloquent\Model;
  *
  * @mixin \Eloquent
  * @property-read \App\Models\Mod $mod
+ * @property int $id
+ * @property \Carbon\Carbon|null $created_at
+ * @property \Carbon\Carbon|null $updated_at
+ * @property string $decider
+ * @property string $rule
+ * @property int $mod_id
+ * @property int $priority
+ * @method static \Illuminate\Database\Eloquent\Builder|\App\Models\ModRule whereCreatedAt($value)
+ * @method static \Illuminate\Database\Eloquent\Builder|\App\Models\ModRule whereDecider($value)
+ * @method static \Illuminate\Database\Eloquent\Builder|\App\Models\ModRule whereId($value)
+ * @method static \Illuminate\Database\Eloquent\Builder|\App\Models\ModRule whereModId($value)
+ * @method static \Illuminate\Database\Eloquent\Builder|\App\Models\ModRule wherePriority($value)
+ * @method static \Illuminate\Database\Eloquent\Builder|\App\Models\ModRule whereRule($value)
+ * @method static \Illuminate\Database\Eloquent\Builder|\App\Models\ModRule whereUpdatedAt($value)
  */
 class ModRule extends Model
 {

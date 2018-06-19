@@ -15,6 +15,18 @@ use Khill\Duration\Duration;
  * @property-read \Illuminate\Database\Eloquent\Collection|\App\Models\PlayerHistory[] $onlineHours
  * @property-read \Illuminate\Database\Eloquent\Collection|\App\Models\PlayerHistory[] $playRecords
  * @mixin \Eloquent
+ * @property int $id
+ * @property \Carbon\Carbon|null $created_at
+ * @property \Carbon\Carbon|null $updated_at
+ * @property string $last_seen
+ * @property string $name
+ * @property string $country
+ * @method static \Illuminate\Database\Eloquent\Builder|\App\Models\Player whereCountry($value)
+ * @method static \Illuminate\Database\Eloquent\Builder|\App\Models\Player whereCreatedAt($value)
+ * @method static \Illuminate\Database\Eloquent\Builder|\App\Models\Player whereId($value)
+ * @method static \Illuminate\Database\Eloquent\Builder|\App\Models\Player whereLastSeen($value)
+ * @method static \Illuminate\Database\Eloquent\Builder|\App\Models\Player whereName($value)
+ * @method static \Illuminate\Database\Eloquent\Builder|\App\Models\Player whereUpdatedAt($value)
  */
 class Player extends Model
 {

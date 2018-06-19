@@ -13,6 +13,30 @@ use Illuminate\Database\Eloquent\Model;
  * @property-read \App\Models\Player $player
  * @property-read \App\Models\Server $server
  * @mixin \Eloquent
+ * @property int $id
+ * @property \Carbon\Carbon|null $created_at
+ * @property \Carbon\Carbon|null $updated_at
+ * @property int $weekday
+ * @property int $hour
+ * @property int $continuous
+ * @property int $server_id
+ * @property int $player_id
+ * @property int $map_id
+ * @property int $mod_id
+ * @property int|null $mod_original_id
+ * @property int $minutes
+ * @method static \Illuminate\Database\Eloquent\Builder|\App\Models\PlayerHistory whereContinuous($value)
+ * @method static \Illuminate\Database\Eloquent\Builder|\App\Models\PlayerHistory whereCreatedAt($value)
+ * @method static \Illuminate\Database\Eloquent\Builder|\App\Models\PlayerHistory whereHour($value)
+ * @method static \Illuminate\Database\Eloquent\Builder|\App\Models\PlayerHistory whereId($value)
+ * @method static \Illuminate\Database\Eloquent\Builder|\App\Models\PlayerHistory whereMapId($value)
+ * @method static \Illuminate\Database\Eloquent\Builder|\App\Models\PlayerHistory whereMinutes($value)
+ * @method static \Illuminate\Database\Eloquent\Builder|\App\Models\PlayerHistory whereModId($value)
+ * @method static \Illuminate\Database\Eloquent\Builder|\App\Models\PlayerHistory whereModOriginalId($value)
+ * @method static \Illuminate\Database\Eloquent\Builder|\App\Models\PlayerHistory wherePlayerId($value)
+ * @method static \Illuminate\Database\Eloquent\Builder|\App\Models\PlayerHistory whereServerId($value)
+ * @method static \Illuminate\Database\Eloquent\Builder|\App\Models\PlayerHistory whereUpdatedAt($value)
+ * @method static \Illuminate\Database\Eloquent\Builder|\App\Models\PlayerHistory whereWeekday($value)
  */
 class PlayerHistory extends Model
 {
