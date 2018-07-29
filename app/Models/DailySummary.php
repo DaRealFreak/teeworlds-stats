@@ -9,6 +9,26 @@ use Illuminate\Database\Eloquent\Model;
  * App\Models\DailySummary
  *
  * @mixin \Eloquent
+ * @property int $id
+ * @property \Carbon\Carbon|null $created_at
+ * @property \Carbon\Carbon|null $updated_at
+ * @property string $date
+ * @property int $players_online_peak
+ * @property int $players_online
+ * @property int $clans_online_peak
+ * @property int $clans_online
+ * @property int $servers_online_peak
+ * @property int $servers_online
+ * @method static \Illuminate\Database\Eloquent\Builder|\App\Models\DailySummary whereClansOnline($value)
+ * @method static \Illuminate\Database\Eloquent\Builder|\App\Models\DailySummary whereClansOnlinePeak($value)
+ * @method static \Illuminate\Database\Eloquent\Builder|\App\Models\DailySummary whereCreatedAt($value)
+ * @method static \Illuminate\Database\Eloquent\Builder|\App\Models\DailySummary whereDate($value)
+ * @method static \Illuminate\Database\Eloquent\Builder|\App\Models\DailySummary whereId($value)
+ * @method static \Illuminate\Database\Eloquent\Builder|\App\Models\DailySummary wherePlayersOnline($value)
+ * @method static \Illuminate\Database\Eloquent\Builder|\App\Models\DailySummary wherePlayersOnlinePeak($value)
+ * @method static \Illuminate\Database\Eloquent\Builder|\App\Models\DailySummary whereServersOnline($value)
+ * @method static \Illuminate\Database\Eloquent\Builder|\App\Models\DailySummary whereServersOnlinePeak($value)
+ * @method static \Illuminate\Database\Eloquent\Builder|\App\Models\DailySummary whereUpdatedAt($value)
  */
 class DailySummary extends Model
 {

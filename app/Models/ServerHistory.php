@@ -12,6 +12,28 @@ use Illuminate\Database\Eloquent\Model;
  * @property-read \App\Models\Mod $modOriginal
  * @property-read \App\Models\Server $server
  * @mixin \Eloquent
+ * @property int $id
+ * @property \Carbon\Carbon|null $created_at
+ * @property \Carbon\Carbon|null $updated_at
+ * @property int $weekday
+ * @property int $hour
+ * @property int $continuous
+ * @property int $server_id
+ * @property int $map_id
+ * @property int $mod_id
+ * @property int|null $mod_original_id
+ * @property int $minutes
+ * @method static \Illuminate\Database\Eloquent\Builder|\App\Models\ServerHistory whereContinuous($value)
+ * @method static \Illuminate\Database\Eloquent\Builder|\App\Models\ServerHistory whereCreatedAt($value)
+ * @method static \Illuminate\Database\Eloquent\Builder|\App\Models\ServerHistory whereHour($value)
+ * @method static \Illuminate\Database\Eloquent\Builder|\App\Models\ServerHistory whereId($value)
+ * @method static \Illuminate\Database\Eloquent\Builder|\App\Models\ServerHistory whereMapId($value)
+ * @method static \Illuminate\Database\Eloquent\Builder|\App\Models\ServerHistory whereMinutes($value)
+ * @method static \Illuminate\Database\Eloquent\Builder|\App\Models\ServerHistory whereModId($value)
+ * @method static \Illuminate\Database\Eloquent\Builder|\App\Models\ServerHistory whereModOriginalId($value)
+ * @method static \Illuminate\Database\Eloquent\Builder|\App\Models\ServerHistory whereServerId($value)
+ * @method static \Illuminate\Database\Eloquent\Builder|\App\Models\ServerHistory whereUpdatedAt($value)
+ * @method static \Illuminate\Database\Eloquent\Builder|\App\Models\ServerHistory whereWeekday($value)
  */
 class ServerHistory extends Model
 {
