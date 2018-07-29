@@ -40,7 +40,7 @@ class GameServerController
                 usleep(NetworkController::CONNECTION_SLEEP_DURATION * 1000);
 
                 while (true) {
-                    if (!NetworkController::receive_packet($sock, $servers, array(self::class, "processPacket"))) {
+                    if (!NetworkController::receive_packet($sock, $servers, [self::class, "processPacket"])) {
                         if ($durationWithoutResponse > NetworkController::CONNECTION_TIMEOUT) {
                             // we didn't receive any packets in time and cancel the connection here
                             break;
@@ -201,8 +201,7 @@ class GameServerController
                 }
                 $server->setAttribute('players', $players);
                 break;
-            case
-            NetworkController::PACKETS['SERVERBROWSE_INFO_EXTENDED_MORE']:
+            case NetworkController::PACKETS['SERVERBROWSE_INFO_EXTENDED_MORE']:
                 // extended response even more
                 $server->setAttribute('server_type', 'ext+');
                 break;

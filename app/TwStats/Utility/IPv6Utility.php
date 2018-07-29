@@ -48,8 +48,8 @@ class IPv6Utility
         } else {
             $dns = $dns6;
         }
-        $ip6 = array();
-        $ip4 = array();
+        $ip6 = [];
+        $ip4 = [];
         foreach ($dns as $record) {
             if ($record["type"] == "A") {
                 $ip4[] = $record["ip"];

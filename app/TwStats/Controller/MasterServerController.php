@@ -75,7 +75,7 @@ class MasterServerController
         usleep(NetworkController::CONNECTION_SLEEP_DURATION * 1000);
 
         while (true) {
-            if (!NetworkController::receive_packet($sock, $masterServers, array(self::class, "processPacket"))) {
+            if (!NetworkController::receive_packet($sock, $masterServers, [self::class, "processPacket"])) {
                 if ($durationWithoutResponse > NetworkController::CONNECTION_TIMEOUT) {
                     // we didn't receive any packets in time and cancel the connection here
                     socket_close($sock);
