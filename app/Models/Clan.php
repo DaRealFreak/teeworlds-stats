@@ -261,7 +261,7 @@ class Clan extends Model
             }
         }
 
-        $max = max($clanOnlineHours);
+        $max = max($clanOnlineHours ? $clanOnlineHours : 1);
         foreach ($clanOnlineHours as $clanOnlineHour) {
             yield round($clanOnlineHour / $max * 100, 2);
         }
@@ -282,7 +282,7 @@ class Clan extends Model
             }
         }
 
-        $max = max($clanOnlineDays);
+        $max = max($clanOnlineDays ? $clanOnlineDays : 1);
         foreach ($clanOnlineDays as $clanOnlineDay) {
             yield round($clanOnlineDay / $max * 100, 2);
         }
