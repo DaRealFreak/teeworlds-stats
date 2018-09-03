@@ -40,8 +40,8 @@
                         </div>
                         <div class="progress progress-template">
                             <div role="progressbar"
-                                 style="width: {{ round(($controller->playersCreatedLast24Hours()->count() / ($count = $controller->playersSeenLast24Hours()->count() > 0 ? $count: 1)) * 100, 2) }}%"
-                                 aria-valuenow="{{ round(($controller->playersCreatedLast24Hours()->count() / ($count = $controller->playersSeenLast24Hours()->count() > 0 ? $count : 1)) * 100, 2) }}"
+                                 style="width: {{ round(($controller->playersCreatedLast24Hours()->count() / (($count = $controller->playersSeenLast24Hours()->count()) > 0 ? $count: 1)) * 100, 2) }}%"
+                                 aria-valuenow="{{ round(($controller->playersCreatedLast24Hours()->count() / (($count = $controller->playersSeenLast24Hours()->count()) > 0 ? $count : 1)) * 100, 2) }}"
                                  aria-valuemin="0"
                                  aria-valuemax="100" class="progress-bar progress-bar-template dashbg-1"></div>
                         </div>
