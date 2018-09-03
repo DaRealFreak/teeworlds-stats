@@ -191,6 +191,7 @@ class Clan extends Model
      */
     public function chartPlayedMaps($duration = 0, $amount = 10, $displayOthers = False)
     {
+        $results = [];
         /** @var PlayerHistory $playedMap */
         foreach ($this->mostPlayedMaps($duration)->get() as $playedMap) {
             $results[$playedMap->map->getAttribute('name')] = (int)$playedMap->getAttribute('sum_minutes');
@@ -210,10 +211,12 @@ class Clan extends Model
      */
     public function chartPlayedMods($duration = 0, $amount = 10, $displayOthers = False)
     {
+        $results = [];
         /** @var PlayerHistory $playedMod */
         foreach ($this->mostPlayedMods($duration)->get() as $playedMod) {
             $results[$playedMod->mod->getAttribute('name')] = (int)$playedMod->getAttribute('sum_minutes');
         }
+
         ChartUtility::applyLimits($results, $amount, $displayOthers);
 
         // sort by key if radar chart is used(>= 3 mods), else it looks pretty bad normally
@@ -261,9 +264,9 @@ class Clan extends Model
             }
         }
 
-        $max = max($clanOnlineHours ? $clanOnlineHours : 1);
+        $max = max($clanOnlineHours);
         foreach ($clanOnlineHours as $clanOnlineHour) {
-            yield round($clanOnlineHour / $max * 100, 2);
+            yield round($clanOnlineHour / ($max ? $max: 1) * 100, 2);
         }
     }
 
@@ -282,9 +285,9 @@ class Clan extends Model
             }
         }
 
-        $max = max($clanOnlineDays ? $clanOnlineDays : 1);
+        $max = max($clanOnlineDays);
         foreach ($clanOnlineDays as $clanOnlineDay) {
-            yield round($clanOnlineDay / $max * 100, 2);
+            yield round($clanOnlineDay / ($max ? $max: 1) * 100, 2);
         }
     }
 }
