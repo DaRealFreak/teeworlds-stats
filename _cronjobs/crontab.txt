@@ -1,3 +1,0 @@
-*/5 * * * * php5 -f /root/background/gather_data.php >> /root/background/gather.log 2>> /root/background/gather-err.log
-*/10 * * * * php5 -f /root/background/delete_data.php >> /root/background/delete.log 2>> /root/background/delete-err.log
-2 * * * * php5 -f /root/background/gather_servers.php >> /root/background/gather-serv.log 2>> /root/background/gather-serv-err.log

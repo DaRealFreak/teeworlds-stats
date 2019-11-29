@@ -1,0 +1,46 @@
+// Fonts
+@import 'font-raleway';
+// Variables
+@import "variables";
+// Bootstrap
+@import '~bootstrap/scss/bootstrap';
+// Font Awesome
+@import '~font-awesome/scss/font-awesome';
+// Template SCSS
+@import 'dark_admin_bootstrapius';
+// JqueryUI theme
+@import 'jquery-ui-dark-hive';
+
+.navbar-laravel {
+  background-color: #fff;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.04);
+}
+
+html {
+  background-color: #2d3034;
+}
+
+.list-group-item-transparent {
+  background-color: transparent;
+  border-radius: 0;
+  color: #2d3034;
+}
+
+section.section-content {
+  padding-top: 30px;
+}
+
+.heading-first {
+  padding-top: 20px;
+}
+
+.pre-scrollable-needed {
+  overflow-x: auto;
+  overflow-y: auto;
+}
+
+@media only screen and (min-width: 768px) {
+  .pagination {
+    justify-content: center;
+  }
+}
