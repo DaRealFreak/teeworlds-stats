@@ -20,6 +20,8 @@ hooks:
   post-start:
     - exec: echo '* * * * * /usr/bin/php /var/www/html/artisan schedule:run >> /dev/null 2>&1' | sudo tee -a /etc/cron.d/laravel-cron
     - exec: sudo chmod 0600 /etc/cron.d/laravel-cron && sudo crontab /etc/cron.d/laravel-cron && sudo service cron start
+    - exec: curl -sL https://deb.nodesource.com/setup_13.x | sudo -E bash -
+    - exec: sudo apt-get install -y nodejs
 
 # This config.yaml was created with ddev version v1.11.2 
 # webimage: drud/ddev-webserver:v1.11.0
