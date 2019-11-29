@@ -24,9 +24,10 @@ _ide_helper.php
 .rocketeer/
 
 # generated files from assets
-/public/css/*
-/public/js/*
-/public/fonts/*
+/public/css
+/public/js
+/public/fonts
+/public/images
 /public/mix-manifest.json
 
 # docker setup environmental files
