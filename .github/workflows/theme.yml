@@ -1,0 +1,23 @@
+name: Theme
+
+on: [push, pull_request]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v1
+
+      - uses: actions/setup-node@v1
+        with:
+          node-version: '13.x'
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Run production build process
+        run: npm run production
+
+      - name: Check for security issues
+        run: npm audit
