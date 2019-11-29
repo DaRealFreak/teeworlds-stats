@@ -1,9 +1,10 @@
 # Teeworlds Stats
+![](https://github.com/DaRealFreak/teeworlds-stats/workflows/Composer/badge.svg?branch=master) ![](https://github.com/DaRealFreak/teeworlds-stats/workflows/Theme/badge.svg?branch=master)
+
 This is a completely rewritten version of www.teeworlds-stats.info
 
 ### Installing
-
-This project is running with PHP 7.2+ using the PHP Framework [Laravel](https://laravel.com).
+This project is running with PHP 7.3+ using the PHP Framework [Laravel](https://laravel.com).
 Download this repository and install the dependencies like described in the Dependencies section
 
 ### Dependencies
