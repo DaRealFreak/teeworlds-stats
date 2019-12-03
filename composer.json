@@ -16,6 +16,7 @@
     "laravel/framework": "^6.2",
     "laravel/tinker": "^1.0",
     "laravelcollective/html": "^6.0",
+    "nicolaslopezj/searchable": "^1.12",
     "spatie/laravel-responsecache": "^6.4"
   },
   "require-dev": {
