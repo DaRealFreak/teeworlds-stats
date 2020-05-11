@@ -3975,20 +3975,20 @@
         },
         {
             "name": "tom-lingham/searchy",
-            "version": "2.0.19",
+            "version": "2.0.20",
             "source": {
                 "type": "git",
                 "url": "https://github.com/TomLingham/Laravel-Searchy.git",
-                "reference": "1451448f17cbe15c0316c724ce4071829976293e"
+                "reference": "e09994bdbe0a254b8e1b6f81e183c99d843e08bf"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/TomLingham/Laravel-Searchy/zipball/1451448f17cbe15c0316c724ce4071829976293e",
-                "reference": "1451448f17cbe15c0316c724ce4071829976293e",
+                "url": "https://api.github.com/repos/TomLingham/Laravel-Searchy/zipball/e09994bdbe0a254b8e1b6f81e183c99d843e08bf",
+                "reference": "e09994bdbe0a254b8e1b6f81e183c99d843e08bf",
                 "shasum": ""
             },
             "require": {
-                "illuminate/support": "^5.1 || ^6.0",
+                "illuminate/support": "^5.1 || ^6.0 || ^7.0",
                 "php": "^5.5.9 || ^7.0"
             },
             "require-dev": {
@@ -4030,7 +4030,7 @@
                 "laravel",
                 "search"
             ],
-            "time": "2020-01-06T22:24:05+00:00"
+            "time": "2020-05-08T10:26:30+00:00"
         },
         {
             "name": "vlucas/phpdotenv",
