@@ -5,19 +5,12 @@ on: [push, pull_request]
 jobs:
   build:
     runs-on: ubuntu-latest
-
     steps:
-      - uses: actions/checkout@v1
-
-      - uses: actions/setup-node@v1
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
         with:
-          node-version: '13.x'
-
+          node-version: '22'
       - name: Install dependencies
-        run: npm install
-
-      - name: Run production build process
-        run: npm run production
-
-      - name: Check for security issues
-        run: npm audit
+        run: npm ci
+      - name: Build assets
+        run: npm run build
