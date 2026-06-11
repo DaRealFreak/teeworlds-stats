@@ -7,9 +7,9 @@ use App\Models\Map;
 use App\Models\Mod;
 use App\Models\Player;
 use App\Models\Server;
+use App\Service\FuzzySearch;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Redirect;
-use TomLingham\Searchy\Facades\Searchy;
 
 class SearchController extends Controller
 {
@@ -51,9 +51,7 @@ class SearchController extends Controller
 
         if (!$player = (new Player)->where('name', $tee_name)->first()) {
             $suggestedPlayers = Player::hydrate(
-                Searchy::search('players')
-                    ->fields('name')
-                    ->query($tee_name)->getQuery()
+                FuzzySearch::on(Player::query(), 'name', $tee_name)
                     ->having('relevance', '>', 20)
                     ->limit(10)
                     ->get()->toArray()
@@ -94,9 +92,7 @@ class SearchController extends Controller
 
         if (!$clan = (new Clan)->where('name', $clan_name)->first()) {
             $clanSuggestions = Clan::hydrate(
-                Searchy::search('clans')
-                    ->fields('name')
-                    ->query($clan_name)->getQuery()
+                FuzzySearch::on(Clan::query(), 'name', $clan_name)
                     ->having('relevance', '>', 20)
                     ->limit(10)
                     ->get()->toArray()
@@ -139,9 +135,7 @@ class SearchController extends Controller
 
         if (!$server = Server::where('name', $server_name)->first()) {
             $serverSuggestions = Server::hydrate(
-                Searchy::search('servers')
-                    ->fields('name')
-                    ->query($server_name)->getQuery()
+                FuzzySearch::on(Server::query(), 'name', $server_name)
                     ->having('relevance', '>', 20)
                     ->limit(10)
                     ->get()->toArray()
@@ -169,9 +163,7 @@ class SearchController extends Controller
 
         if (!$server = Server::where(['id' => $server_id])->first()) {
             $serverSuggestions = Server::hydrate(
-                Searchy::search('servers')
-                    ->fields('name')
-                    ->query($server_name)->getQuery()
+                FuzzySearch::on(Server::query(), 'name', $server_name)
                     ->having('relevance', '>', 20)
                     ->limit(10)
                     ->get()->toArray()
@@ -211,9 +203,7 @@ class SearchController extends Controller
 
         if (!$mod = (new Mod)->where('name', $mod_name)->first()) {
             $suggestedPlayers = Player::hydrate(
-                Searchy::search('mods')
-                    ->fields('name')
-                    ->query($mod_name)->getQuery()
+                FuzzySearch::on(Mod::query(), 'name', $mod_name)
                     ->having('relevance', '>', 20)
                     ->limit(10)
                     ->get()->toArray()
@@ -254,9 +244,7 @@ class SearchController extends Controller
 
         if (!$map = (new Map)->where('name', $map_name)->first()) {
             $suggestedPlayers = Player::hydrate(
-                Searchy::search('maps')
-                    ->fields('name')
-                    ->query($map_name)->getQuery()
+                FuzzySearch::on(Map::query(), 'name', $map_name)
                     ->having('relevance', '>', 20)
                     ->limit(10)
                     ->get()->toArray()

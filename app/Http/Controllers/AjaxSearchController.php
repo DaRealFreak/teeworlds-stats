@@ -9,7 +9,6 @@ use App\Models\Player;
 use App\Models\Server;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Input;
 use Illuminate\Support\Str;
 
 class AjaxSearchController extends Controller
@@ -21,7 +20,7 @@ class AjaxSearchController extends Controller
      */
     public function searchTee(Request $request)
     {
-        $term = Str::lower(Input::get('term'));
+        $term = Str::lower($request->input('term'));
 
         $playerSuggestions = Player::where('name', 'like', '%' . $term . '%')
             ->orderByRaw('`name` LIKE ? DESC', $term . '%')
@@ -43,7 +42,7 @@ class AjaxSearchController extends Controller
      */
     public function searchClan(Request $request)
     {
-        $term = Str::lower(Input::get('term'));
+        $term = Str::lower($request->input('term'));
 
         $clanSuggestions = Clan::where('name', 'like', '%' . $term . '%')
             ->orderByRaw('`name` LIKE ? DESC', $term . '%')
@@ -65,7 +64,7 @@ class AjaxSearchController extends Controller
      */
     public function searchServer(Request $request)
     {
-        $term = Str::lower(Input::get('term'));
+        $term = Str::lower($request->input('term'));
 
         $serverSuggestions = Server::where('name', 'like', '%' . $term . '%')
             ->orderByRaw('`name` LIKE ? DESC', $term . '%')
@@ -88,7 +87,7 @@ class AjaxSearchController extends Controller
      */
     public function searchMod(Request $request)
     {
-        $term = Str::lower(Input::get('term'));
+        $term = Str::lower($request->input('term'));
 
         $modSuggestions = Mod::where('name', 'like', '%' . $term . '%')
             ->orderByRaw('`name` LIKE ? DESC', $term . '%')
@@ -110,7 +109,7 @@ class AjaxSearchController extends Controller
      */
     public function searchMap(Request $request)
     {
-        $term = Str::lower(Input::get('term'));
+        $term = Str::lower($request->input('term'));
 
         $mapSuggestions = Map::where('name', 'like', '%' . $term . '%')
             ->orderByRaw('`name` LIKE ? DESC', $term . '%')
