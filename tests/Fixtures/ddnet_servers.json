@@ -1,0 +1,56 @@
+{
+  "servers": [
+    {
+      "addresses": ["tw-0.6+udp://192.0.2.10:8303", "tw-0.7+udp://192.0.2.10:8303"],
+      "location": "eu",
+      "info": {
+        "name": "DDNet GER10",
+        "map": {"name": "Multeasymap"},
+        "game_type": "DDraceNetwork",
+        "version": "0.6.4, 19.1",
+        "max_clients": 64,
+        "max_players": 64,
+        "clients": [
+          {"name": "vin", "clan": "", "country": -102, "score": -1, "is_player": true, "afk": false,
+           "skin": {"name": "glow_cammo", "color_body": 16726016, "color_feet": 16745499}},
+          {"name": "glow", "clan": "GLOW", "country": -1, "score": 120, "is_player": true, "afk": true,
+           "skin": {"body": {"name": "standard", "color": 65408}, "marking": {"name": "duodonny", "color": 65408}}}
+        ]
+      }
+    },
+    {
+      "addresses": ["tw-0.7+udp://[2001:db8::5]:8310"],
+      "location": "na",
+      "info": {
+        "name": "Vanilla 0.7 CTF",
+        "map": {"name": "ctf1"},
+        "game_type": "CTF",
+        "version": "0.7.5",
+        "max_clients": 16,
+        "max_players": 16,
+        "clients": [
+          {"name": "Bob", "clan": "", "country": 840, "score": 3, "is_player": true}
+        ]
+      }
+    },
+    {
+      "addresses": ["tw-0.6+udp://198.51.100.7:8303"],
+      "info": {
+        "name": "Vanilla 0.6 DM",
+        "map": {"name": "dm1"},
+        "game_type": "DM",
+        "version": "0.6.4",
+        "max_clients": 16,
+        "max_players": 16,
+        "clients": []
+      }
+    },
+    {
+      "addresses": ["tw-0.6+udp://203.0.113.9:8303"]
+    },
+    {
+      "addresses": ["http://not-a-tw-url"],
+      "info": {"name": "x", "map": {"name": "y"}, "game_type": "z", "version": "0.6.4", "max_clients": 8, "max_players": 8, "clients": []}
+    }
+  ]
+}
