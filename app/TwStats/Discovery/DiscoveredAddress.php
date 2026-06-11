@@ -22,7 +22,9 @@ final class DiscoveredAddress
      */
     public static function fromUrl(string $url): ?self
     {
-        if (!preg_match('#^tw-0\.([67])\+udp://(.+):(\d+)$#', $url, $m)) {
+        // host is either a bracketed IPv6 literal or a colon-free bare host, so a stray
+        // extra ":port" can't be swallowed into the host capture (returns null instead).
+        if (!preg_match('#^tw-0\.([67])\+udp://(\[.+?\]|[^:]+):(\d+)$#', $url, $m)) {
             return null;
         }
 

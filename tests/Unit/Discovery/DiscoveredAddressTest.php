@@ -33,5 +33,6 @@ class DiscoveredAddressTest extends TestCase
         $this->assertNull(DiscoveredAddress::fromUrl('tw-0.5+udp://192.0.2.10:8303'));
         $this->assertNull(DiscoveredAddress::fromUrl('tw-0.6+udp://192.0.2.10'));
         $this->assertNull(DiscoveredAddress::fromUrl(''));
+        $this->assertNull(DiscoveredAddress::fromUrl('tw-0.6+udp://192.0.2.10:8303:9999'));
     }
 }
