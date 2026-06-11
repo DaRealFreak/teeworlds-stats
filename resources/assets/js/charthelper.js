@@ -126,6 +126,7 @@ $(function () {
                 options: {
                     scales: {
                         r: {
+                            max: chartMax,
                             grid: {
                                 color: '#3f4145'
                             },
@@ -134,7 +135,6 @@ $(function () {
                                 callback: function (value) {
                                     return humanizeDuration(value * 60 * 100);
                                 },
-                                max: chartMax
                             },
                             pointLabels: {
                                 font: { size: 12 }

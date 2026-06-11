@@ -9,7 +9,8 @@
     "axios": "^1.7",
     "laravel-vite-plugin": "^1.0",
     "sass": "^1.77",
-    "vite": "^6.0"
+    "vite": "^6.0",
+    "vite-plugin-static-copy": "^4.1.1"
   },
   "dependencies": {
     "@popperjs/core": "^2.11",
