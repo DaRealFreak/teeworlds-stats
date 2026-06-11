@@ -202,7 +202,7 @@ class SearchController extends Controller
         $mod_name = urldecode($mod_name);
 
         if (!$mod = (new Mod)->where('name', $mod_name)->first()) {
-            $suggestedPlayers = Player::hydrate(
+            $modSuggestions = Mod::hydrate(
                 FuzzySearch::on(Mod::query(), 'name', $mod_name)
                     ->having('relevance', '>', 20)
                     ->limit(10)
@@ -211,7 +211,7 @@ class SearchController extends Controller
 
             return Redirect::to("search")
                 ->withErrors(['mod' => 'This mod does not exist'])
-                ->with('modSuggestions', $suggestedPlayers);
+                ->with('modSuggestions', $modSuggestions);
         }
 
         return view('detail.mod')->with('mod', $mod);
@@ -243,7 +243,7 @@ class SearchController extends Controller
         $map_name = urldecode($map_name);
 
         if (!$map = (new Map)->where('name', $map_name)->first()) {
-            $suggestedPlayers = Player::hydrate(
+            $mapSuggestions = Map::hydrate(
                 FuzzySearch::on(Map::query(), 'name', $map_name)
                     ->having('relevance', '>', 20)
                     ->limit(10)
@@ -252,7 +252,7 @@ class SearchController extends Controller
 
             return Redirect::to("search")
                 ->withErrors(['map' => 'This map does not exist'])
-                ->with('mapSuggestions', $suggestedPlayers);
+                ->with('mapSuggestions', $mapSuggestions);
         }
 
         return view('detail.map')->with('map', $map);

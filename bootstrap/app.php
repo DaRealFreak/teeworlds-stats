@@ -21,6 +21,7 @@ return Application::configure(basePath: dirname(__DIR__))
     ->withSchedule(function (Schedule $schedule): void {
         $schedule->command(UpdateData::class)
             ->everyTenMinutes()
+            ->before(fn () => \Illuminate\Support\Facades\File::ensureDirectoryExists(storage_path('logs/update_data')))
             ->sendOutputTo(storage_path('logs/update_data/'.now()->timestamp.'.log'))
             ->after(function (): void {
                 Artisan::call(UpdateDailySummary::class);

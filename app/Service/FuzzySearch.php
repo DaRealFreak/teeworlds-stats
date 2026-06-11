@@ -11,6 +11,8 @@ class FuzzySearch
      * given column matches the term: exact (100), prefix (60), contains (40).
      * Mirrors the prior tom-lingham/searchy single-field behavior so callers
      * can chain ->having('relevance', '>', N)->limit(M)->get().
+     *
+     * @param string $column Trusted schema identifier (column name); never pass user input.
      */
     public static function on(Builder $query, string $column, string $term): Builder
     {
@@ -18,13 +20,17 @@ class FuzzySearch
         $model = $query->getModel();
         $table = $model->getTable();
 
+        // Quote the column identifier via the connection grammar so reserved words
+        // and unusual names are safely delimited; $term remains a bound parameter.
+        $wrapped = $query->getQuery()->getGrammar()->wrap($column);
+
         return $query
             ->selectRaw("{$table}.*")
             ->selectRaw(
                 "(CASE
-                    WHEN {$column} = ? THEN 100
-                    WHEN {$column} LIKE ? THEN 60
-                    WHEN {$column} LIKE ? THEN 40
+                    WHEN {$wrapped} = ? THEN 100
+                    WHEN {$wrapped} LIKE ? THEN 60
+                    WHEN {$wrapped} LIKE ? THEN 40
                     ELSE 0
                 END) AS relevance",
                 [$term, $term.'%', '%'.$term.'%']

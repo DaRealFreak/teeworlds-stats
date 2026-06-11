@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Models\Mod;
 use App\Models\Player;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
@@ -53,5 +54,34 @@ class SearchFlowTest extends TestCase
 
         $response->assertRedirect(url('search'));
         $response->assertSessionHasErrors('tee');
+    }
+
+    /**
+     * (d) Regression: GET /mod/{near-miss}/ must flash a modSuggestions collection
+     * hydrated as Mod models, not Player models.
+     *
+     * Before FIX 1 the controller called Player::hydrate() on the FuzzySearch results
+     * from the mods table, so each suggestion was a Player instance with no 'name'
+     * attribute populated from the mods row. After the fix, Mod::hydrate() is used
+     * and each suggestion is a proper Mod instance.
+     */
+    public function test_mod_suggestion_is_hydrated_as_mod_not_player(): void
+    {
+        Mod::create(['name' => 'FNG']);
+
+        $response = $this->get('/mod/' . urlencode('FN') . '/');
+
+        $response->assertRedirect(url('search'));
+
+        // Read the flashed collection before assertSessionHasErrors: that helper
+        // re-serialises the session bag and converts objects to arrays as a side-effect.
+        $suggestions = $response->getSession()->get('modSuggestions');
+        $this->assertNotNull($suggestions, 'modSuggestions must be flashed to the session');
+        $this->assertNotEmpty($suggestions, 'modSuggestions must not be empty');
+        $first = $suggestions->first();
+        $this->assertInstanceOf(Mod::class, $first, 'Each suggestion must be a Mod instance, not a Player');
+        $this->assertSame('FNG', $first->name, 'The hydrated Mod must carry the name from the mods table');
+
+        $response->assertSessionHasErrors('mod');
     }
 }
