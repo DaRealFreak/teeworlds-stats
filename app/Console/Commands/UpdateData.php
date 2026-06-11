@@ -136,9 +136,6 @@ class UpdateData extends Command
                     'map_id' => $mapModel->getAttribute('id'),
                     'mod_id' => $modModel->getAttribute('id'),
                     'mod_original_id' => $originalModModel ? $originalModModel->getAttribute('id') : null,
-                    // SQLite enforces NOT NULL strictly; seed 0 so the row is valid before
-                    // the interval is added below (MySQL silently defaults unsigned int NOT NULL to 0)
-                    'minutes' => 0,
                 ]
             );
         }
@@ -169,9 +166,7 @@ class UpdateData extends Command
             }
 
             /** @var Player $playerModel */
-            // country has no DB default; pass a placeholder so the INSERT succeeds on strict
-            // DBs (SQLite); the real country is written by setAttribute below before save()
-            $playerModel = Player::firstOrCreate(['name' => $client->name], ['country' => Countries::getCountryName(-1)]);
+            $playerModel = Player::firstOrCreate(['name' => $client->name]);
 
             // update player last seen stat
             $playerModel->setAttribute('last_seen', Carbon::now());
@@ -182,9 +177,7 @@ class UpdateData extends Command
             }
 
             if ($client->clan !== '') {
-                // introduction/website have no DB default; pass empty strings so the INSERT
-                // is valid on strict DBs (SQLite); the scraper has no clan metadata to fill them
-                $clanModel = Clan::firstOrCreate(['name' => $client->clan], ['introduction' => '', 'website' => '']);
+                $clanModel = Clan::firstOrCreate(['name' => $client->clan]);
 
                 // leave the current clan if the player is now reporting a different tag
                 if ($playerModel->clan() && $playerModel->clan()->getAttribute('name') !== $clanModel->getAttribute('name')) {
@@ -312,9 +305,6 @@ class UpdateData extends Command
                     'map_id' => $mapModel->getAttribute('id'),
                     'mod_id' => $modModel->getAttribute('id'),
                     'mod_original_id' => $originalModModel ? $originalModModel->getAttribute('id') : null,
-                    // SQLite enforces NOT NULL strictly; seed 0 so the row is valid before
-                    // the interval is added below (MySQL silently defaults unsigned int NOT NULL to 0)
-                    'minutes' => 0,
                 ]
             );
         }
