@@ -131,6 +131,7 @@ class RouteSmokeTest extends TestCase
             'general'  => ['/general'],
             'tees'     => ['/tees'],
             'servers'  => ['/servers'],
+            'serverbrowser' => ['/serverbrowser'],
         ];
     }
 }

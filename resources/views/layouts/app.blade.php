@@ -99,6 +99,7 @@
                 <li><a href="{{ url('/') }}"> <i class="icon-home"></i>Home </a></li>
                 <li><a href="{{ url('general') }}"> <i class="fa fa-bar-chart"></i>Game Statistics </a></li>
                 <li><a href="{{ url('search') }}"> <i class="icon-magnifying-glass-browser"></i>Search </a></li>
+                <li><a href="{{ url('serverbrowser') }}"> <i class="fa fa-server"></i>Server Browser </a></li>
             </ul>
 
             <!-- List View Navigation Entries -->
