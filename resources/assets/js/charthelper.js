@@ -1,4 +1,11 @@
-$(function () {
+// Import Chart directly (same instance app.js registers) instead of relying on the
+// window.Chart global, which app.js only sets after its imports have evaluated.
+import { Chart } from 'chart.js';
+
+// Define ChartHelper synchronously at module load so it is available before the
+// page's DOMContentLoaded handlers run. (A jQuery $(function(){}) ready wrapper here
+// would race with the inline view scripts, which is what broke `ChartHelper` on /general.)
+(function () {
     'use strict';
 
     // Chart.js 4: global defaults are under Chart.defaults (not Chart.defaults.global)
@@ -258,4 +265,4 @@ $(function () {
             chart.update();
         }
     };
-});
+})();
