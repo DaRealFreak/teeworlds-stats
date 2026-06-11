@@ -18,8 +18,8 @@ class SearchFlowTest extends TestCase
         // Without a Referer the "back" redirect goes to '/'
         $response = $this->get('/tee');
 
-        $response->assertRedirect();
-        $response->assertStatus(302);
+        // assertRedirect asserts both 3xx status and the Location header target.
+        $response->assertRedirect('/');
 
         // In Laravel 5.8 the flashed session errors are readable directly on
         // the redirect response — no need to follow the redirect.
@@ -57,16 +57,7 @@ class SearchFlowTest extends TestCase
             'SQLite in-memory test database. Re-test in Phase 3 after replacing ' .
             'Searchy with a SQLite-compatible FuzzySearch implementation.'
         );
-
-        // The code under test (for reference when this skip is removed):
-        // Player with name 'NonExistentTee9x' is not in DB, so the controller
-        // should redirect to 'search' and flash a 'tee' session error.
-        $response = $this->get('/tee/' . urlencode('NonExistentTee9x') . '/');
-
-        $response->assertStatus(302);
-        $response->assertRedirect(url('search'));
-
-        $this->followRedirects($response)
-            ->assertSessionHasErrors('tee');
+        // Reference behavior: GET /tee/{name}/ for an unknown player should
+        // assertRedirect(url('search')) and assertSessionHasErrors('tee').
     }
 }

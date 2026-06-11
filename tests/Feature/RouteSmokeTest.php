@@ -114,11 +114,7 @@ class RouteSmokeTest extends TestCase
     {
         $this->seedMinimalData();
         $response = $this->get($uri);
-        $this->assertContains(
-            $response->getStatusCode(),
-            [200, 302],
-            "Route {$uri} returned {$response->getStatusCode()}"
-        );
+        $response->assertStatus(200);
     }
 
     public static function publicRouteProvider(): array

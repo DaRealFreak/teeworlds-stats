@@ -19,7 +19,7 @@ use Tests\TestCase;
  *   - version      "0.7.5"
  *   - map          "dm1"
  *   - gametype     "DM"
- *   - numclients   2 / maxclients 16
+ *   - numplayers   2 / maxplayers 16 / numclients 2 / maxclients 16
  *   - 2 players:  "Alice" (no clan)  and  "Bob" (clan "MyClan")
  *
  * Packet layout (matches the NetworkController constants):
@@ -45,10 +45,6 @@ class TwStatsParseTest extends TestCase
     {
         parent::setUp();
         $this->fixturePath = __DIR__ . '/../Fixtures/server_info_response.bin';
-    }
-
-    public function test_fixture_file_exists(): void
-    {
         $this->assertFileExists(
             $this->fixturePath,
             'Fixture file tests/Fixtures/server_info_response.bin is missing'
@@ -85,11 +81,11 @@ class TwStatsParseTest extends TestCase
         $this->assertSame('dm1',        $server->getAttribute('map'));
         $this->assertSame('DM',         $server->getAttribute('gametype'));
 
-        // Client counts
-        $this->assertSame(2,  $server->getAttribute('numclients'));
-        $this->assertSame(16, $server->getAttribute('maxclients'));
+        // Client counts (in parse order: numplayers → maxplayers → numclients → maxclients)
         $this->assertSame(2,  $server->getAttribute('numplayers'));
         $this->assertSame(16, $server->getAttribute('maxplayers'));
+        $this->assertSame(2,  $server->getAttribute('numclients'));
+        $this->assertSame(16, $server->getAttribute('maxclients'));
 
         // Players
         $players = $server->getAttribute('players');
