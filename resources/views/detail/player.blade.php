@@ -308,7 +308,7 @@
     <script>
         document.addEventListener('DOMContentLoaded', function () {
             @if (count($modsChart))
-                let playedMods = $('#playedModsChart');
+                let playedMods = document.getElementById('playedModsChart');
                 @if (count($modsChart) >= 3)
                     // radar reads well once there are a few mods to compare
                     ChartHelper.radarChart(playedMods,

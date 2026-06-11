@@ -81,17 +81,17 @@
     <script>
         document.addEventListener('DOMContentLoaded', function () {
 
-            ChartHelper.lineChart($('#onlineLineChartDays'),
+            ChartHelper.lineChart(document.getElementById('onlineLineChartDays'),
                 ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"],
                 blade({!! json_encode($server->chartOnlineDays()) !!})
             );
 
-            ChartHelper.lineChart($('#onlineLineChartHours'),
+            ChartHelper.lineChart(document.getElementById('onlineLineChartHours'),
                 ["12 AM", "1 AM", "2 AM", "3 AM", "4 AM", "5 AM", "6 AM", "7 AM", "8 AM", "9 AM", "10 AM", "11 AM", "12 PM", "13 PM", "14 PM", "15 PM", "16 PM", "17 PM", "18 PM", "19 PM", "20 PM", "21 PM", "22 PM", "23 PM"],
                 blade({!! json_encode($server->chartOnlineHours()) !!})
             );
 
-            let playedMaps = ChartHelper.pieChart($('#serverMaps'),
+            let playedMaps = ChartHelper.pieChart(document.getElementById('serverMaps'),
                 blade({!! json_encode(array_keys($server->chartPlayedMaps())) !!}),
                 blade({!! json_encode(array_values($server->chartPlayedMaps()))  !!})
             );
@@ -99,7 +99,7 @@
             ChartHelper.chartColors(playedMaps, {0: [117, 46, 224, 1], 100: [166, 120, 235, 1]});
 
             @if (count($countryStats['countries']))
-                ChartHelper.countryDoughnut($('#serverCountries'),
+                ChartHelper.countryDoughnut(document.getElementById('serverCountries'),
                     {!! json_encode(array_column($countryStats['countries'], 'name')) !!},
                     {!! json_encode(array_column($countryStats['countries'], 'count')) !!}
                 );

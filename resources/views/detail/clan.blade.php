@@ -309,22 +309,22 @@
             document.addEventListener('DOMContentLoaded', function () {
 
                 // All-Time Records
-                let playerCountriesChart = ChartHelper.pieChart($('#playerCountries'),
+                let playerCountriesChart = ChartHelper.pieChart(document.getElementById('playerCountries'),
                     blade({!! json_encode(array_keys($clan->chartPlayerCountries())) !!}),
                     blade({!! json_encode(array_values($clan->chartPlayerCountries())) !!})
                 );
 
-                ChartHelper.lineChart($('#onlineLineChartDays'),
+                ChartHelper.lineChart(document.getElementById('onlineLineChartDays'),
                     ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"],
                     blade({!! json_encode(iterator_to_array($clan->chartOnlineDays())) !!})
                 );
 
-                ChartHelper.lineChart($('#onlineLineChartHours'),
+                ChartHelper.lineChart(document.getElementById('onlineLineChartHours'),
                     ["12 AM", "1 AM", "2 AM", "3 AM", "4 AM", "5 AM", "6 AM", "7 AM", "8 AM", "9 AM", "10 AM", "11 AM", "12 PM", "13 PM", "14 PM", "15 PM", "16 PM", "17 PM", "18 PM", "19 PM", "20 PM", "21 PM", "22 PM", "23 PM"],
                     blade({!! json_encode(iterator_to_array($clan->chartOnlineHours())) !!})
                 );
 
-                let playedMods = $('#playedModsChart');
+                let playedMods = document.getElementById('playedModsChart');
                 @if (count($clan->chartPlayedMods()) >= 3)
                     ChartHelper.radarChart(playedMods,
                         blade({!! json_encode(array_keys($clan->chartPlayedMods())) !!}),
@@ -337,7 +337,7 @@
                     );
                 @endif
 
-                let playedMaps = ChartHelper.pieChart($('#playedMapsChart'),
+                let playedMaps = ChartHelper.pieChart(document.getElementById('playedMapsChart'),
                     blade({!! json_encode(array_keys($clan->chartPlayedMaps())) !!}),
                     blade({!! json_encode(array_values($clan->chartPlayedMaps()))  !!})
                 );
@@ -347,17 +347,17 @@
 
                 document.getElementById('toggle-month').onclick = function () {
                     // Monthly Records
-                    ChartHelper.lineChart($('#monthOnlineLineChartDays'),
+                    ChartHelper.lineChart(document.getElementById('monthOnlineLineChartDays'),
                         ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"],
                         blade({!! json_encode(iterator_to_array($clan->chartOnlineDays(30))) !!})
                     );
 
-                    ChartHelper.lineChart($('#monthOnlineLineChartHours'),
+                    ChartHelper.lineChart(document.getElementById('monthOnlineLineChartHours'),
                         ["12 AM", "1 AM", "2 AM", "3 AM", "4 AM", "5 AM", "6 AM", "7 AM", "8 AM", "9 AM", "10 AM", "11 AM", "12 PM", "13 PM", "14 PM", "15 PM", "16 PM", "17 PM", "18 PM", "19 PM", "20 PM", "21 PM", "22 PM", "23 PM"],
                         blade({!! json_encode(iterator_to_array($clan->chartOnlineHours(30))) !!})
                     );
 
-                    let playedModsMonth = $('#monthPlayedModsChart');
+                    let playedModsMonth = document.getElementById('monthPlayedModsChart');
                     @if (count($clan->chartPlayedMods(30)) >= 3)
                         ChartHelper.radarChart(playedModsMonth,
                             blade({!! json_encode(array_keys($clan->chartPlayedMods(30))) !!}),
@@ -370,7 +370,7 @@
                         );
                     @endif
 
-                    let playedMapsMonth = ChartHelper.pieChart($('#monthPlayedMapsChart'),
+                    let playedMapsMonth = ChartHelper.pieChart(document.getElementById('monthPlayedMapsChart'),
                         blade({!! json_encode(array_keys($clan->chartPlayedMaps(30))) !!}),
                         blade({!! json_encode(array_values($clan->chartPlayedMaps(30)))  !!})
                     );
@@ -380,17 +380,17 @@
 
                 document.getElementById('toggle-week').onclick = function () {
                     // Weekly Records
-                    ChartHelper.lineChart($('#weekOnlineLineChartDays'),
+                    ChartHelper.lineChart(document.getElementById('weekOnlineLineChartDays'),
                         ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"],
                         blade({!! json_encode(iterator_to_array($clan->chartOnlineDays(7))) !!})
                     );
 
-                    ChartHelper.lineChart($('#weekOnlineLineChartHours'),
+                    ChartHelper.lineChart(document.getElementById('weekOnlineLineChartHours'),
                         ["12 AM", "1 AM", "2 AM", "3 AM", "4 AM", "5 AM", "6 AM", "7 AM", "8 AM", "9 AM", "10 AM", "11 AM", "12 PM", "13 PM", "14 PM", "15 PM", "16 PM", "17 PM", "18 PM", "19 PM", "20 PM", "21 PM", "22 PM", "23 PM"],
                         blade({!! json_encode(iterator_to_array($clan->chartOnlineHours(7))) !!})
                     );
 
-                    let playedModsWeek = $('#weekPlayedModsChart');
+                    let playedModsWeek = document.getElementById('weekPlayedModsChart');
                     @if (count($clan->chartPlayedMods(7)) >= 3)
                         ChartHelper.radarChart(playedModsWeek,
                             blade({!! json_encode(array_keys($clan->chartPlayedMods(7))) !!}),
@@ -403,7 +403,7 @@
                         );
                     @endif
 
-                    let playedMapsWeek = ChartHelper.pieChart($('#weekPlayedMapsChart'),
+                    let playedMapsWeek = ChartHelper.pieChart(document.getElementById('weekPlayedMapsChart'),
                         blade({!! json_encode(array_keys($clan->chartPlayedMaps(7))) !!}),
                         blade({!! json_encode(array_values($clan->chartPlayedMaps(7)))  !!})
                     );

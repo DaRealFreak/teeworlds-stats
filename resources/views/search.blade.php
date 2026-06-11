@@ -20,7 +20,7 @@
                                 <div class="mb-3">
                                     <label for="tee_name" class="form-label">Tee name</label>
                                     @if ($errors->has('tee'))
-                                        <input type="text" name="tee_name" id="tee_name"
+                                        <input type="text" name="tee_name" id="tee_name" data-autocomplete="{{ url('search/tee') }}"
                                                class="form-control is-invalid" placeholder="Tee name">
                                         <div class="invalid-feedback">{{ $errors->get('tee')[0] }}
                                             @if (filled(session('teeSuggestions')))
@@ -35,7 +35,7 @@
                                             @endif
                                         </div>
                                     @else
-                                        <input type="text" name="tee_name" id="tee_name"
+                                        <input type="text" name="tee_name" id="tee_name" data-autocomplete="{{ url('search/tee') }}"
                                                class="form-control" placeholder="Tee name">
                                     @endif
                                 </div>
@@ -58,7 +58,7 @@
                                 <div class="mb-3">
                                     <label for="clan_name" class="form-label">Clan name</label>
                                     @if ($errors->has('clan'))
-                                        <input type="text" name="clan_name" id="clan_name"
+                                        <input type="text" name="clan_name" id="clan_name" data-autocomplete="{{ url('search/clan') }}"
                                                class="form-control is-invalid" placeholder="Clan name">
                                         <div class="invalid-feedback">{{ $errors->get('clan')[0] }}
                                             @if (filled(session('clanSuggestions')))
@@ -73,7 +73,7 @@
                                             @endif
                                         </div>
                                     @else
-                                        <input type="text" name="clan_name" id="clan_name"
+                                        <input type="text" name="clan_name" id="clan_name" data-autocomplete="{{ url('search/clan') }}"
                                                class="form-control" placeholder="Clan name">
                                     @endif
                                 </div>
@@ -96,7 +96,7 @@
                                 <div class="mb-3">
                                     <label for="server_name" class="form-label">Server name</label>
                                     @if ($errors->has('server'))
-                                        <input type="text" name="server_name" id="server_name"
+                                        <input type="text" name="server_name" id="server_name" data-autocomplete="{{ url('search/server') }}"
                                                class="form-control is-invalid" placeholder="Server name">
                                         <div class="invalid-feedback">{{ $errors->get('server')[0] }}
                                             @if (filled(session('serverSuggestions')))
@@ -111,7 +111,7 @@
                                             @endif
                                         </div>
                                     @else
-                                        <input type="text" name="server_name" id="server_name"
+                                        <input type="text" name="server_name" id="server_name" data-autocomplete="{{ url('search/server') }}"
                                                class="form-control" placeholder="Server name">
                                     @endif
                                 </div>
@@ -134,7 +134,7 @@
                                 <div class="mb-3">
                                     <label for="mod_name" class="form-label">Mod name</label>
                                     @if ($errors->has('mod'))
-                                        <input type="text" name="mod_name" id="mod_name"
+                                        <input type="text" name="mod_name" id="mod_name" data-autocomplete="{{ url('search/mod') }}"
                                                class="form-control is-invalid" placeholder="Mod name">
                                         <div class="invalid-feedback">{{ $errors->get('mod')[0] }}
                                             @if (filled(session('modSuggestions')))
@@ -149,7 +149,7 @@
                                             @endif
                                         </div>
                                     @else
-                                        <input type="text" name="mod_name" id="mod_name"
+                                        <input type="text" name="mod_name" id="mod_name" data-autocomplete="{{ url('search/mod') }}"
                                                class="form-control" placeholder="Mod name">
                                     @endif
                                 </div>
@@ -172,7 +172,7 @@
                                 <div class="mb-3">
                                     <label for="map_name" class="form-label">Map name</label>
                                     @if ($errors->has('map'))
-                                        <input type="text" name="map_name" id="map_name"
+                                        <input type="text" name="map_name" id="map_name" data-autocomplete="{{ url('search/map') }}"
                                                class="form-control is-invalid" placeholder="Map name">
                                         <div class="invalid-feedback">{{ $errors->get('map')[0] }}
                                             @if (filled(session('mapSuggestions')))
@@ -187,7 +187,7 @@
                                             @endif
                                         </div>
                                     @else
-                                        <input type="text" name="map_name" id="map_name"
+                                        <input type="text" name="map_name" id="map_name" data-autocomplete="{{ url('search/map') }}"
                                                class="form-control" placeholder="Map name">
                                     @endif
                                 </div>
@@ -201,49 +201,4 @@
             </div>
         </div>
     </section>
-@endsection
-@section('scripts')
-    <script>
-        document.addEventListener('DOMContentLoaded', function () {
-            $("#tee_name").autocomplete({
-                source: "search/tee",
-                minLength: 1,
-                select: function( event, ui ) {
-                    $(this).val(ui.item.id);
-                }
-            });
-
-            $("#clan_name").autocomplete({
-                source: "search/clan",
-                minLength: 1,
-                select: function( event, ui ) {
-                    $(this).val(ui.item.id);
-                }
-            });
-
-            $("#server_name").autocomplete({
-                source: "search/server",
-                minLength: 1,
-                select: function( event, ui ) {
-                    $(this).val(ui.item.id);
-                }
-            });
-
-            $("#mod_name").autocomplete({
-                source: "search/mod",
-                minLength: 1,
-                select: function( event, ui ) {
-                    $(this).val(ui.item.id);
-                }
-            });
-
-            $("#map_name").autocomplete({
-                source: "search/map",
-                minLength: 1,
-                select: function( event, ui ) {
-                    $(this).val(ui.item.id);
-                }
-            });
-        });
-    </script>
 @endsection

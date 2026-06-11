@@ -103,7 +103,7 @@
 
             Chart.defaults.color = '#75787c';
 
-            let playedMods = $('#playedMods');
+            let playedMods = document.getElementById('playedMods');
             @if (count($controller->chartPlayedMods()) >= 3)
                 // ------------------------------------------------------- //
                 // Played mods radar chart
@@ -220,7 +220,7 @@
             // identified countries; the large "unknown" bucket is left to the
             // ranked list beside it so the ring stays readable
             // ------------------------------------------------------ //
-            ChartHelper.countryDoughnut($('#playedCountries'),
+            ChartHelper.countryDoughnut(document.getElementById('playedCountries'),
                 {!! json_encode(array_column($countryStats['countries'], 'name')) !!},
                 {!! json_encode(array_column($countryStats['countries'], 'count')) !!}
             );

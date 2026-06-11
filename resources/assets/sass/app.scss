@@ -11,8 +11,6 @@
 );
 // Dark admin template
 @use 'dark_admin_bootstrapius';
-// JqueryUI theme
-@use 'jquery-ui-dark-hive';
 // Font Awesome and flag-icons are linked as prebuilt stylesheets in the layout
 // head (see resources/views/layouts/app.blade.php and vite.config.js) to keep
 // their font/flag url()s out of the Sass/Vite asset pipeline.
@@ -48,6 +46,44 @@ section.section-content {
 @media only screen and (min-width: 768px) {
   .pagination {
     justify-content: center;
+  }
+}
+
+/*
+* ==========================================================
+*     AUTOCOMPLETE (vanilla, replaces jQuery UI)
+* ==========================================================
+*/
+.autocomplete-wrap {
+  position: relative;
+}
+
+.autocomplete-menu {
+  position: absolute;
+  z-index: 1000;
+  top: 100%;
+  left: 0;
+  right: 0;
+  margin: 2px 0 0;
+  padding: 0;
+  list-style: none;
+  max-height: 260px;
+  overflow-y: auto;
+  background: #2d3035;
+  border: 1px solid #444951;
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.35);
+}
+
+.autocomplete-item {
+  padding: 8px 12px;
+  color: #c4c6ca;
+  font-size: 0.9rem;
+  cursor: pointer;
+
+  &:hover,
+  &.is-active {
+    background: #DB6574;
+    color: #fff;
   }
 }
 
