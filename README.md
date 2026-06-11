@@ -5,17 +5,17 @@ This is a completely rewritten version of [www.teeworlds-stats.info](http://www.
 You can find this project being used live on [teeworlds-stats.com](https://teeworlds-stats.com/)  
 
 ## Installing
-This project is running with PHP 7.3+ using the PHP Framework [Laravel](https://laravel.com).
-Download this repository and install the dependencies like described in the Dependencies section
+This project runs on PHP 8.5 using the PHP Framework [Laravel](https://laravel.com).
+Download this repository and install the dependencies like described in the Dependencies section.
 
 ## Requirements
-for running the application following dependencies are being used and tested:
- - PHP 7.3
- - MariaDB 10.2
+For running the application the following dependencies are used and tested:
+ - PHP 8.5
+ - MariaDB 11.8
 
-for compiling and generating the assets following dependencies are being used and tested:
- - Node 13.2
- - composer 1.9
+For compiling and generating the assets the following dependencies are used and tested:
+ - Node 22
+ - Composer 2
 
 Everything required is already prepared in the development environment using [ddev](https://www.ddev.com/).  
 You can simply run `ddev start` in the root directory to start the development environment.
@@ -23,11 +23,21 @@ You can simply run `ddev start` in the root directory to start the development e
 ## Dependencies
 All dependencies are managed by `composer` and `npm`.
 
-For installing all Backend dependencies you can run `composer install` in the root directory.  
-For installing all Frontend dependencies you can run `npm install && npm run production`.
+For installing all backend dependencies you can run `composer install` in the root directory.  
+For installing and building all frontend dependencies you can run `npm install && npm run build`.
 
 ## Running the tests
-There are no tests yet, I'm still at migrating this project to Laravel and write tests when I'm working at the corresponding code. 
+The test suite uses PHPUnit with an in-memory SQLite database.
+
+Inside the DDEV container:
+```
+vendor/bin/phpunit
+```
+
+From the host:
+```
+ddev exec vendor/bin/phpunit
+```
 
 ## Development
 Want to contribute? Great!  
