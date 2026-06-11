@@ -52,20 +52,29 @@ public function currentServerHistory()
 ```php
 public function liveServers()
 {
-    return view('list.live')->with(
-        'servers',
-        Server::where('last_seen', '>=', Carbon::now()->subMinutes(env('CRONTASK_INTERVAL') * 1.5))
-            ->with(['currentPlayers', 'currentServerHistory.map', 'currentServerHistory.mod'])
-            ->withCount('currentPlayers')
-            ->orderByDesc('current_players_count')
-            ->get()
-    );
+    $servers = Server::where('last_seen', '>=', Carbon::now()->subMinutes(env('CRONTASK_INTERVAL') * 1.5))
+        ->with(['currentServerHistory.map', 'currentServerHistory.mod'])
+        ->get()
+        ->sortByDesc(fn (Server $server) => $server->currentPlayers->count())
+        ->values();
+
+    return view('list.live')->with('servers', $servers);
 }
 ```
 
 - The online window (`CRONTASK_INTERVAL * 1.5`) matches `Server::online()`, so "last
   logged" == the set the rest of the app treats as online.
-- Eager loading (`with` + `withCount`) avoids N+1 across the roster and map/mod.
+- The current map/mod is eager-loaded (`with('currentServerHistory.map', ...')`), which is
+  safe (`currentServerHistory` is a `hasOne`).
+- **`currentPlayers` is NOT eager-loaded and NOT counted via `withCount`.** The
+  `Server::players()` relation ends in `->groupBy('players.id')`; a `withCount` subquery
+  over a grouped relation returns multiple rows (SQL error / wrong count), and a
+  cross-server eager load mis-dedupes a player who is on two servers. So the roster is
+  lazy-loaded per server (the loaded collection is cached on each model instance, so the
+  controller's count and the view's roster reuse a single query) and the servers are
+  sorted by player count in PHP. The online set is bounded and the page is response-cached,
+  so the per-server query is cheap in practice. **Do not "optimize" this back into
+  `withCount` — it will break against the grouped `players()` relation.**
 - Default order: most populated first.
 
 ## Route + caching
