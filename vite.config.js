@@ -19,6 +19,14 @@ export default defineConfig({
                     dest: 'fonts',
                     rename: { stripBase: true },
                 },
+                {
+                    // Copy the rectangular country flags to a stable /build/flags/4x3
+                    // path; flag-icons is pointed there via $flag-icons-path so Sass
+                    // doesn't have to rebase ~250 individual url() assets.
+                    src: 'node_modules/flag-icons/flags/4x3/*',
+                    dest: 'flags/4x3',
+                    rename: { stripBase: true },
+                },
             ],
         }),
     ],

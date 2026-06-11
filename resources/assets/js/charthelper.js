@@ -188,6 +188,52 @@ import { Chart } from 'chart.js';
             });
         }
 
+        static countryDoughnut(chartSelector, chartLabels, chartData) {
+            // distinct hues so neighbouring slices stay readable; the ranked list
+            // next to the chart carries the always-visible labels and flags
+            let palette = ['#DB6574', '#864DD9', '#3FB0C6', '#E9A23B', '#5BC264', '#CF53F9', '#4F86E0', '#E95F71'];
+            let colors = chartData.map(function (_, i) {
+                return palette[i % palette.length];
+            });
+
+            return new Chart(chartSelector, {
+                type: 'doughnut',
+                options: {
+                    cutout: '62%',
+                    plugins: {
+                        legend: {
+                            display: false
+                        },
+                        tooltip: {
+                            callbacks: {
+                                title: function (tooltipItems) {
+                                    return tooltipItems[0].label;
+                                },
+                                label: function (tooltipItem) {
+                                    let dataset = tooltipItem.chart.data.datasets[0];
+                                    let total = dataset.data.reduce(function (a, b) {
+                                        return a + b;
+                                    }, 0);
+                                    let percent = total ? Math.round((tooltipItem.raw / total) * 10000) / 100 : 0;
+                                    return percent + '% (' + tooltipItem.raw.toLocaleString() + ' tees)';
+                                },
+                            },
+                        }
+                    }
+                },
+                data: {
+                    labels: chartLabels,
+                    datasets: [
+                        {
+                            data: chartData,
+                            borderWidth: 2,
+                            borderColor: '#2d3035',
+                            backgroundColor: colors,
+                        }]
+                }
+            });
+        }
+
         static chartColors(chart, gradient) {
             /*Gradients
               The keys are percentage and the values are the color in a rgba format.

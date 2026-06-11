@@ -10,6 +10,11 @@
 @import 'dark_admin_bootstrapius';
 // JqueryUI theme
 @import 'jquery-ui-dark-hive';
+// Country flags — point the SVG url() at the statically-copied /build/flags
+// directory (see vite.config.js); Sass leaves these absolute paths untouched and
+// the flags are served as plain assets.
+$flag-icons-path: "/build/flags";
+@import 'flag-icons/sass/flag-icons';
 
 .navbar-laravel {
   background-color: #fff;
@@ -42,5 +47,406 @@ section.section-content {
 @media only screen and (min-width: 768px) {
   .pagination {
     justify-content: center;
+  }
+}
+
+/*
+* ==========================================================
+*     COUNTRY RANKING (general statistics)
+* ==========================================================
+*/
+.country-rank {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+
+  li {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 9px 0;
+    border-bottom: 1px solid #34373d;
+
+    &:last-child {
+      border-bottom: none;
+    }
+  }
+
+  .fi {
+    width: 1.4rem;
+    height: 1.05rem;
+    border-radius: 2px;
+    flex: 0 0 auto;
+    box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.35);
+  }
+
+  &__globe {
+    width: 1.4rem;
+    flex: 0 0 auto;
+    text-align: center;
+    color: #6a6c70;
+  }
+
+  &__name {
+    flex: 0 0 8.5rem;
+    color: #c4c6ca;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  &__bar {
+    flex: 1 1 auto;
+    height: 6px;
+    border-radius: 30px;
+    background: #22252a;
+    overflow: hidden;
+
+    span {
+      display: block;
+      height: 100%;
+      border-radius: 30px;
+      background: linear-gradient(90deg, #DB6574, #864DD9);
+    }
+  }
+
+  &__count {
+    flex: 0 0 auto;
+    min-width: 3rem;
+    text-align: right;
+    color: #8a8d93;
+    font-variant-numeric: tabular-nums;
+  }
+
+  &__muted {
+    color: #6a6c70;
+  }
+}
+
+.chart-compact {
+  position: relative;
+  max-width: 240px;
+  margin: 0 auto 20px;
+}
+
+/*
+* ==========================================================
+*     PLAYER OVERVIEW
+* ==========================================================
+*/
+.player-hero {
+  display: flex;
+  align-items: center;
+  gap: 22px;
+  flex-wrap: wrap;
+  padding: 24px;
+  margin-bottom: 30px;
+  background: linear-gradient(135deg, #2d3035 0%, #262a30 100%);
+  border-left: 3px solid #DB6574;
+
+  &__avatar {
+    width: 72px;
+    height: 72px;
+    flex: 0 0 auto;
+    padding: 6px;
+    border-radius: 50%;
+    border: 3px solid #22252a;
+    background: #22252a;
+  }
+
+  &__id {
+    flex: 1 1 240px;
+    min-width: 0;
+  }
+
+  &__name {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+    font-size: 1.6rem;
+    font-weight: 700;
+    color: #e7e9ec;
+
+    .fi {
+      width: 1.5rem;
+      height: 1.12rem;
+      border-radius: 2px;
+      box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.4);
+    }
+  }
+
+  &__clan {
+    color: #DB6574;
+    text-decoration: none;
+    font-size: 1rem;
+    font-weight: 400;
+
+    &:hover {
+      color: #e6818d;
+    }
+  }
+
+  &__sub {
+    margin-top: 5px;
+    color: #8a8d93;
+    font-size: 0.9rem;
+  }
+
+  &__status {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 14px;
+    border-radius: 30px;
+    font-size: 0.85rem;
+    font-weight: 600;
+
+    .dot {
+      width: 9px;
+      height: 9px;
+      border-radius: 50%;
+    }
+
+    &--online {
+      color: #5BC264;
+      background: rgba(91, 194, 100, 0.12);
+
+      .dot {
+        background: #5BC264;
+        box-shadow: 0 0 0 3px rgba(91, 194, 100, 0.2);
+      }
+    }
+
+    &--offline {
+      color: #8a8d93;
+      background: rgba(138, 141, 147, 0.1);
+
+      .dot {
+        background: #6a6c70;
+      }
+    }
+  }
+}
+
+.stat-tiles {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 20px;
+  margin-bottom: 30px;
+}
+
+.stat-tile {
+  padding: 18px 20px;
+  background: #2d3035;
+
+  &__label {
+    color: #75787f;
+    text-transform: uppercase;
+    font-size: 0.72rem;
+    letter-spacing: 0.04em;
+    font-weight: 700;
+  }
+
+  &__value {
+    margin-top: 6px;
+    color: #e7e9ec;
+    font-size: 1.5rem;
+    font-weight: 700;
+
+    i {
+      margin-right: 7px;
+      color: #DB6574;
+      font-size: 1.05rem;
+    }
+  }
+
+  &__hint {
+    margin-top: 3px;
+    color: #8a8d93;
+    font-size: 0.8rem;
+  }
+}
+
+.heatmap {
+  overflow-x: auto;
+
+  &__grid {
+    display: grid;
+    grid-template-columns: auto repeat(24, 1fr);
+    gap: 3px;
+    min-width: 520px;
+    // keep the cells compact instead of stretching to fill wide cards
+    max-width: 720px;
+  }
+
+  &__cell {
+    height: 15px;
+    border-radius: 2px;
+    background: #22252a;
+  }
+
+  &__rowlabel {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    padding-right: 8px;
+    color: #8a8d93;
+    font-size: 0.75rem;
+  }
+
+  &__collabel {
+    color: #5f6268;
+    font-size: 0.6rem;
+    text-align: center;
+  }
+
+  &__legend {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 6px;
+    margin-top: 14px;
+    color: #75787f;
+    font-size: 0.72rem;
+
+    i {
+      width: 12px;
+      height: 12px;
+      border-radius: 2px;
+    }
+  }
+}
+
+.toplist {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+
+  li {
+    padding: 9px 0;
+    border-bottom: 1px solid #34373d;
+
+    &:last-child {
+      border-bottom: none;
+    }
+  }
+
+  &__row {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 12px;
+    margin-bottom: 7px;
+  }
+
+  &__name {
+    color: #c4c6ca;
+    text-decoration: none;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+
+    &:hover {
+      color: #DB6574;
+    }
+  }
+
+  &__val {
+    flex: 0 0 auto;
+    color: #8a8d93;
+    font-size: 0.82rem;
+    font-variant-numeric: tabular-nums;
+  }
+
+  &__bar {
+    height: 6px;
+    border-radius: 30px;
+    background: #22252a;
+    overflow: hidden;
+
+    span {
+      display: block;
+      height: 100%;
+      border-radius: 30px;
+      background: #DB6574;
+    }
+  }
+
+  &--mods .toplist__bar span {
+    background: #864DD9;
+  }
+
+  &--servers .toplist__bar span {
+    background: #3Fb0c6;
+  }
+}
+
+.session-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.session-item {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 13px 0;
+  border-bottom: 1px solid #34373d;
+
+  &:last-child {
+    border-bottom: none;
+  }
+
+  &__when {
+    flex: 0 0 auto;
+    text-align: center;
+    min-width: 3.4rem;
+  }
+
+  &__date {
+    color: #c4c6ca;
+    font-size: 0.85rem;
+    font-weight: 600;
+  }
+
+  &__time {
+    color: #8a8d93;
+    font-size: 0.75rem;
+  }
+
+  &__body {
+    flex: 1 1 auto;
+    min-width: 0;
+  }
+
+  &__server {
+    display: block;
+    color: #c4c6ca;
+    text-decoration: none;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+
+    &:hover {
+      color: #DB6574;
+    }
+  }
+
+  &__meta {
+    color: #75787f;
+    font-size: 0.78rem;
+  }
+
+  &__dur {
+    flex: 0 0 auto;
+    color: #DB6574;
+    font-weight: 700;
+    font-size: 0.9rem;
+
+    &--live {
+      color: #5BC264;
+    }
   }
 }

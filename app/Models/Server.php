@@ -243,6 +243,20 @@ class Server extends Model
     }
 
     /**
+     * ranked country breakdown (with flag codes) of the server's players, matching
+     * the general statistics page layout
+     *
+     * @param int $amount
+     * @return array{countries: array<int, array{name: string, code: string, count: int}>, unknown: int, max: int, total: int}
+     */
+    public function playingCountries($amount = 8)
+    {
+        // amount 0 keeps every country (no "others" folding); rankCountries handles
+        // the top-N cut and the unknown bucket itself
+        return ChartUtility::rankCountries($this->chartPlayerCountries(0), $amount);
+    }
+
+    /**
      * build an array of the played mods for Chart.js in the frontend
      *
      * @param int $amount

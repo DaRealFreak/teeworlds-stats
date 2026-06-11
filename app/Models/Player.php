@@ -100,6 +100,141 @@ class Player extends Model
     }
 
     /**
+     * Get the discrete play sessions of the tee, newest first
+     *
+     * @return \Illuminate\Database\Eloquent\Relations\HasMany
+     */
+    public function sessions()
+    {
+        return $this->hasMany(PlayerSession::class)->orderByDesc('started_at');
+    }
+
+    /**
+     * the session the player is currently in, if they are online right now
+     *
+     * @return PlayerSession|null
+     */
+    public function currentSession()
+    {
+        return $this->sessions()->whereNull('ended_at')->first();
+    }
+
+    /**
+     * @param int $limit
+     * @return \Illuminate\Database\Eloquent\Collection|PlayerSession[]
+     */
+    public function recentSessions($limit = 8)
+    {
+        return $this->sessions()->limit($limit)->get();
+    }
+
+    public function totalSessions(): int
+    {
+        return $this->sessions()->count();
+    }
+
+    public function longestSessionMinutes(): int
+    {
+        return (int)$this->sessions()->max('minutes');
+    }
+
+    public function averageSessionMinutes(): int
+    {
+        return (int)round((float)$this->sessions()->avg('minutes'));
+    }
+
+    /**
+     * count of distinct values the player was recorded on, for the summary tiles
+     */
+    public function distinctServersCount(): int
+    {
+        return $this->playRecords()->distinct()->count('server_id');
+    }
+
+    public function distinctMapsCount(): int
+    {
+        return $this->playRecords()->distinct()->count('map_id');
+    }
+
+    public function distinctModsCount(): int
+    {
+        return $this->playRecords()->distinct()->count('mod_id');
+    }
+
+    /**
+     * the hour (0-23) the player has accumulated the most play time in, or null
+     */
+    public function busiestHour(): ?int
+    {
+        $entry = $this->playRecords()
+            ->selectRaw('hour, SUM(minutes) as sum_minutes')
+            ->groupBy('hour')
+            ->orderByDesc('sum_minutes')
+            ->first();
+
+        return $entry ? (int)$entry->getAttribute('hour') : null;
+    }
+
+    /**
+     * the weekday (0 = Monday … 6 = Sunday) with the most accumulated play time, or null
+     */
+    public function busiestWeekday(): ?int
+    {
+        $entry = $this->playRecords()
+            ->selectRaw('weekday, SUM(minutes) as sum_minutes')
+            ->groupBy('weekday')
+            ->orderByDesc('sum_minutes')
+            ->first();
+
+        return $entry ? (int)$entry->getAttribute('weekday') : null;
+    }
+
+    /**
+     * the player's top servers by accumulated play time
+     *
+     * @param int $limit
+     * @return \Illuminate\Database\Eloquent\Collection|PlayerHistory[]
+     */
+    public function favoriteServers($limit = 5)
+    {
+        return $this->playRecords()
+            ->selectRaw('`' . (new PlayerHistory)->getTable() . '`.*, SUM(`minutes`) as `sum_minutes`')
+            ->groupBy('server_id')
+            ->orderByDesc('sum_minutes')
+            ->limit($limit)
+            ->get();
+    }
+
+    /**
+     * a weekday × hour matrix of accumulated minutes for the activity heatmap
+     *
+     * @return array{matrix: array<int, array<int, int>>, max: int}
+     */
+    public function chartOnlineHeatmap(): array
+    {
+        $rows = $this->playRecords()
+            ->selectRaw('weekday, hour, SUM(minutes) as sum_minutes')
+            ->groupBy('weekday', 'hour')
+            ->get();
+
+        $matrix = array_fill(0, 7, array_fill(0, 24, 0));
+        $max = 0;
+
+        foreach ($rows as $row) {
+            $weekday = (int)$row->getAttribute('weekday');
+            $hour = (int)$row->getAttribute('hour');
+            if ($weekday < 0 || $weekday > 6 || $hour < 0 || $hour > 23) {
+                continue;
+            }
+            $minutes = (int)$row->getAttribute('sum_minutes');
+            $matrix[$weekday][$hour] = $minutes;
+            $max = max($max, $minutes);
+        }
+
+        return ['matrix' => $matrix, 'max' => $max];
+    }
+
+    /**
      * @param int $duration
      * @return \Illuminate\Database\Eloquent\Relations\HasMany
      */
@@ -148,7 +283,9 @@ class Player extends Model
             $playerHistory->where('created_at', '>=', Carbon::today()->subDay($duration));
         }
 
-        $playerHistory = $playerHistory->first()->sum_minutes;
+        // a player without any play records in the window has no aggregate row
+        $record = $playerHistory->first();
+        $playerHistory = $record ? (int)$record->sum_minutes : 0;
 
         if ($formatted) {
             return (new Duration($playerHistory * 60))->humanize();

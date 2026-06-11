@@ -77,9 +77,10 @@
             </div>
             <div class="row">
                 <div class="col-lg-6">
-                    <div class="line-chart block chart">
+                    @php $countryStats = $controller->playingCountries(8); @endphp
+                    <div class="block chart">
                         <div class="title"><strong>Most playing countries</strong></div>
-                        <canvas id="playedCountries"></canvas>
+                        @include('partials.countries', ['countryStats' => $countryStats, 'canvasId' => 'playedCountries'])
                     </div>
                 </div>
                 <div class="col-lg-6">
@@ -215,51 +216,14 @@
             @endif
 
             // ------------------------------------------------------- //
-            // Player countries pie chart
+            // Player countries doughnut — ring shows the distribution among
+            // identified countries; the large "unknown" bucket is left to the
+            // ranked list beside it so the ring stays readable
             // ------------------------------------------------------ //
-
-            let playedCountryChart = new Chart($('#playedCountries'), {
-                type: 'pie',
-                options: {
-                    plugins: {
-                        legend: {
-                            display: true,
-                            position: "right",
-                            responsive: false
-                        },
-                        tooltip: {
-                            callbacks: {
-                                title: function (tooltipItems) {
-                                    return tooltipItems[0].label;
-                                },
-                                label: function (tooltipItem) {
-                                    let dataset = tooltipItem.chart.data.datasets[0];
-                                    let percent = Math.round((tooltipItem.raw / dataset.data.reduce(function (a, b) {
-                                        return a + b;
-                                    }, 0)) * 10000) / 100;
-                                    return percent + '%';
-                                },
-                            },
-                        }
-                    }
-                },
-                data: {
-                    labels: {!! json_encode(array_keys($controller->chartPlayedCountries())) !!},
-                    datasets: [
-                        {
-                            data: {!! json_encode(array_values($controller->chartPlayedCountries())) !!},
-                            borderWidth: 0,
-                            backgroundColor: [
-                                '#723ac3',
-                                "#864DD9",
-                                "#9762e6",
-                            ],
-                            hoverBackgroundColor: '#4313a0',
-                        }]
-                }
-            });
-
-            ChartHelper.chartColors(playedCountryChart, {0: [117, 46, 224, 1], 100: [166, 120, 235, 1]});
+            ChartHelper.countryDoughnut($('#playedCountries'),
+                {!! json_encode(array_column($countryStats['countries'], 'name')) !!},
+                {!! json_encode(array_column($countryStats['countries'], 'count')) !!}
+            );
 
         });
     </script>

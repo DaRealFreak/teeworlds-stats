@@ -63,11 +63,14 @@
                     </div>
                 </div>
                 <div class="col-lg-6">
-                    <div class="pie-chart chart block">
+                    @php $countryStats = $server->playingCountries(8); @endphp
+                    <div class="block chart">
                         <div class="title"><strong>{{ $server->name }}'s most played countries</strong></div>
-                        <div class="radar-chart chart margin-bottom-sm">
-                            <canvas id="serverCountries"></canvas>
-                        </div>
+                        @if (count($countryStats['countries']) || $countryStats['unknown'] > 0)
+                            @include('partials.countries', ['countryStats' => $countryStats, 'canvasId' => 'serverCountries'])
+                        @else
+                            <p class="text-small" style="color: #75787f">No player country data yet.</p>
+                        @endif
                     </div>
                 </div>
             </div>
@@ -93,13 +96,14 @@
                 blade({!! json_encode(array_values($server->chartPlayedMaps()))  !!})
             );
 
-            let playerCountriesChart = ChartHelper.pieChart($('#serverCountries'),
-                blade({!! json_encode(array_keys($server->chartPlayerCountries())) !!}),
-                blade({!! json_encode(array_values($server->chartPlayerCountries())) !!})
-            );
-
             ChartHelper.chartColors(playedMaps, {0: [117, 46, 224, 1], 100: [166, 120, 235, 1]});
-            ChartHelper.chartColors(playerCountriesChart, {0: [117, 46, 224, 1], 100: [166, 120, 235, 1]});
+
+            @if (count($countryStats['countries']))
+                ChartHelper.countryDoughnut($('#serverCountries'),
+                    {!! json_encode(array_column($countryStats['countries'], 'name')) !!},
+                    {!! json_encode(array_column($countryStats['countries'], 'count')) !!}
+                );
+            @endif
 
         });
     </script>

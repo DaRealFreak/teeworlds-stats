@@ -11,6 +11,7 @@ use App\Models\PlayerClanHistory;
 use App\Models\PlayerHistory;
 use App\Models\Server;
 use App\Models\ServerHistory;
+use App\Service\SessionRecorder;
 use App\TwStats\Controller\GameServerController;
 use App\TwStats\Controller\MasterServerController;
 use App\TwStats\Controller\NetworkController;
@@ -34,6 +35,11 @@ class UpdateData extends Command
      * @var string
      */
     protected $description = 'Command description';
+
+    public function __construct(private readonly SessionRecorder $sessionRecorder)
+    {
+        parent::__construct();
+    }
 
     /**
      * Execute the console command.
@@ -74,6 +80,10 @@ class UpdateData extends Command
                 $this->info("could not receive a response of: " . $server->getAttribute('ip') . ":" . $server->getAttribute('port'));
             }
         }
+
+        // close sessions of players who dropped off every tracked server this run
+        $this->sessionRecorder->closeStale();
+
         return True;
     }
 
@@ -247,6 +257,9 @@ class UpdateData extends Command
             $this->updatePlayerHistory($playerModel, $serverModel, $mapModel, $modModel, $originalModModel);
 
             $playerModel->save();
+
+            // extend or open the player's discrete session for the sessions timeline
+            $this->sessionRecorder->record($playerModel, $serverModel, $mapModel, $modModel);
         }
     }
 

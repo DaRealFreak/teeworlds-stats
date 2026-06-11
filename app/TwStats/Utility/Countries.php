@@ -1060,4 +1060,41 @@ class Countries
         $number = (int)$number;
         return isset(self::COUNTRIES[$number]) ? self::COUNTRIES[$number]['name'] : self::COUNTRIES[-1]['name'];
     }
+
+    /**
+     * resolve a stored country name back to its country code (players persist the
+     * country as a name, see UpdateData), or null when the name is unknown
+     */
+    public static function getCodeByName(string $name): ?string
+    {
+        static $byName = null;
+        if ($byName === null) {
+            $byName = [];
+            foreach (self::COUNTRIES as $country) {
+                $byName[$country['name']] = $country['code'];
+            }
+        }
+        return $byName[$name] ?? null;
+    }
+
+    /**
+     * map a stored country name to a flag-icons class suffix (e.g. "de", or the
+     * "gb-eng" subdivision flags), or null when no real flag applies — used for the
+     * "none"/placeholder bucket so it can fall back to a neutral icon
+     */
+    public static function getFlagCode(string $name): ?string
+    {
+        $code = self::getCodeByName($name);
+        if ($code === null || $code === 'default') {
+            return null;
+        }
+
+        return match ($code) {
+            'XEN' => 'gb-eng',
+            'XNI' => 'gb-nir',
+            'XSC' => 'gb-sct',
+            'XWA' => 'gb-wls',
+            default => strlen($code) === 2 ? strtolower($code) : null,
+        };
+    }
 }

@@ -16,6 +16,7 @@
     "@popperjs/core": "^2.11",
     "bootstrap": "^5.3",
     "chart.js": "^4.4",
+    "flag-icons": "^7.5.0",
     "font-awesome": "^4.7.0",
     "humanize-duration": "^3.31",
     "jquery": "^3.7",

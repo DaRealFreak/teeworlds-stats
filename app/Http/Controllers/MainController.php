@@ -166,6 +166,29 @@ class MainController extends Controller
     }
 
     /**
+     * build the ranked country breakdown for the general statistics page: the top
+     * $amount real countries (with flag codes) plus a single folded bucket for
+     * players without a country and the long tail beyond the top entries
+     *
+     * @param int $amount
+     * @return array{countries: array<int, array{name: string, code: string|null, count: int}>, unknown: int, max: int, total: int}
+     */
+    public function playingCountries($amount = 8)
+    {
+        $players = Player::selectRaw('`players`.*, COUNT(`players`.`country`) as `count_countries`')
+            ->groupBy('country')
+            ->orderByRaw('COUNT(`players`.`country`) DESC')->get();
+
+        $counts = [];
+        /** @var Player $player */
+        foreach ($players as $player) {
+            $counts[(string)$player->getAttribute('country')] = (int)$player->getAttribute('count_countries');
+        }
+
+        return ChartUtility::rankCountries($counts, $amount);
+    }
+
+    /**
      * @return Player[]|\Illuminate\Database\Eloquent\Collection
      */
     public function playersCreatedLast24Hours()
