@@ -57,6 +57,8 @@ class DdnetServerListParserTest extends TestCase
         $this->assertSame('GLOW', $glow->clan);
         $this->assertTrue($glow->afk);
         $this->assertNull($glow->skin);
+        $this->assertNull($glow->colorBody);
+        $this->assertNull($glow->colorFeet);
         $this->assertSame(['name' => 'standard', 'color' => 65408], $glow->skinParts['body']);
     }
 
@@ -67,7 +69,7 @@ class DdnetServerListParserTest extends TestCase
         $this->assertSame('vanilla_07', $server->flavor);
         $this->assertSame('2001:db8::5', $server->addresses[0]->ip);
         $this->assertSame(7, $server->addresses[0]->protocol);
-        $this->assertCount(1, $server->clients);
+        $this->assertCount(1, $server->clients); // the malformed scalar client (42) is skipped
         $this->assertNull($server->clients[0]->skin);
         $this->assertFalse($server->clients[0]->afk); // afk absent → false
     }
@@ -86,5 +88,6 @@ class DdnetServerListParserTest extends TestCase
 
         $this->assertSame([], $parser->parse('not json'));
         $this->assertSame([], $parser->parse('{"nope": 1}'));
+        $this->assertSame([], $parser->parse('{"servers": "nope"}'));
     }
 }

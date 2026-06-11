@@ -29,7 +29,8 @@
         "max_clients": 16,
         "max_players": 16,
         "clients": [
-          {"name": "Bob", "clan": "", "country": 840, "score": 3, "is_player": true}
+          {"name": "Bob", "clan": "", "country": 840, "score": 3, "is_player": true},
+          42
         ]
       }
     },

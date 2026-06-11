@@ -7,7 +7,7 @@ namespace App\TwStats\Discovery;
  * contract, so every entry/field is validated and anything malformed is skipped rather than
  * aborting the whole list.
  */
-class DdnetServerListParser
+final class DdnetServerListParser
 {
     /**
      * @return DiscoveredServer[]
@@ -57,6 +57,13 @@ class DdnetServerListParser
             return null;
         }
 
+        // the feed is an external contract — a wrong-typed scalar field (e.g. an array where a
+        // string is expected) is malformed data to skip, not to coerce into "Array"/junk.
+        if (!is_string($info['name']) || !is_string($info['game_type']) || !is_string($info['version'])
+            || !is_string($info['map']['name']) || !is_int($info['max_clients']) || !is_int($info['max_players'])) {
+            return null;
+        }
+
         $clients = [];
         foreach ($info['clients'] as $client) {
             if (is_array($client) && ($parsed = $this->parseClient($client)) !== null) {
@@ -86,6 +93,11 @@ class DdnetServerListParser
             }
         }
 
+        if (!is_string($client['name']) || !is_string($client['clan'])
+            || !is_int($client['country']) || !is_int($client['score']) || !is_bool($client['is_player'])) {
+            return null;
+        }
+
         [$skin, $colorBody, $colorFeet, $skinParts] = $this->parseSkin($client['skin'] ?? null);
 
         return new DiscoveredClient(
@@ -94,7 +106,7 @@ class DdnetServerListParser
             country: (int) $client['country'],
             score: (int) $client['score'],
             isPlayer: (bool) $client['is_player'],
-            afk: (bool) ($client['afk'] ?? false),
+            afk: isset($client['afk']) && is_bool($client['afk']) ? $client['afk'] : false,
             skin: $skin,
             colorBody: $colorBody,
             colorFeet: $colorFeet,
