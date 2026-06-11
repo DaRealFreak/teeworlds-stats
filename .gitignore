@@ -27,6 +27,7 @@ _ide_helper.php
 .rocketeer/
 
 # generated files from assets
+/public/build
 /public/css
 /public/js
 /public/fonts

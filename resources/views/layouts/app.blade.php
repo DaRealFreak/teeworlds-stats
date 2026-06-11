@@ -15,13 +15,11 @@
     <link rel="shortcut icon" href="{{ asset('images/favicon.ico') }}" type="image/x-icon">
     <link rel="icon" href="{{ asset('images/favicon.ico') }}" type="image/x-icon">
 
-    <!-- Scripts -->
-    <script src="{{ asset('js/app.js') }}"></script>
-
-    <!-- Styles -->
-    <!-- custom font css since putting it into the app.css would cause a small lag before the font ions are appearing -->
-    <link href="{{ asset('css/font-awesome.css') }}" rel="stylesheet">
-    <link href="{{ asset('css/app.css') }}" rel="stylesheet">
+    @vite([
+        'resources/assets/sass/app.scss',
+        'resources/assets/sass/font-awesome.scss',
+        'resources/assets/js/app.js',
+    ])
 
     @yield('head')
 </head>
@@ -33,7 +31,7 @@
                 <div class="search-inner d-flex align-items-center justify-content-center">
                     <div class="close-btn">Close <i class="fa fa-close"></i></div>
                     <form id="searchForm" action="#">
-                        <div class="form-group">
+                        <div class="mb-3">
                             <input name="search" placeholder="What are you searching for..." type="search">
                             <button type="submit" class="submit">Search</button>
                         </div>
@@ -65,7 +63,7 @@
                     @else
                         <li class="nav-item dropdown">
                             <a id="navbarDropdown" class="nav-link dropdown-toggle" href="#" role="button"
-                               data-toggle="dropdown" aria-haspopup="true" aria-expanded="false" v-pre>
+                               data-bs-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
                                 {{ Auth::user()->name }} <span class="caret"></span>
                             </a>
 
@@ -103,7 +101,7 @@
             <span class="heading">Overview</span>
             <ul class="list-unstyled">
                 <li>
-                    <a href="#list_view_dropdown" aria-expanded="false" data-toggle="collapse">
+                    <a href="#list_view_dropdown" aria-expanded="false" data-bs-toggle="collapse" data-bs-target="#list_view_dropdown">
                         <i class="icon-grid"></i>Lists
                     </a>
                     <ul id="list_view_dropdown" class="collapse list-unstyled ">

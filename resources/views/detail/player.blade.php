@@ -17,13 +17,13 @@
             <!-- Nav tabs -->
             <ul class="nav nav-tabs nav-justified">
                 <li class="nav-item">
-                    <a class="nav-link active" id="toggle-all" data-toggle="tab" href="#all">All-Time</a>
+                    <a class="nav-link active" id="toggle-all" data-bs-toggle="tab" href="#all">All-Time</a>
                 </li>
                 <li class="nav-item">
-                    <a class="nav-link" id="toggle-month" data-toggle="tab" href="#month">This month</a>
+                    <a class="nav-link" id="toggle-month" data-bs-toggle="tab" href="#month">This month</a>
                 </li>
                 <li class="nav-item">
-                    <a class="nav-link" id="toggle-week" data-toggle="tab" href="#week">This week</a>
+                    <a class="nav-link" id="toggle-week" data-bs-toggle="tab" href="#week">This week</a>
                 </li>
             </ul>
             

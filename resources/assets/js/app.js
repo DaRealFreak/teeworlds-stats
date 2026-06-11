@@ -1,12 +1,13 @@
-import 'jquery';
+import './bootstrap';
 import 'jquery-ui/ui/widgets/autocomplete.js';
 import 'jquery-validation';
-import 'jquery.cookie';
-import 'chart.js';
-import 'humanize-duration';
+import { Chart, registerables } from 'chart.js';
+import humanizeDuration from 'humanize-duration';
 
-require('./bootstrap');
-require('./laravel');
-require('./charthelper');
-require('./front');
-window.humanizeDuration = require('humanize-duration');
+Chart.register(...registerables);
+window.Chart = Chart;
+window.humanizeDuration = humanizeDuration;
+
+import './laravel';
+import './charthelper';
+import './front';

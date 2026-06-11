@@ -1,7 +1,8 @@
 $(function () {
     'use strict';
 
-    Chart.defaults.global.defaultFontColor = '#75787c';
+    // Chart.js 4: global defaults are under Chart.defaults (not Chart.defaults.global)
+    Chart.defaults.color = '#75787c';
 
     window.ChartHelper = class ChartHelper {
 
@@ -9,41 +10,41 @@ $(function () {
             return new Chart(chartSelector, {
                 type: 'line',
                 options: {
-                    legend: {
-                        labels: {
-                            fontColor: "#777",
-                            fontSize: 12
+                    plugins: {
+                        legend: {
+                            labels: {
+                                color: "#777",
+                                font: { size: 12 }
+                            },
+                            display: false
                         },
-                        display: false
+                        tooltip: {
+                            callbacks: {
+                                title: function (tooltipItems) {
+                                    return tooltipItems[0].label;
+                                },
+                                label: function (tooltipItem) {
+                                    return 'Possibility: ' + tooltipItem.raw + '%';
+                                },
+                            },
+                        },
                     },
                     scales: {
-                        xAxes: [{
+                        x: {
                             display: true,
-                            gridLines: {
+                            grid: {
                                 color: 'transparent'
                             }
-                        }],
-                        yAxes: [{
-                            ticks: {
-                                max: 100,
-                                min: 0
-                            },
-                            display: true,
-                            gridLines: {
-                                color: 'transparent'
-                            }
-                        }]
-                    },
-                    tooltips: {
-                        callbacks: {
-                            title: function (tooltipItem, data) {
-                                return data['labels'][tooltipItem[0].index];
-                            },
-                            label: function (tooltipItem, data) {
-                                return 'Possibility: ' + data['datasets'][0]['data'][tooltipItem.index] + '%';
-                            },
                         },
-                    }
+                        y: {
+                            min: 0,
+                            max: 100,
+                            display: true,
+                            grid: {
+                                color: 'transparent'
+                            }
+                        }
+                    },
                 },
                 data: {
                     labels: chartLabels,
@@ -51,9 +52,9 @@ $(function () {
                         {
                             label: "Weekday Online Probability",
                             fill: true,
-                            lineTension: 0.2,
+                            tension: 0.2,
                             backgroundColor: "rgba(134, 77, 217, 0.88)",
-                            borderColor: "rgba(134, 77, 217, 088)",
+                            borderColor: "rgba(134, 77, 217, 0.88)",
                             borderCapStyle: 'butt',
                             borderDash: [],
                             borderDashOffset: 0.0,
@@ -80,19 +81,24 @@ $(function () {
             return new Chart(chartSelector, {
                 type: 'pie',
                 options: {
-                    legend: {
-                        display: true,
-                        position: "left"
-                    },
-                    tooltips: {
-                        callbacks: {
-                            title: function (tooltipItem, data) {
-                                return data['labels'][tooltipItem[0]['index']];
-                            },
-                            label: function (tooltipItem, data) {
-                                let dataset = data['datasets'][0];
-                                let percent = Math.round((dataset['data'][tooltipItem['index']] / dataset["_meta"][Object.keys(dataset["_meta"])[0]]['total']) * 10000) / 100;
-                                return percent + '% (' + humanizeDuration(dataset['data'][tooltipItem['index']] * 60 * 1000) + ')';
+                    plugins: {
+                        legend: {
+                            display: true,
+                            position: "left"
+                        },
+                        tooltip: {
+                            callbacks: {
+                                title: function (tooltipItems) {
+                                    return tooltipItems[0].label;
+                                },
+                                label: function (tooltipItem) {
+                                    let dataset = tooltipItem.chart.data.datasets[0];
+                                    let total = dataset.data.reduce(function (a, b) {
+                                        return a + b;
+                                    }, 0);
+                                    let percent = Math.round((tooltipItem.raw / total) * 10000) / 100;
+                                    return percent + '% (' + humanizeDuration(tooltipItem.raw * 60 * 1000) + ')';
+                                },
                             },
                         },
                     }
@@ -118,36 +124,40 @@ $(function () {
             new Chart(chartSelector, {
                 type: 'radar',
                 options: {
-                    scale: {
-                        gridLines: {
-                            color: '#3f4145'
-                        },
-                        ticks: {
-                            beginAtZero: true,
-                            display: false,
-                            userCallback: function (value, index, values) {
-                                return humanizeDuration(value * 60 * 100);
+                    scales: {
+                        r: {
+                            grid: {
+                                color: '#3f4145'
                             },
-                            max: chartMax
-                        },
-                        pointLabels: {
-                            fontSize: 12
+                            ticks: {
+                                display: false,
+                                callback: function (value) {
+                                    return humanizeDuration(value * 60 * 100);
+                                },
+                                max: chartMax
+                            },
+                            pointLabels: {
+                                font: { size: 12 }
+                            },
+                            beginAtZero: true,
                         }
                     },
-                    legend: {
-                        display: false
-                    },
-                    tooltips: {
-                        callbacks: {
-                            title: function (tooltipItem, data) {
-                                return data['labels'][tooltipItem[0]['index']];
-                            },
-                            label: function (tooltipItem, data) {
-                                let dataset = data['datasets'][0];
-                                let percent = Math.round((dataset['data'][tooltipItem['index']] / dataset['data'].reduce(function (a, b) {
-                                    return a + b;
-                                }, 0)) * 10000) / 100;
-                                return percent + '% (' + humanizeDuration(dataset['data'][tooltipItem['index']] * 60 * 1000) + ')';
+                    plugins: {
+                        legend: {
+                            display: false
+                        },
+                        tooltip: {
+                            callbacks: {
+                                title: function (tooltipItems) {
+                                    return tooltipItems[0].label;
+                                },
+                                label: function (tooltipItem) {
+                                    let dataset = tooltipItem.chart.data.datasets[0];
+                                    let percent = Math.round((tooltipItem.raw / dataset.data.reduce(function (a, b) {
+                                        return a + b;
+                                    }, 0)) * 10000) / 100;
+                                    return percent + '% (' + humanizeDuration(tooltipItem.raw * 60 * 1000) + ')';
+                                },
                             },
                         },
                     }
