@@ -27,9 +27,10 @@ document.addEventListener('DOMContentLoaded', function () {
     const nameInput = document.getElementById('filter_name');
     const modSelect = document.getElementById('filter_mod');
     const mapSelect = document.getElementById('filter_map');
+    const typeSelect = document.getElementById('filter_type');
     const hideEmpty = document.getElementById('filter_hide_empty');
 
-    if (!nameInput || !modSelect || !mapSelect || !hideEmpty) {
+    if (!nameInput || !modSelect || !mapSelect || !hideEmpty || !typeSelect) {
         return;
     }
 
@@ -39,6 +40,7 @@ document.addEventListener('DOMContentLoaded', function () {
         const name = nameInput.value.trim().toLowerCase();
         const mod = modSelect.value;
         const map = mapSelect.value;
+        const type = typeSelect.value;
         const empty = hideEmpty.checked;
 
         rows.forEach((row) => {
@@ -46,9 +48,10 @@ document.addEventListener('DOMContentLoaded', function () {
             const playerMatches = !!name && (row.dataset.playerNames || '').includes(name);
             const matchesMod = !mod || row.dataset.mod === mod;
             const matchesMap = !map || row.dataset.map === map;
+            const matchesType = !type || row.dataset.flavor === type;
             const matchesEmpty = !empty || row.dataset.players !== '0';
 
-            row.hidden = !((serverMatches || playerMatches) && matchesMod && matchesMap && matchesEmpty);
+            row.hidden = !((serverMatches || playerMatches) && matchesMod && matchesMap && matchesEmpty && matchesType);
 
             // light up the players column whenever the term matched at least one player name
             // (independent of whether the server name also matched)
@@ -59,6 +62,6 @@ document.addEventListener('DOMContentLoaded', function () {
         });
     }
 
-    [nameInput, modSelect, mapSelect].forEach((el) => el.addEventListener('input', applyFilters));
+    [nameInput, modSelect, mapSelect, typeSelect].forEach((el) => el.addEventListener('input', applyFilters));
     hideEmpty.addEventListener('change', applyFilters);
 });
