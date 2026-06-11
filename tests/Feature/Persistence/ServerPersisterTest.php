@@ -64,4 +64,29 @@ class ServerPersisterTest extends TestCase
         $this->assertSame($created->id, $matched->id);
         $this->assertDatabaseCount('servers', 1);
     }
+
+    public function test_canonical_address_follows_the_first_address_when_the_order_flips(): void
+    {
+        $persister = new ServerPersister();
+        $persister->persist($this->server([
+            new DiscoveredAddress('192.0.2.10', 8303, 6),
+            new DiscoveredAddress('192.0.2.10', 8303, 7),
+        ]));
+
+        // the next cycle reports the 0.7 endpoint first
+        $server = $persister->persist($this->server([
+            new DiscoveredAddress('192.0.2.10', 8303, 7),
+            new DiscoveredAddress('192.0.2.10', 8303, 6),
+        ]));
+
+        $this->assertSame(7, $server->fresh()->canonicalAddress->protocol);
+        $this->assertSame(1, ServerAddress::where('server_id', $server->id)->where('is_canonical', true)->count());
+    }
+
+    public function test_rejects_a_server_with_no_addresses(): void
+    {
+        $this->expectException(\InvalidArgumentException::class);
+
+        (new ServerPersister())->persist($this->server([]));
+    }
 }
