@@ -36,6 +36,8 @@ both 0.6 and 0.7 and reports the same player list on each).
   **never double-counted**.
 - Every server carries a displayable, filterable **type** (0.6 / 0.7 / DDNet / dual-stack).
 - Eliminate the "max = 16" misdetection by preferring extended / HTTP limits.
+- Capture extended per-client attributes (skin + tee colors, 0.7 six-part skins, `afk`) where the
+  DDNet feed provides them.
 - Keep `player_histories`, `server_histories`, and `SessionRecorder` working downstream unchanged.
 
 **Non-goals**
@@ -77,7 +79,7 @@ each has a list of protocol-tagged `Address(ip, port, protocol)` and an optional
 - GET `https://master{1..4}.ddnet.org/ddnet/15/servers.json` with mirror failover.
 - Parse `servers[]`: `addresses[]` (e.g. `tw-0.6+udp://ip:port`, `tw-0.7+udp://ip:port`), `info`
   (`name`, `map.name`, `game_type`, `version`, `max_clients`, `max_players`, `clients[]` with
-  `name`/`clan`/`country`/`score`/`is_player`/`afk`), and `location`.
+  `name`/`clan`/`country`/`score`/`is_player`/`afk`/`skin` — see §5.5), and `location`.
 - This is DDNet's native channel **and the grouping authority** (§6): its `addresses[]` array defines
   which endpoints belong to one logical server. Provides real, un-capped limits and full player lists
   with no UDP traffic.
@@ -112,6 +114,9 @@ Same opcodes — but framing and payload differ by generation, so they cannot sh
 - **DDNet extended (`iext`):** vanilla prefix + `map_crc`, `map_size`, and a reserved per-client string;
   carries the real (un-capped) counts.
 
+No UDP info payload (0.6 vanilla, 0.6 extended, or 0.7 `inf3`) carries skin, tee colors, or `afk` — those
+per-client extras exist only in the DDNet HTTP feed (§5.5).
+
 ### 5.3 0.7 connless token handshake (the main new cost)
 0.7 connless packets use a 9-byte header: `[flag|version]` + 4-byte **token** + 4-byte **response token**
 (`teeworlds/src/engine/shared/network.cpp:146-163`). The server token must first be obtained via a
@@ -123,6 +128,18 @@ to this with an extra handshake stage.
 0.6 vanilla info clamps all counts to `VANILLA_MAX_CLIENTS = 16` (`ddnet/src/engine/server/server.cpp`
 `CacheServerInfo`). Real limits come from extended info or `servers.json` (`max_clients`, up to 128).
 
+### 5.5 Extended client attributes (DDNet-feed-only)
+The `servers.json` `clients[]` entries can carry, beyond `name/clan/country/score/is_player`:
+- **`afk`** (bool, defaults false when absent).
+- **`skin`** (object), in one of two encodings
+  (`ddnet/src/engine/shared/serverinfo.cpp` `FromJsonRaw`):
+  - **0.6 skin:** `{ "name": <string>, "color_body": <int?>, "color_feet": <int?> }` — a single skin
+    name plus optional tee colors (ints; absent ⇒ default colors).
+  - **0.7 skin:** `{ "body": {"name","color"}, "marking": {…}, "decoration": {…}, "hands": {…},
+    "feet": {…}, "eyes": {…} }` — six parts, each a name + optional color int.
+
+These are volatile and present only for servers the DDNet feed describes; treat every field as optional.
+
 ## 6. Data model (fresh schema, no migration)
 
 The schema is dropped and recreated; no preservation of existing rows.
@@ -132,6 +149,10 @@ The schema is dropped and recreated; no preservation of existing rows.
   (`server_histories`, etc.) continue to FK `server_id` to this logical id — unaffected.
 - **`server_addresses`** (new): `id`, `server_id` (FK), `ip`, `port`, `protocol` (6|7), `is_canonical`
   (bool, the preferred display/contact address), timestamps. `unique(ip, port, protocol)`.
+- **`players`** gains nullable last-seen cosmetic fields, snapshot-style like the existing `country`:
+  `skin` (string), `color_body`, `color_feet` (int tee colors), `afk` (bool), and `skin_parts`
+  (nullable JSON for the 0.7 six-part encoding). Populated only from the DDNet feed; null for UDP-only
+  servers. (Column-vs-JSON split for the 0.7 parts is finalized in the plan.)
 
 ## 7. Identity & dedup (mirror DDNet's address-set grouping)
 
@@ -157,6 +178,8 @@ Per logical server per cycle there may be several info snapshots (servers.json +
 - **Players:** union across the server's sources, deduped by `(name, clan)`.
 - **Metadata** (map, gametype, version, max_clients/max_players): prefer highest fidelity in order
   **`servers.json` → native 0.7 → 0.6-extended → 0.6-vanilla** (vanilla last — it is the 16-capped one).
+- **Cosmetics** (skin, colors, afk — §5.5): taken from the DDNet feed only; left null when a server is
+  seen solely over UDP.
 - **Skip redundant polling (approved):** servers already fully described by `servers.json` are **not**
   re-UDP-polled on their DDNet/0.6 addresses (large network-load saving). Only 0.7-only and 0.6-only
   servers are natively polled. (The rejected alternative re-polls every endpoint for protocol-pure player
@@ -185,8 +208,9 @@ Refactor map:
 ## 11. Testing
 
 - **Unit (golden packets):** each codec parses a captured reference packet — 0.6 vanilla, 0.6 extended,
-  0.7 (with `hostname`/`skill_level` + inverted flag), and a `servers.json` fixture. The 0.7 token
-  handshake is unit-tested against a recorded exchange.
+  0.7 (with `hostname`/`skill_level` + inverted flag), and a `servers.json` fixture (covering both the
+  0.6 and 0.7 skin encodings plus `afk`). The 0.7 token handshake is unit-tested against a recorded
+  exchange.
 - **Feature (merge/dedup):** a sixup server present in `servers.json` (0.6+0.7) **and** independently via
   the 0.7 master must persist as **one** logical server with a deduped playerbase.
 - **Regression:** per project convention, a regression test asserting the 16-cap fix (a 64/128-slot server
