@@ -12,9 +12,7 @@ class PlayerCosmeticsTest extends TestCase
 
     public function test_player_persists_a_ddnet_cosmetic_snapshot(): void
     {
-        $player = Player::create([
-            'name'       => 'vin',
-            'country'    => -102,
+        $player = Player::factory()->create([
             'skin'       => 'glow_cammo',
             'color_body' => 16726016,
             'color_feet' => 16745499,
@@ -35,12 +33,19 @@ class PlayerCosmeticsTest extends TestCase
             'marking' => ['name' => 'duodonny', 'color' => 65408],
         ];
 
-        $player = Player::create([
-            'name'       => 'glow',
-            'country'    => -1,
-            'skin_parts' => $parts,
-        ]);
+        $player = Player::factory()->create(['skin_parts' => $parts]);
 
         $this->assertSame($parts, $player->fresh()->skin_parts);
+    }
+
+    public function test_player_without_cosmetics_has_a_null_snapshot(): void
+    {
+        $fresh = Player::factory()->create()->fresh();
+
+        $this->assertNull($fresh->skin);
+        $this->assertNull($fresh->color_body);
+        $this->assertNull($fresh->color_feet);
+        $this->assertNull($fresh->afk);
+        $this->assertNull($fresh->skin_parts);
     }
 }
