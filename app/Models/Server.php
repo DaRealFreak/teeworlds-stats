@@ -18,6 +18,7 @@ use Khill\Duration\Duration;
  * @property-read \Illuminate\Database\Eloquent\Collection|\App\Models\ServerHistory[] $onlineDays
  * @property-read \Illuminate\Database\Eloquent\Collection|\App\Models\ServerHistory[] $onlineHours
  * @property-read \Illuminate\Database\Eloquent\Collection|\App\Models\Player[] $players
+ * @property-read \App\Models\ServerHistory|null $currentServerHistory
  * @property int $id
  * @property \Carbon\Carbon|null $created_at
  * @property \Carbon\Carbon|null $updated_at
@@ -66,6 +67,19 @@ class Server extends Model
     {
         return $this->players()
             ->whereRaw('`' . (new PlayerHistory)->getTable() . '`.`updated_at` >= ?', [Carbon::now()->subMinutes(env('CRONTASK_INTERVAL') * 1.5)]);
+    }
+
+    /**
+     * the server_history row for the map/mod the server is running right now; the
+     * scraper bumps this row's updated_at every scrape, so the latest one reflects
+     * the server's current map and gametype. Ties on updated_at break by id (Laravel's
+     * latestOfMany default).
+     *
+     * @return \Illuminate\Database\Eloquent\Relations\HasOne
+     */
+    public function currentServerHistory()
+    {
+        return $this->hasOne(ServerHistory::class)->latestOfMany('updated_at');
     }
 
     /**
