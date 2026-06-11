@@ -59,6 +59,37 @@ class Server extends Model
     }
 
     /**
+     * every protocol-tagged endpoint this logical server is reachable through
+     *
+     * @return \Illuminate\Database\Eloquent\Relations\HasMany
+     */
+    public function addresses()
+    {
+        return $this->hasMany(ServerAddress::class);
+    }
+
+    /**
+     * the preferred endpoint for display/contact
+     *
+     * @return \Illuminate\Database\Eloquent\Relations\HasOne
+     */
+    public function canonicalAddress()
+    {
+        return $this->hasOne(ServerAddress::class)->where('is_canonical', true);
+    }
+
+    /**
+     * distinct, sorted protocol generations this server answers (e.g. [6, 7] = dual-stack);
+     * drives the server-type classification and the serverbrowser badge
+     *
+     * @return int[]
+     */
+    public function protocols(): array
+    {
+        return $this->addresses->pluck('protocol')->unique()->sort()->values()->all();
+    }
+
+    /**
      * Get the current players on the server associated with this record
      *
      * @return \Illuminate\Database\Eloquent\Relations\BelongsToMany
