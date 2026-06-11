@@ -101,7 +101,7 @@ section.section-content {
     display: flex;
     align-items: center;
     gap: 12px;
-    padding: 9px 0;
+    padding: 6px 0;
     border-bottom: 1px solid #34373d;
 
     &:last-child {
@@ -162,8 +162,8 @@ section.section-content {
 
 .chart-compact {
   position: relative;
-  max-width: 240px;
-  margin: 0 auto 20px;
+  max-width: 185px;
+  margin: 0 auto 16px;
 }
 
 // keeps a radar/pie from ballooning to fill a wide card
@@ -353,7 +353,8 @@ section.section-content {
   }
 
   &__cell {
-    height: 15px;
+    // taller cells let the 7×24 grid fill the card rather than floating in it
+    height: 28px;
     border-radius: 2px;
     background: #22252a;
   }
