@@ -27,6 +27,7 @@ use Khill\Duration\Duration;
  * @property string $last_seen
  * @property string $name
  * @property string $version
+ * @property string|null $flavor
  * @property string $ip
  * @property int $port
  * @method static \Illuminate\Database\Eloquent\Builder|\App\Models\Server whereCreatedAt($value)

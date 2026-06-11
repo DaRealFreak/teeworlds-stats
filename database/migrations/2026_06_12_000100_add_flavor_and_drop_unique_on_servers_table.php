@@ -21,6 +21,8 @@ return new class extends Migration {
     {
         Schema::table('servers', function (Blueprint $table) {
             $table->dropColumn('flavor');
+            // re-adds the (ip,port) uniqueness; this rollback fails on MySQL if multi-address
+            // data with duplicate (ip,port) rows has already been written. Safe for local/CI.
             $table->unique(['ip', 'port']);
         });
     }
