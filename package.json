@@ -19,7 +19,7 @@
     "font-awesome": "^4.7.0",
     "humanize-duration": "^3.31",
     "jquery": "^3.7",
-    "jquery-ui": "^1.13",
+    "jquery-ui-dist": "1.13",
     "jquery-validation": "^1.21"
   }
 }
