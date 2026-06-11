@@ -10,7 +10,7 @@ use Illuminate\Support\Facades\Http;
  * server's addresses for us. Mirrors are tried in turn; if all fail the scrape cycle proceeds
  * with the other (UDP) sources, so a total failure returns [] rather than throwing.
  */
-class DdnetHttpSource
+final class DdnetHttpSource
 {
     public const MIRRORS = [
         'https://master1.ddnet.org/ddnet/15/servers.json',

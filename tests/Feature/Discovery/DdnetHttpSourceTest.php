@@ -51,4 +51,16 @@ class DdnetHttpSourceTest extends TestCase
 
         $this->assertSame([], $source->fetch());
     }
+
+    public function test_fails_over_when_a_connection_exception_is_thrown(): void
+    {
+        Http::fake([
+            'https://a/*' => fn () => throw new \Illuminate\Http\Client\ConnectionException('unreachable'),
+            'https://b/*' => Http::response($this->fixture(), 200),
+        ]);
+
+        $source = new DdnetHttpSource(mirrors: ['https://a/servers.json', 'https://b/servers.json']);
+
+        $this->assertCount(3, $source->fetch());
+    }
 }
