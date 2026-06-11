@@ -59,4 +59,14 @@ class ServerAddressTest extends TestCase
             'protocol'  => 6,
         ]);
     }
+
+    public function test_deleting_a_server_cascades_to_its_addresses(): void
+    {
+        $server = Server::factory()->create();
+        $address = ServerAddress::factory()->for($server)->create();
+
+        $server->delete();
+
+        $this->assertDatabaseMissing('server_addresses', ['id' => $address->id]);
+    }
 }

@@ -19,6 +19,8 @@ use Khill\Duration\Duration;
  * @property-read \Illuminate\Database\Eloquent\Collection|\App\Models\ServerHistory[] $onlineHours
  * @property-read \Illuminate\Database\Eloquent\Collection|\App\Models\Player[] $players
  * @property-read \App\Models\ServerHistory|null $currentServerHistory
+ * @property-read \Illuminate\Database\Eloquent\Collection|\App\Models\ServerAddress[] $addresses
+ * @property-read \App\Models\ServerAddress|null $canonicalAddress
  * @property int $id
  * @property \Carbon\Carbon|null $created_at
  * @property \Carbon\Carbon|null $updated_at
@@ -69,7 +71,9 @@ class Server extends Model
     }
 
     /**
-     * the preferred endpoint for display/contact
+     * the preferred endpoint for display/contact. This is a separate relationship key
+     * from addresses(), so eager-loading with('addresses') does NOT satisfy it — list it
+     * independently (e.g. with(['addresses', 'canonicalAddress'])) to avoid an extra query.
      *
      * @return \Illuminate\Database\Eloquent\Relations\HasOne
      */
