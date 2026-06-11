@@ -15,6 +15,10 @@
     <link rel="shortcut icon" href="{{ asset('images/favicon.ico') }}" type="image/x-icon">
     <link rel="icon" href="{{ asset('images/favicon.ico') }}" type="image/x-icon">
 
+    <!-- Prebuilt vendor stylesheets (copied by vite.config.js), kept out of the Sass bundle -->
+    <link rel="stylesheet" href="{{ asset('build/css/font-awesome.min.css') }}">
+    <link rel="stylesheet" href="{{ asset('build/css/flag-icons.min.css') }}">
+
     @vite([
         'resources/assets/sass/app.scss',
         'resources/assets/sass/font-awesome.scss',

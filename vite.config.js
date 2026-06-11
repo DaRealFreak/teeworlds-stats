@@ -20,9 +20,21 @@ export default defineConfig({
                     rename: { stripBase: true },
                 },
                 {
-                    // Copy the rectangular country flags to a stable /build/flags/4x3
-                    // path; flag-icons is pointed there via $flag-icons-path so Sass
-                    // doesn't have to rebase ~250 individual url() assets.
+                    // Font Awesome and flag-icons are served as prebuilt stylesheets
+                    // linked directly in the layout (not via Sass/Vite), so their many
+                    // font/flag url()s never reach Vite's asset resolver and flood the
+                    // build log. Both reference ../fonts and ../flags from /build/css.
+                    src: 'node_modules/font-awesome/css/font-awesome.min.css',
+                    dest: 'css',
+                    rename: { stripBase: true },
+                },
+                {
+                    src: 'node_modules/flag-icons/css/flag-icons.min.css',
+                    dest: 'css',
+                    rename: { stripBase: true },
+                },
+                {
+                    // flag-icons.min.css references ../flags/4x3/*.svg → /build/flags/4x3.
                     src: 'node_modules/flag-icons/flags/4x3/*',
                     dest: 'flags/4x3',
                     rename: { stripBase: true },
@@ -34,6 +46,10 @@ export default defineConfig({
         preprocessorOptions: {
             scss: {
                 loadPaths: ['node_modules'],
+                // Quiet deprecation warnings that originate inside dependencies only —
+                // i.e. the Bootstrap framework's own internal @import chain, which we
+                // cannot edit (Bootstrap 6 drops it). Our own stylesheets use @use.
+                quietDeps: true,
             },
         },
     },

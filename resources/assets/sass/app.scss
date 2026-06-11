@@ -1,20 +1,21 @@
+// Theme variables, also fed into Bootstrap's configuration below
+@use 'variables' as vars;
 // Fonts
-@import 'font-raleway';
-// Variables
-@import "variables";
-// Bootstrap
-@import 'bootstrap/scss/bootstrap';
-// Font Awesome
-@import 'font-awesome/scss/font-awesome';
-// Template SCSS
-@import 'dark_admin_bootstrapius';
+@use 'font-raleway';
+// Bootstrap, configured with our theme variables
+@use 'bootstrap/scss/bootstrap' with (
+  $body-bg: vars.$body-bg,
+  $font-family-sans-serif: vars.$font-family-sans-serif,
+  $font-size-base: vars.$font-size-base,
+  $line-height-base: vars.$line-height-base
+);
+// Dark admin template
+@use 'dark_admin_bootstrapius';
 // JqueryUI theme
-@import 'jquery-ui-dark-hive';
-// Country flags — point the SVG url() at the statically-copied /build/flags
-// directory (see vite.config.js); Sass leaves these absolute paths untouched and
-// the flags are served as plain assets.
-$flag-icons-path: "/build/flags";
-@import 'flag-icons/sass/flag-icons';
+@use 'jquery-ui-dark-hive';
+// Font Awesome and flag-icons are linked as prebuilt stylesheets in the layout
+// head (see resources/views/layouts/app.blade.php and vite.config.js) to keep
+// their font/flag url()s out of the Sass/Vite asset pipeline.
 
 .navbar-laravel {
   background-color: #fff;
