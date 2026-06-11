@@ -175,6 +175,34 @@ section.section-content {
 
 /*
 * ==========================================================
+*     EQUAL-HEIGHT CARD PAIRS
+*     Two side-by-side cards (countries vs mods on /general,
+*     heatmap vs mods on a profile) should share a height even
+*     though their content differs. Making the column a flex
+*     container stretches the .block to the row's tallest card,
+*     and centering the body keeps the shorter card from being
+*     top-heavy with empty space below it.
+* ==========================================================
+*/
+.card-pair {
+  display: flex;
+
+  > .block {
+    flex: 1 1 auto;
+    display: flex;
+    flex-direction: column;
+  }
+}
+
+.card-pair__body {
+  flex: 1 1 auto;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
+/*
+* ==========================================================
 *     PLAYER OVERVIEW
 * ==========================================================
 */

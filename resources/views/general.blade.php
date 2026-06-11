@@ -76,18 +76,22 @@
                 </div>
             </div>
             <div class="row">
-                <div class="col-lg-6">
+                <div class="col-lg-6 card-pair">
                     @php $countryStats = $controller->playingCountries(8); @endphp
                     <div class="block chart">
                         <div class="title"><strong>Most playing countries</strong></div>
-                        @include('partials.countries', ['countryStats' => $countryStats, 'canvasId' => 'playedCountries'])
+                        <div class="card-pair__body">
+                            @include('partials.countries', ['countryStats' => $countryStats, 'canvasId' => 'playedCountries'])
+                        </div>
                     </div>
                 </div>
-                <div class="col-lg-6">
-                    <div class="radar-chart chart block">
+                <div class="col-lg-6 card-pair">
+                    <div class="block chart">
                         <div class="title"><strong>Most played mods</strong></div>
-                        <div class="radar-chart chart margin-bottom-sm">
-                            <canvas id="playedMods"></canvas>
+                        <div class="card-pair__body">
+                            <div class="radar-chart chart">
+                                <canvas id="playedMods"></canvas>
+                            </div>
                         </div>
                     </div>
                 </div>
