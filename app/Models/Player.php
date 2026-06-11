@@ -35,6 +35,13 @@ class Player extends Model
 
     protected $guarded = ['id', 'created_at', 'updated_at'];
 
+    protected $casts = [
+        'color_body' => 'integer',
+        'color_feet' => 'integer',
+        'afk'        => 'boolean',
+        'skin_parts' => 'array',
+    ];
+
     /**
      * check if the player was seen in the passed time span
      *
