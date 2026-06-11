@@ -1,12 +1,24 @@
 <?php
 
-use Faker\Generator as Faker;
+namespace Database\Factories;
 
-$factory->define(\App\Models\Server::class, function (Faker $faker) {
-    return [
-        'name' => $faker->firstName(),
-        'mod' => $faker->streetSuffix(),
-        'ip' => sprintf("%d.%d.%d.%d", mt_rand(0, 255), mt_rand(0, 255), mt_rand(0, 255), mt_rand(0, 255)),
-        'port' => random_int(1, 65535),
-    ];
-});
+use App\Models\Server;
+use Illuminate\Database\Eloquent\Factories\Factory;
+
+/**
+ * @extends \Illuminate\Database\Eloquent\Factories\Factory<\App\Models\Server>
+ */
+class ServerFactory extends Factory
+{
+    protected $model = Server::class;
+
+    public function definition(): array
+    {
+        return [
+            'name'    => $this->faker->firstName(),
+            'version' => '0.7.5',
+            'ip'      => $this->faker->ipv4(),
+            'port'    => $this->faker->numberBetween(1, 65535),
+        ];
+    }
+}

@@ -1,10 +1,22 @@
 <?php
 
-use Faker\Generator as Faker;
+namespace Database\Factories;
 
-$factory->define(\App\Models\Player::class, function (Faker $faker) {
-    return [
-        'name' => $faker->name(),
-        'country' => $faker->country()
-    ];
-});
+use App\Models\Player;
+use Illuminate\Database\Eloquent\Factories\Factory;
+
+/**
+ * @extends \Illuminate\Database\Eloquent\Factories\Factory<\App\Models\Player>
+ */
+class PlayerFactory extends Factory
+{
+    protected $model = Player::class;
+
+    public function definition(): array
+    {
+        return [
+            'name'    => $this->faker->name(),
+            'country' => $this->faker->countryCode(),
+        ];
+    }
+}

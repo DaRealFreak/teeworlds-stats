@@ -1,11 +1,23 @@
 <?php
 
-use Faker\Generator as Faker;
+namespace Database\Factories;
 
-$factory->define(\App\Models\Clan::class, function (Faker $faker) {
-    return [
-        'name' => $faker->name(),
-        'introduction' => $faker->text(),
-        'website' => $faker->url(),
-    ];
-});
+use App\Models\Clan;
+use Illuminate\Database\Eloquent\Factories\Factory;
+
+/**
+ * @extends \Illuminate\Database\Eloquent\Factories\Factory<\App\Models\Clan>
+ */
+class ClanFactory extends Factory
+{
+    protected $model = Clan::class;
+
+    public function definition(): array
+    {
+        return [
+            'name'         => $this->faker->name(),
+            'introduction' => $this->faker->text(),
+            'website'      => $this->faker->url(),
+        ];
+    }
+}
