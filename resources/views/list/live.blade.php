@@ -84,7 +84,8 @@
                                         <td>
                                             @if ($playerCount)
                                                 <span class="badge bg-primary server-player-count"
-                                                      tabindex="0" role="button">{{ $playerCount }}</span>
+                                                      tabindex="0" role="button"
+                                                      aria-label="Players on this server">{{ $playerCount }}</span>
                                                 <div class="server-players d-none">
                                                     @foreach ($players as $player)
                                                         @php $clan = $player->clan(); @endphp

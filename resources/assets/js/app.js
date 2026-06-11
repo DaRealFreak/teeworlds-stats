@@ -25,3 +25,4 @@ import './laravel';
 import './charthelper';
 import './autocomplete';
 import './front';
+import './serverbrowser';
