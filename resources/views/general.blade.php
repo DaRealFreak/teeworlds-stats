@@ -100,7 +100,7 @@
 
             'use strict';
 
-            Chart.defaults.global.defaultFontColor = '#75787c';
+            Chart.defaults.color = '#75787c';
 
             let playedMods = $('#playedMods');
             @if (count($controller->chartPlayedMods()) >= 3)
@@ -110,38 +110,42 @@
                 new Chart(playedMods, {
                     type: 'radar',
                     options: {
-                        scale: {
-                            gridLines: {
-                                color: '#3f4145'
-                            },
-                            ticks: {
-                                beginAtZero: true,
-                                display: false,
-                                userCallback: function (value, index, values) {
-                                    return humanizeDuration(value * 60 * 100);
+                        scales: {
+                            r: {
+                                max: {!! max(array_values($controller->chartPlayedMods())) !!},
+                                grid: {
+                                    color: '#3f4145'
                                 },
-                                max: {!! max(array_values($controller->chartPlayedMods())) !!}
-                            },
-                            pointLabels: {
-                                fontSize: 12
+                                ticks: {
+                                    beginAtZero: true,
+                                    display: false,
+                                    callback: function (value) {
+                                        return humanizeDuration(value * 60 * 100);
+                                    },
+                                },
+                                pointLabels: {
+                                    font: { size: 12 }
+                                }
                             }
                         },
-                        legend: {
-                            display: false
-                        },
-                        tooltips: {
-                            callbacks: {
-                                title: function (tooltipItem, data) {
-                                    return data['labels'][tooltipItem[0]['index']];
-                                },
-                                label: function (tooltipItem, data) {
-                                    let dataset = data['datasets'][0];
-                                    let percent = Math.round((dataset['data'][tooltipItem['index']] / dataset['data'].reduce(function (a, b) {
-                                        return a + b;
-                                    }, 0)) * 10000) / 100;
-                                    return percent + '% (' + humanizeDuration(dataset['data'][tooltipItem['index']] * 60 * 1000) + ')';
-                                },
+                        plugins: {
+                            legend: {
+                                display: false
                             },
+                            tooltip: {
+                                callbacks: {
+                                    title: function (tooltipItems) {
+                                        return tooltipItems[0].label;
+                                    },
+                                    label: function (tooltipItem) {
+                                        let dataset = tooltipItem.chart.data.datasets[0];
+                                        let percent = Math.round((tooltipItem.raw / dataset.data.reduce(function (a, b) {
+                                            return a + b;
+                                        }, 0)) * 10000) / 100;
+                                        return percent + '% (' + humanizeDuration(tooltipItem.raw * 60 * 1000) + ')';
+                                    },
+                                },
+                            }
                         }
                     },
                     data: {
@@ -168,21 +172,25 @@
                 new Chart(playedMods, {
                     type: 'pie',
                     options: {
-                        legend: {
-                            display: true,
-                            position: "left"
-                        },
-                        tooltips: {
-                            callbacks: {
-                                title: function (tooltipItem, data) {
-                                    return data['labels'][tooltipItem[0]['index']];
-                                },
-                                label: function (tooltipItem, data) {
-                                    let dataset = data['datasets'][0];
-                                    let percent = Math.round((dataset['data'][tooltipItem['index']] / dataset["_meta"][Object.keys(dataset["_meta"])[0]]['total']) * 10000) / 100;
-                                    return percent + '%';
-                                },
+                        plugins: {
+                            legend: {
+                                display: true,
+                                position: "left"
                             },
+                            tooltip: {
+                                callbacks: {
+                                    title: function (tooltipItems) {
+                                        return tooltipItems[0].label;
+                                    },
+                                    label: function (tooltipItem) {
+                                        let dataset = tooltipItem.chart.data.datasets[0];
+                                        let percent = Math.round((tooltipItem.raw / dataset.data.reduce(function (a, b) {
+                                            return a + b;
+                                        }, 0)) * 10000) / 100;
+                                        return percent + '%';
+                                    },
+                                },
+                            }
                         }
                     },
                     data: {
@@ -213,22 +221,26 @@
             let playedCountryChart = new Chart($('#playedCountries'), {
                 type: 'pie',
                 options: {
-                    legend: {
-                        display: true,
-                        position: "right",
-                        responsive: false
-                    },
-                    tooltips: {
-                        callbacks: {
-                            title: function (tooltipItem, data) {
-                                return data['labels'][tooltipItem[0]['index']];
-                            },
-                            label: function (tooltipItem, data) {
-                                let dataset = data['datasets'][0];
-                                let percent = Math.round((dataset['data'][tooltipItem['index']] / dataset["_meta"][Object.keys(dataset["_meta"])[0]]['total']) * 10000) / 100;
-                                return percent + '%';
-                            },
+                    plugins: {
+                        legend: {
+                            display: true,
+                            position: "right",
+                            responsive: false
                         },
+                        tooltip: {
+                            callbacks: {
+                                title: function (tooltipItems) {
+                                    return tooltipItems[0].label;
+                                },
+                                label: function (tooltipItem) {
+                                    let dataset = tooltipItem.chart.data.datasets[0];
+                                    let percent = Math.round((tooltipItem.raw / dataset.data.reduce(function (a, b) {
+                                        return a + b;
+                                    }, 0)) * 10000) / 100;
+                                    return percent + '%';
+                                },
+                            },
+                        }
                     }
                 },
                 data: {
