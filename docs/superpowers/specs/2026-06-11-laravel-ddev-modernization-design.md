@@ -45,7 +45,7 @@
 | PHP | **8.5** | Newest stable (8.5.7, Jun 2026); fully supported by Laravel 13; project's only ext needs (`ext-sockets`, `ext-json`) are core |
 | Laravel | **13.x** | Current major; min PHP 8.3 |
 | DDEV | current schema, `type: laravel` | drop drud-era config |
-| Database | **MariaDB 11.4 LTS** | LTS (maintained to 2029), supported by DDEV + L13 |
+| Database | **MariaDB 11.8 LTS** | Newest MariaDB LTS (DDEV default), supported by DDEV + L13 |
 | Node | **22 LTS** | Native in DDEV; no NodeSource hook |
 | Build tool | **Vite 6** | Laravel default since L9 |
 | Sass | **dart-sass** | `node-sass` is EOL |
@@ -65,13 +65,13 @@
 
 Regenerate `.ddev/config.yaml` to the current schema:
 - `type: laravel`, `php_version: "8.5"`, `nodejs_version: "22"`, `docroot: public`.
-- `database: { type: mariadb, version: "11.4" }`.
+- `database: { type: mariadb, version: "11.8" }`.
 - Remove the obsolete `post-start` NodeSource hooks (Node is native now).
 - Preserve the **scheduler**: keep an in-container cron running `php artisan schedule:run` every minute, via a modernized `post-start` hook or `web_extra_daemons`.
 - Confirm `ext-sockets` is present in the current DDEV web image (it is in the standard image) — do not add a custom build for it unless verification shows otherwise.
 - Prune stale drud-era bundled directories under `.ddev/` that are no longer part of the current DDEV layout.
 
-**Acceptance:** `ddev start` boots cleanly on PHP 8.5 / Node 22 / MariaDB 11.4; `ddev exec php -v`, `ddev exec node -v`, `ddev exec php -m | grep sockets` all confirm the target versions/extension.
+**Acceptance:** `ddev start` boots on PHP 8.5 / Node 22 / MariaDB 11.8; `php -v`, `node -v`, `php -m | grep sockets` all confirm the target versions/extension. NOTE: Laravel 5.8 itself does NOT run on PHP 8.x (officially 7.1–7.4; it fatals on `ReflectionParameter::getClass()`), and PHPUnit 8.5 cannot run on PHP 8.5 — so the "current app boots on the new container" sub-goal is moot. The regression baseline is captured green on PHP 7.3 before the restart, and the suite runs again under PHPUnit 11 once Phase 3 lands Laravel 13.
 
 ---
 
@@ -150,7 +150,7 @@ The suite runs green on 5.8, then must stay green after the DDEV change and afte
 ## 7. Phasing
 
 1. **Baseline tests** — add the regression suite against the current 5.8 app; confirm green.
-2. **DDEV modernization** — PHP 8.5 / Node 22 / MariaDB 11.4; current app boots on the new container; tests green.
+2. **DDEV modernization** — PHP 8.5 / Node 22 / MariaDB 11.8; container verified (5.8 itself won't run on 8.x — proceed straight to Phase 3).
 3. **Laravel rebuild** — fresh L13 skeleton, port code, dependency swaps, Searchy + form replacements, route-syntax conversion, factory rewrites, `laravel/ui` auth; tests green.
 4. **Frontend** — Vite + Bootstrap 5 + Chart.js 4; build succeeds; manual/visual verification.
 5. **Cleanup** — update `.github/workflows/*` (PHP 8.5 / Node 22), `README.md`, `.env.example`; final end-to-end verification.

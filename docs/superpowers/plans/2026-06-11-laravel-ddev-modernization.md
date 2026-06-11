@@ -6,7 +6,7 @@
 
 **Architecture:** Five sequential phases, each ending in a green test suite or a verified working state: (1) build a regression test baseline on the current 5.8 app, (2) modernize DDEV, (3) rebuild on the Laravel 13 skeleton porting code forward, (4) modernize the frontend build, (5) clean up CI/docs. The regression suite written in Phase 1 is the safety net for Phases 2–4.
 
-**Tech Stack:** PHP 8.5, Laravel 13, MariaDB 11.4, Node 22, Vite 6, Bootstrap 5, Chart.js 4, PHPUnit feature/unit tests.
+**Tech Stack:** PHP 8.5, Laravel 13, MariaDB 11.8, Node 22, Vite 6, Bootstrap 5, Chart.js 4, PHPUnit feature/unit tests.
 
 ---
 
@@ -266,7 +266,7 @@ Intended commit: `test: lock TwStats packet parsing with a fixture`. Stage the t
 
 ## Phase 2 — DDEV modernization
 
-Goal: get the **current (still 5.8)** app booting on PHP 8.5 / Node 22 / MariaDB 11.4. (5.8 does not officially support PHP 8.5, so expect some deprecation noise here; it is temporary — Phase 3 lands on L13 immediately after. If 5.8 will not boot at all on 8.5, do Phase 2 with `php_version: "8.3"` and bump to `"8.5"` at the end of Phase 3. Decide based on what `ddev restart` reports.)
+Goal: get the **current (still 5.8)** app booting on PHP 8.5 / Node 22 / MariaDB 11.8. (5.8 does not officially support PHP 8.5, so expect some deprecation noise here; it is temporary — Phase 3 lands on L13 immediately after. If 5.8 will not boot at all on 8.5, do Phase 2 with `php_version: "8.3"` and bump to `"8.5"` at the end of Phase 3. Decide based on what `ddev restart` reports.)
 
 ### Task 2.1: Rewrite `.ddev/config.yaml` to the current schema
 
@@ -286,7 +286,7 @@ webserver_type: nginx-fpm
 nodejs_version: "22"
 database:
   type: mariadb
-  version: "11.4"
+  version: "11.8"
 xdebug_enabled: false
 use_dns_when_possible: true
 timezone: "Europe/Berlin"
@@ -334,7 +334,7 @@ Expected: green (sqlite in-memory, framework-version-independent). Investigate a
 
 - [ ] **Step 5: Commit**
 
-Intended commit: `chore(ddev): modernize config to PHP 8.5 / Node 22 / MariaDB 11.4`. Stage `.ddev/config.yaml`, report to user.
+Intended commit: `chore(ddev): modernize config to PHP 8.5 / Node 22 / MariaDB 11.8`. Stage `.ddev/config.yaml`, report to user.
 
 **Phase 2 exit criteria:** `ddev restart` succeeds; `php -v`/`node -v` show targets; baseline suite green.
 
@@ -1180,7 +1180,7 @@ jobs:
 
 - [ ] **Step 1: README requirements section**
 
-Update the Requirements block: `PHP 8.5`, `MariaDB 11.4`, `Node 22`, `Composer 2`. Replace "There are no tests yet" with the test command (`vendor/bin/phpunit`). Replace `npm run production` with `npm run build`.
+Update the Requirements block: `PHP 8.5`, `MariaDB 11.8`, `Node 22`, `Composer 2`. Replace "There are no tests yet" with the test command (`vendor/bin/phpunit`). Replace `npm run production` with `npm run build`.
 
 - [ ] **Step 2: `.env.example`**
 
@@ -1216,7 +1216,7 @@ Intended commit: `chore: update CI, README, and env for the modernized stack`. S
 
 ## Spec coverage check
 
-- DDEV PHP 8.5 / Node 22 / MariaDB 11.4 → Phase 2.
+- DDEV PHP 8.5 / Node 22 / MariaDB 11.8 → Phase 2.
 - Fresh-skeleton Laravel 13 rebuild → Phase 3 (Tasks 3.1–3.3).
 - Route FQCN conversion → Task 3.4.
 - Dependency replacement map (collective/html, searchy, fideloper/proxy, faker, dbal, tinker, collision, responsecache, ide-helper, laravel/ui) → Tasks 3.2, 3.7–3.10.
