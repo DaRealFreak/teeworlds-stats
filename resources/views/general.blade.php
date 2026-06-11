@@ -89,7 +89,7 @@
                     <div class="block chart">
                         <div class="title"><strong>Most played mods</strong></div>
                         <div class="card-pair__body">
-                            <div class="radar-chart chart">
+                            <div class="chart-cap">
                                 <canvas id="playedMods"></canvas>
                             </div>
                         </div>
