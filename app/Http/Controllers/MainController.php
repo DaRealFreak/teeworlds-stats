@@ -77,6 +77,26 @@ class MainController extends Controller
     }
 
     /**
+     * the live server browser: the servers seen in the most recent scrape (online),
+     * with their current map/mod eager-loaded and ordered by current player count.
+     * currentPlayers is loaded lazily per server (its relation groups by players.id,
+     * which makes withCount / cross-server eager loading unsafe) and the page is
+     * response-cached, so the per-server count query is cheap in practice.
+     *
+     * @return \Illuminate\Contracts\View\Factory|\Illuminate\View\View
+     */
+    public function liveServers()
+    {
+        $servers = Server::where('last_seen', '>=', Carbon::now()->subMinutes(env('CRONTASK_INTERVAL') * 1.5))
+            ->with(['currentServerHistory.map', 'currentServerHistory.mod'])
+            ->get()
+            ->sortByDesc(fn (Server $server) => $server->currentPlayers->count())
+            ->values();
+
+        return view('list.live')->with('servers', $servers);
+    }
+
+    /**
      * @return \Illuminate\Contracts\View\Factory|\Illuminate\View\View
      */
     public function mods()

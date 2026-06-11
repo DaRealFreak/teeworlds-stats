@@ -5,6 +5,7 @@ use App\Http\Controllers\InformationController;
 use App\Http\Controllers\MainController;
 use App\Http\Controllers\SearchController;
 use Illuminate\Support\Facades\Route;
+use Spatie\ResponseCache\Middlewares\CacheResponse;
 
 // Navigation general routes
 Route::get('/', [MainController::class, 'home'])->name('home');
@@ -34,6 +35,10 @@ Route::get('/map/{map_name}/', [SearchController::class, 'searchMapByName'])->na
 Route::get('/tees', [MainController::class, 'players'])->name('players');
 Route::get('/clans', [MainController::class, 'clans'])->name('clans');
 Route::get('/servers', [MainController::class, 'servers'])->name('servers');
+// Live server browser (cached; invalidated by responsecache:clear after each scrape)
+Route::get('/serverbrowser', [MainController::class, 'liveServers'])
+    ->middleware(CacheResponse::class)
+    ->name('serverbrowser');
 Route::get('/mods', [MainController::class, 'mods'])->name('mods');
 Route::get('/maps', [MainController::class, 'maps'])->name('maps');
 
