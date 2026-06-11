@@ -23,7 +23,7 @@
                                         <input type="text" name="tee_name" id="tee_name"
                                                class="form-control is-invalid" placeholder="Tee name">
                                         <div class="invalid-feedback">{{ $errors->get('tee')[0] }}
-                                            @if (session('teeSuggestions') !== null && !session('teeSuggestions')->isEmpty())
+                                            @if (filled(session('teeSuggestions')))
                                                 , try one of the following:
                                                 <ul class="list-group">
                                                     @foreach (session('teeSuggestions') as $suggestion)
@@ -61,7 +61,7 @@
                                         <input type="text" name="clan_name" id="clan_name"
                                                class="form-control is-invalid" placeholder="Clan name">
                                         <div class="invalid-feedback">{{ $errors->get('clan')[0] }}
-                                            @if (session('clanSuggestions') !== null && !session('clanSuggestions')->isEmpty())
+                                            @if (filled(session('clanSuggestions')))
                                                 , try one of the following:
                                                 <ul class="list-group">
                                                     @foreach (session('clanSuggestions') as $suggestion)
@@ -99,7 +99,7 @@
                                         <input type="text" name="server_name" id="server_name"
                                                class="form-control is-invalid" placeholder="Server name">
                                         <div class="invalid-feedback">{{ $errors->get('server')[0] }}
-                                            @if (session('serverSuggestions') !== null && !session('serverSuggestions')->isEmpty())
+                                            @if (filled(session('serverSuggestions')))
                                                 , try one of the following:
                                                 <ul class="list-group">
                                                     @foreach (session('serverSuggestions') as $suggestion)
@@ -137,12 +137,12 @@
                                         <input type="text" name="mod_name" id="mod_name"
                                                class="form-control is-invalid" placeholder="Mod name">
                                         <div class="invalid-feedback">{{ $errors->get('mod')[0] }}
-                                            @if (session('modSuggestions') !== null && !session('modSuggestions')->isEmpty())
+                                            @if (filled(session('modSuggestions')))
                                                 , try one of the following:
                                                 <ul class="list-group">
                                                     @foreach (session('modSuggestions') as $suggestion)
                                                         <li class="list-group-item list-group-item-transparent">
-                                                            <a href="{{ url('mod', urlencode($suggestion['mod'])) }}">{{ $suggestion['mod'] }}</a>
+                                                            <a href="{{ url('mod', urlencode($suggestion['name'])) }}">{{ $suggestion['name'] }}</a>
                                                         </li>
                                                     @endforeach
                                                 </ul>
@@ -175,12 +175,12 @@
                                         <input type="text" name="map_name" id="map_name"
                                                class="form-control is-invalid" placeholder="Map name">
                                         <div class="invalid-feedback">{{ $errors->get('map')[0] }}
-                                            @if (session('mapSuggestions') !== null && !session('mapSuggestions')->isEmpty())
+                                            @if (filled(session('mapSuggestions')))
                                                 , try one of the following:
                                                 <ul class="list-group">
                                                     @foreach (session('mapSuggestions') as $suggestion)
                                                         <li class="list-group-item list-group-item-transparent">
-                                                            <a href="{{ url('map', urlencode($suggestion['map'])) }}">{{ $suggestion['map'] }}</a>
+                                                            <a href="{{ url('map', urlencode($suggestion['name'])) }}">{{ $suggestion['name'] }}</a>
                                                         </li>
                                                     @endforeach
                                                 </ul>

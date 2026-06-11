@@ -2,6 +2,7 @@
 
 namespace App\Providers;
 
+use Illuminate\Pagination\Paginator;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\URL;
 use Illuminate\Support\ServiceProvider;
@@ -16,6 +17,11 @@ class AppServiceProvider extends ServiceProvider
     public function boot()
     {
         Schema::defaultStringLength(191);
+
+        // Render paginator links with Bootstrap 5 markup. Laravel 13 defaults the
+        // paginator to Tailwind views, which render unstyled against this Bootstrap
+        // theme and emit Tailwind SVG arrows that show as empty prev/next buttons.
+        Paginator::useBootstrapFive();
 
         // Force https scheme for all generated URLs when APP_URL is https.
         // Behind DDEV's TLS-terminating proxy, Laravel sees plain http internally;

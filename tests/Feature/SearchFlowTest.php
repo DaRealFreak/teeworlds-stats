@@ -5,6 +5,9 @@ namespace Tests\Feature;
 use App\Models\Mod;
 use App\Models\Player;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\View;
+use Illuminate\Support\MessageBag;
+use Illuminate\Support\ViewErrorBag;
 use Tests\TestCase;
 
 class SearchFlowTest extends TestCase
@@ -83,5 +86,39 @@ class SearchFlowTest extends TestCase
         $this->assertSame('FNG', $first->name, 'The hydrated Mod must carry the name from the mods table');
 
         $response->assertSessionHasErrors('mod');
+    }
+
+    /**
+     * (e) Regression: the /search view must render suggestions that arrive as plain
+     * arrays, not Collections.
+     *
+     * The controllers flash Eloquent collections, but Laravel 11+'s default JSON
+     * session serialization (config/session.php 'serialization' => 'json') flattens
+     * every key except 'errors' to plain arrays on the real (cross-process) session
+     * round-trip. The view previously called ->isEmpty() — a Collection method — on
+     * the flashed suggestions, which fatals with "Call to a member function isEmpty()
+     * on array" in the browser. The HTTP test session is an in-process singleton that
+     * never serializes through the handler, so it keeps the live Collection and hides
+     * the bug; rendering the view directly with the production-shaped state (array
+     * suggestion + a real shared ViewErrorBag) reproduces it deterministically.
+     */
+    public function test_search_view_renders_array_shaped_suggestions(): void
+    {
+        // The suggestion block only renders inside the @if($errors->has('clan')) branch,
+        // so share a real error bag the way ShareErrorsFromSession would.
+        $errors = (new ViewErrorBag)->put(
+            'default',
+            new MessageBag(['clan' => ['This clan does not exist']])
+        );
+        View::share('errors', $errors);
+
+        // The post-JSON-deserialization shape the browser actually sees: a plain array.
+        session(['clanSuggestions' => [['id' => 1, 'name' => 'SomeClan']]]);
+
+        $html = View::make('search')->render();
+
+        $this->assertStringContainsString('This clan does not exist', $html);
+        $this->assertStringContainsString('SomeClan', $html);
+        $this->assertStringContainsString(url('clan', urlencode('SomeClan')), $html);
     }
 }
