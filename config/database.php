@@ -57,7 +57,11 @@ return [
             'collation' => env('DB_COLLATION', 'utf8mb4_unicode_ci'),
             'prefix' => '',
             'prefix_indexes' => true,
-            'strict' => true,
+            // strict mode (ONLY_FULL_GROUP_BY) is disabled because several queries in
+            // the models do SELECT * … GROUP BY on a non-aggregated column set; this
+            // was intentionally set to false in 0edb8b3 for the Searchy dependency
+            // and must remain false until those queries are rewritten.
+            'strict' => false,
             'engine' => null,
             'options' => extension_loaded('pdo_mysql') ? array_filter([
                 Mysql::ATTR_SSL_CA => env('MYSQL_ATTR_SSL_CA'),
@@ -77,7 +81,8 @@ return [
             'collation' => env('DB_COLLATION', 'utf8mb4_unicode_ci'),
             'prefix' => '',
             'prefix_indexes' => true,
-            'strict' => true,
+            // strict mode (ONLY_FULL_GROUP_BY) disabled — see mysql entry above
+            'strict' => false,
             'engine' => null,
             'options' => extension_loaded('pdo_mysql') ? array_filter([
                 Mysql::ATTR_SSL_CA => env('MYSQL_ATTR_SSL_CA'),
