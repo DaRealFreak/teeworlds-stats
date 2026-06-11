@@ -12,10 +12,10 @@ use App\Models\PlayerHistory;
 use App\Models\Server;
 use App\Models\ServerHistory;
 use App\Service\SessionRecorder;
-use App\TwStats\Controller\GameServerController;
-use App\TwStats\Controller\MasterServerController;
-use App\TwStats\Controller\NetworkController;
-use App\TwStats\Models\GameServer;
+use App\TwStats\Discovery\DdnetHttpSource;
+use App\TwStats\Discovery\DiscoveredServer;
+use App\TwStats\Discovery\ServerMerger;
+use App\TwStats\Persistence\ServerPersister;
 use App\TwStats\Utility\Countries;
 use Carbon\Carbon;
 use Illuminate\Console\Command;
@@ -34,10 +34,14 @@ class UpdateData extends Command
      *
      * @var string
      */
-    protected $description = 'Command description';
+    protected $description = 'Scrape the configured server sources and update the stats database';
 
-    public function __construct(private readonly SessionRecorder $sessionRecorder)
-    {
+    public function __construct(
+        private readonly SessionRecorder $sessionRecorder,
+        private readonly DdnetHttpSource $ddnetHttpSource = new DdnetHttpSource(),
+        private readonly ServerMerger $serverMerger = new ServerMerger(),
+        private readonly ServerPersister $serverPersister = new ServerPersister(),
+    ) {
         parent::__construct();
     }
 
@@ -46,77 +50,34 @@ class UpdateData extends Command
      */
     public function handle()
     {
-        // get the master servers with the game server information loaded
-        $masterServers = MasterServerController::getServers();
-
-        $servers = [];
-        foreach ($masterServers as $masterServer) {
-            $servers = array_merge($servers, $masterServer->getAttribute('servers'));
-        }
-        $servers = array_unique($servers);
-
-        GameServerController::fillServerInfo($servers);
-
-        /** @var GameServer $server */
-        foreach ($servers as $index => $server) {
-            if (!$server->getAttribute('response')) {
-                $failedServers[] = $server;
-                unset($servers[$index]);
-            }
-        }
-
-        if (isset($failedServers)) {
-            usleep(NetworkController::CONNECTION_SLEEP_DURATION * 1000);
-            GameServerController::fillServerInfo($failedServers);
-            $servers = array_merge($servers, $failedServers);
-        }
+        // discover servers from every source, then collapse multi-protocol / duplicate
+        // sightings into one logical server each before persisting
+        $discovered = $this->ddnetHttpSource->fetch();
+        $servers = $this->serverMerger->merge($discovered);
 
         foreach ($servers as $server) {
-            if ($server->getAttribute('response')) {
-                $serverModel = $this->updateServer($server);
-                $this->updatePlayers($server, $serverModel);
-            } else {
-                $failedServers[] = $server;
-                $this->info("could not receive a response of: " . $server->getAttribute('ip') . ":" . $server->getAttribute('port'));
-            }
+            $serverModel = $this->serverPersister->persist($server);
+            $this->updateServerMapAndMod($serverModel, $server);
+            $this->updatePlayers($server, $serverModel);
         }
 
         // close sessions of players who dropped off every tracked server this run
         $this->sessionRecorder->closeStale();
 
-        return True;
+        return self::SUCCESS;
     }
 
     /**
-     * update the server data of the server we reached
-     *
-     * @param GameServer $server
-     * @return Server
+     * resolve the server's current map and mod, then bump its server history
      */
-    private function updateServer(GameServer $server)
+    private function updateServerMapAndMod(Server $serverModel, DiscoveredServer $server): void
     {
-        /** @var Server $serverModel */
-        $serverModel = Server::firstOrCreate(
-            [
-                'ip' => $server->getAttribute('ip'),
-                'port' => $server->getAttribute('port')
-            ]
-        );
-        $serverModel->setAttribute('name', $server->getAttribute('name'));
-        $serverModel->setAttribute('version', $server->getAttribute('version'));
-        $serverModel->setAttribute('last_seen', Carbon::now());
-
         /** @var Map $mapModel */
-        $mapModel = Map::firstOrCreate(['name' => $server->getAttribute('map')]);
+        $mapModel = Map::firstOrCreate(['name' => $server->map]);
         /** @var Mod $modModel */
-        list($modModel, $originalModModel) = $this->retrieveOrCreateMod($serverModel, $server->getAttribute('gametype'));
+        [$modModel, $originalModModel] = $this->retrieveOrCreateMod($serverModel, $server->gametype);
 
         $this->updateServerHistory($serverModel, $mapModel, $modModel, $originalModModel);
-
-        // persist our changes
-        $serverModel->save();
-
-        return $serverModel;
     }
 
     /**
@@ -174,7 +135,10 @@ class UpdateData extends Command
                     'server_id' => $serverModel->getAttribute('id'),
                     'map_id' => $mapModel->getAttribute('id'),
                     'mod_id' => $modModel->getAttribute('id'),
-                    'mod_original_id' => $originalModModel ? $originalModModel->getAttribute('id') : null
+                    'mod_original_id' => $originalModModel ? $originalModModel->getAttribute('id') : null,
+                    // SQLite enforces NOT NULL strictly; seed 0 so the row is valid before
+                    // the interval is added below (MySQL silently defaults unsigned int NOT NULL to 0)
+                    'minutes' => 0,
                 ]
             );
         }
@@ -185,55 +149,50 @@ class UpdateData extends Command
     }
 
     /**
-     * update the player data with the data extracted from the server
+     * persist the deduped players of one logical server: identity, clan membership, country,
+     * the last-seen cosmetic snapshot, play history, and the discrete session
      *
-     * @param GameServer $server
+     * @param DiscoveredServer $server
      * @param Server $serverModel
-     * @return void
      */
-    private function updatePlayers(GameServer $server, Server $serverModel)
+    private function updatePlayers(DiscoveredServer $server, Server $serverModel): void
     {
-        /** @var \App\TwStats\Models\Player $player */
-        foreach ($server->getAttribute('players') as $player) {
-            // players not yet connected to the server have a unique entry, skip these
-            if ($player->getAttribute('name') == '(connecting)') {
-                continue;
-            }
+        /** @var Map $mapModel */
+        $mapModel = Map::firstOrCreate(['name' => $server->map]);
+        /** @var Mod $modModel */
+        [$modModel, $originalModModel] = $this->retrieveOrCreateMod($serverModel, $server->gametype);
 
-            if (!$player->getAttribute('name')) {
+        foreach ($server->clients as $client) {
+            // players not yet connected have a placeholder name; skip empty/placeholder entries
+            if ($client->name === '' || $client->name === '(connecting)') {
                 continue;
             }
 
             /** @var Player $playerModel */
-            $playerModel = Player::firstOrCreate(
-                [
-                    'name' => $player->getAttribute('name'),
-                ]
-            );
+            // country has no DB default; pass a placeholder so the INSERT succeeds on strict
+            // DBs (SQLite); the real country is written by setAttribute below before save()
+            $playerModel = Player::firstOrCreate(['name' => $client->name], ['country' => Countries::getCountryName(-1)]);
 
             // update player last seen stat
             $playerModel->setAttribute('last_seen', Carbon::now());
 
-            if ($player->getAttribute('clan') == '' && $playerModel->clan()) {
+            // leave the current clan when the player now reports no tag
+            if ($client->clan === '' && $playerModel->clan()) {
                 $playerModel->currentClanRecord()->update(['left_at' => Carbon::now()]);
             }
 
-            // if clan name is not empty and player has no clan associated
-            // or player has a clan associated but the clan name differs from the current one
-            if ($player->getAttribute('clan') != '') {
-                $clanModel = Clan::firstOrCreate(
-                    [
-                        'name' => $player->getAttribute('clan')
-                    ]
-                );
+            if ($client->clan !== '') {
+                // introduction/website have no DB default; pass empty strings so the INSERT
+                // is valid on strict DBs (SQLite); the scraper has no clan metadata to fill them
+                $clanModel = Clan::firstOrCreate(['name' => $client->clan], ['introduction' => '', 'website' => '']);
 
-                // leave the current clan if the player has a clan already and is having currently a different clan tag
+                // leave the current clan if the player is now reporting a different tag
                 if ($playerModel->clan() && $playerModel->clan()->getAttribute('name') !== $clanModel->getAttribute('name')) {
                     $playerModel->currentClanRecord()->update(['left_at' => Carbon::now()]);
                 }
 
-                // if the player doesn't have a clan yet or changed clans create a new history entry
-                if (!$playerModel->clan() || ($playerModel->clan() && $playerModel->clan()->getAttribute('name') !== $clanModel->getAttribute('name'))) {
+                // if the player has no clan yet or changed clans, record the new membership
+                if (!$playerModel->clan() || $playerModel->clan()->getAttribute('name') !== $clanModel->getAttribute('name')) {
                     PlayerClanHistory::create(
                         [
                             'player_id' => $playerModel->getAttribute('id'),
@@ -244,16 +203,16 @@ class UpdateData extends Command
                 }
             }
 
-            // update player country stat
-            $playerModel->setAttribute('country', Countries::getCountryName($player->getAttribute('country')));
+            // update player country stat (stored as a name, see Countries::getCodeByName)
+            $playerModel->setAttribute('country', Countries::getCountryName($client->country));
 
-            /** @var Map $mapModel */
-            $mapModel = Map::firstOrCreate(['name' => $server->getAttribute('map')]);
-            /** @var Mod $modModel */
-            list($modModel, $originalModModel) = $this->retrieveOrCreateMod($serverModel, $server->getAttribute('gametype'));
+            // last-seen cosmetic snapshot — only the DDNet feed carries these; UDP sources leave them null
+            $playerModel->setAttribute('skin', $client->skin);
+            $playerModel->setAttribute('color_body', $client->colorBody);
+            $playerModel->setAttribute('color_feet', $client->colorFeet);
+            $playerModel->setAttribute('afk', $client->afk);
+            $playerModel->setAttribute('skin_parts', $client->skinParts);
 
-            // $player->getAttribute('ingame') is false if the player is spectating and not playing
-            // maybe don't update play history if not set?
             $this->updatePlayerHistory($playerModel, $serverModel, $mapModel, $modModel, $originalModModel);
 
             $playerModel->save();
@@ -352,7 +311,10 @@ class UpdateData extends Command
                     'server_id' => $serverModel->getAttribute('id'),
                     'map_id' => $mapModel->getAttribute('id'),
                     'mod_id' => $modModel->getAttribute('id'),
-                    'mod_original_id' => $originalModModel ? $originalModModel->getAttribute('id') : null
+                    'mod_original_id' => $originalModModel ? $originalModModel->getAttribute('id') : null,
+                    // SQLite enforces NOT NULL strictly; seed 0 so the row is valid before
+                    // the interval is added below (MySQL silently defaults unsigned int NOT NULL to 0)
+                    'minutes' => 0,
                 ]
             );
         }
