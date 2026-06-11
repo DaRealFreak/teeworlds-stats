@@ -548,3 +548,21 @@ section.section-content {
     }
   }
 }
+
+/*
+* ==========================================================
+*     SERVER BROWSER
+*     The single search box matches server names and the players
+*     on each server; when a row matches via a player, the JS flags
+*     its player cell so the column lights up (like the in-game
+*     browser). The tint goes through Bootstrap's own table state
+*     variable so it shows over .table-striped instead of beneath it.
+* ==========================================================
+*/
+.players-cell--match {
+  --bs-table-bg-state: rgba(219, 101, 116, 0.18);
+
+  .server-player-count {
+    box-shadow: 0 0 0 2px #DB6574;
+  }
+}

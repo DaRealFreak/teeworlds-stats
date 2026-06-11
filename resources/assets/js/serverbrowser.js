@@ -42,11 +42,20 @@ document.addEventListener('DOMContentLoaded', function () {
         const empty = hideEmpty.checked;
 
         rows.forEach((row) => {
-            const matchesName = !name || (row.dataset.name || '').includes(name);
+            const serverMatches = !name || (row.dataset.name || '').includes(name);
+            const playerMatches = !!name && (row.dataset.playerNames || '').includes(name);
             const matchesMod = !mod || row.dataset.mod === mod;
             const matchesMap = !map || row.dataset.map === map;
             const matchesEmpty = !empty || row.dataset.players !== '0';
-            row.hidden = !(matchesName && matchesMod && matchesMap && matchesEmpty);
+
+            row.hidden = !((serverMatches || playerMatches) && matchesMod && matchesMap && matchesEmpty);
+
+            // light up the players column whenever the term matched at least one player name
+            // (independent of whether the server name also matched)
+            const playersCell = row.querySelector('.players-cell');
+            if (playersCell) {
+                playersCell.classList.toggle('players-cell--match', playerMatches);
+            }
         });
     }
 

@@ -19,7 +19,7 @@
                         <div class="row g-2 mb-3" id="server_browser_filters">
                             <div class="col-md-4">
                                 <input type="text" class="form-control" id="filter_name"
-                                       placeholder="Filter by server name…" autocomplete="off">
+                                       placeholder="Filter by server or player…" autocomplete="off">
                             </div>
                             <div class="col-md-3">
                                 <select class="form-select" id="filter_mod">
@@ -63,11 +63,13 @@
                                         $modName = $history?->mod?->name;
                                         $players = $serverEntry->currentPlayers;
                                         $playerCount = $players->count();
+                                        $playerNames = mb_strtolower($players->pluck('name')->implode(' '));
                                     @endphp
                                     <tr data-name="{{ mb_strtolower($serverEntry->name) }}"
                                         data-map="{{ $mapName }}"
                                         data-mod="{{ $modName }}"
-                                        data-players="{{ $playerCount }}">
+                                        data-players="{{ $playerCount }}"
+                                        data-player-names="{{ $playerNames }}">
                                         <td>
                                             <a href="{{ url('server', [urlencode($serverEntry->id), urlencode($serverEntry->name)]) }}">{{ $serverEntry->name }}</a>
                                         </td>
@@ -81,7 +83,7 @@
                                                 <a href="{{ url('mod', urlencode($modName)) }}">{{ $modName }}</a>
                                             @endif
                                         </td>
-                                        <td>
+                                        <td class="players-cell">
                                             @if ($playerCount)
                                                 <span class="badge bg-primary server-player-count"
                                                       tabindex="0" role="button"

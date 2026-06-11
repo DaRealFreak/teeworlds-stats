@@ -102,6 +102,8 @@ class LiveServerBrowserTest extends TestCase
         $response->assertSee('data-players="1"', false); // count on the populated server
         $response->assertSee('data-players="0"', false); // empty server still listed
         $response->assertSeeInOrder(['Online FFA Server', 'Empty DM Server']); // sorted by descending player count
+        $response->assertSee('data-player-names="rostertee"', false); // lowercased roster powers the combined search
+        $response->assertSee('data-player-names=""', false); // empty servers still render the attr so dataset.playerNames is "" not undefined
     }
 
     public function test_browser_excludes_stale_servers(): void
