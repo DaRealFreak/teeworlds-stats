@@ -127,9 +127,9 @@
                 </div>
             </div>
 
-            <!-- Activity heatmap -->
+            <!-- Activity heatmap + most played mods -->
             <div class="row">
-                <div class="col-lg-12">
+                <div class="col-lg-8">
                     <div class="block">
                         <div class="title"><strong>When {{ $player->name }} plays</strong>
                             <span>weekday × hour, by total time online</span>
@@ -162,6 +162,18 @@
                                 More
                             </div>
                         </div>
+                    </div>
+                </div>
+                <div class="col-lg-4">
+                    <div class="block chart">
+                        <div class="title"><strong>Most played mods</strong></div>
+                        @if (count($modsChart))
+                            <div class="chart-medium radar-chart">
+                                <canvas id="playedModsChart"></canvas>
+                            </div>
+                        @else
+                            <p class="text-small" style="color: #75787f">No mod data yet.</p>
+                        @endif
                     </div>
                 </div>
             </div>
@@ -236,9 +248,9 @@
                 </div>
             </div>
 
-            <!-- Top maps + mods -->
+            <!-- Top maps -->
             <div class="row">
-                <div class="col-lg-6">
+                <div class="col-lg-12">
                     <div class="block">
                         <div class="title"><strong>Most played maps</strong></div>
                         <ul class="toplist">
@@ -254,18 +266,6 @@
                                 </li>
                             @endforeach
                         </ul>
-                    </div>
-                </div>
-                <div class="col-lg-6">
-                    <div class="block chart">
-                        <div class="title"><strong>Most played mods</strong></div>
-                        @if (count($modsChart))
-                            <div class="radar-chart chart margin-bottom-sm">
-                                <canvas id="playedModsChart"></canvas>
-                            </div>
-                        @else
-                            <p class="text-small" style="color: #75787f">No mod data yet.</p>
-                        @endif
                     </div>
                 </div>
             </div>

@@ -129,6 +129,13 @@ section.section-content {
   margin: 0 auto 20px;
 }
 
+// keeps a radar/pie from ballooning to fill a wide card
+.chart-medium {
+  position: relative;
+  max-width: 260px;
+  margin: 10px auto 0;
+}
+
 /*
 * ==========================================================
 *     PLAYER OVERVIEW
