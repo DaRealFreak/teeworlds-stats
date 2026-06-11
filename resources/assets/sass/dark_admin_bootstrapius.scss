@@ -417,10 +417,11 @@ nav {
         border: none;
         border-bottom: 1px solid #444951;
         color: #8a8d93;
-        &::-moz-placeholder, &::-webkit-input-placeholder, &:-ms-input-placeholder {
+        &::placeholder {
           font-family: "Muli", sans-serif;
           font-weight: 300 !important;
-          color: #585a5f;
+          color: #8a8d93;
+          opacity: 1;
         }
       }
     }
@@ -533,7 +534,7 @@ nav {
       color: inherit;
       text-decoration: none;
       position: relative;
-      &[data-toggle="collapse"]::after {
+      &[data-bs-toggle="collapse"]::after {
         content: '\f104';
         display: inline-block;
         -webkit-transform: translateY(-50%);
@@ -688,7 +689,7 @@ nav {
         }
       }
       a {
-        &[data-toggle="collapse"]::after {
+        &[data-bs-toggle="collapse"]::after {
           content: '\f107';
           -webkit-transform: translate(-50%, -50%);
           transform: translate(-50%, -50%);
@@ -828,7 +829,7 @@ nav {
       margin-left: 0;
     }
     a {
-      &[data-toggle="collapse"]::after {
+      &[data-bs-toggle="collapse"]::after {
         content: '\f107';
         -webkit-transform: translate(-50%, -50%);
         transform: translate(-50%, -50%);
@@ -1470,10 +1471,14 @@ nav {
   background: transparent;
   border-radius: 0;
   color: #979a9f;
-  &::-moz-placeholder, &::-webkit-input-placeholder, &:-ms-input-placeholder {
+  // Standard ::placeholder only; the old grouped vendor selectors include the
+  // invalid `:-ms-input-placeholder`, which made browsers drop the whole rule and
+  // fall back to Bootstrap's near-black default — illegible on the dark inputs.
+  &::placeholder {
     font-size: 0.9rem;
     font-family: "Muli", sans-serif;
-    color: #787b82;
+    color: #8a8d93;
+    opacity: 1;
   }
   &:focus {
     color: #979a9f;
@@ -1721,6 +1726,17 @@ input.input-material {
 */
 
 .table {
+  // Bootstrap 5.3 paints every cell's colour and background from these custom
+  // properties; left at their defaults they resolve to the light $body-bg /
+  // emphasis colour, which renders a white table inside the dark cards. Pin them
+  // to the dashboard palette so cells inherit the muted theme instead.
+  --bs-table-color: #8a8d93;
+  --bs-table-bg: transparent;
+  --bs-table-border-color: #343a40;
+  --bs-table-striped-color: #a5a7ab;
+  --bs-table-striped-bg: #282b2f;
+  --bs-table-hover-color: #cfd2d6;
+  --bs-table-hover-bg: #26292d;
   margin-bottom: 0;
   td, th {
     border-color: #343a40;
