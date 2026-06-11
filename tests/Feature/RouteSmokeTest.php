@@ -12,6 +12,7 @@ use App\Models\Server;
 use App\Models\ServerHistory;
 use Carbon\Carbon;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use PHPUnit\Framework\Attributes\DataProvider;
 use Tests\TestCase;
 
 class RouteSmokeTest extends TestCase
@@ -107,9 +108,8 @@ class RouteSmokeTest extends TestCase
 
     /**
      * Routes that render correctly with the seeded fixture data.
-     *
-     * @dataProvider publicRouteProvider
      */
+    #[DataProvider('publicRouteProvider')]
     public function test_public_routes_return_ok(string $uri): void
     {
         $this->seedMinimalData();

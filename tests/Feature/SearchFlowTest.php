@@ -41,23 +41,17 @@ class SearchFlowTest extends TestCase
     /**
      * (c) GET /tee/{name}/ for an unknown player redirects to 'search' with a 'tee' error.
      *
-     * NOTE: this path invokes tom-lingham/searchy which generates MySQL-specific SQL
-     * (MATCH … AGAINST with HAVING relevance > 20) and will fail on the SQLite
-     * in-memory connection used by this suite. The underlying redirect logic is
-     * correct; this test is skipped until the MySQL-only Searchy driver is replaced
-     * with a SQLite-compatible fuzzy search in Phase 3.
-     *
-     * @group mysql-only
+     * Now backed by App\Service\FuzzySearch (CASE/HAVING), which is SQLite-compatible,
+     * so this path runs against the in-memory SQLite test database. A known player is
+     * seeded so the fuzzy suggestion query has data to rank.
      */
     public function test_unknown_tee_name_redirects_to_search_with_error(): void
     {
-        $this->markTestSkipped(
-            'SearchController::searchTeeByName calls tom-lingham/searchy which ' .
-            'generates MySQL-specific MATCH … AGAINST SQL incompatible with the ' .
-            'SQLite in-memory test database. Re-test in Phase 3 after replacing ' .
-            'Searchy with a SQLite-compatible FuzzySearch implementation.'
-        );
-        // Reference behavior: GET /tee/{name}/ for an unknown player should
-        // assertRedirect(url('search')) and assertSessionHasErrors('tee').
+        Player::create(['name' => 'Existing Tee', 'country' => 'DE']);
+
+        $response = $this->get('/tee/' . urlencode('Existing') . '/');
+
+        $response->assertRedirect(url('search'));
+        $response->assertSessionHasErrors('tee');
     }
 }

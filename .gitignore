@@ -6,6 +6,9 @@
 /vendor
 node_modules/
 npm-debug.log
+/bootstrap/cache/*.php
+.phpunit.result.cache
+.phpunit.cache
 
 # Laravel 5 & Lumen specific
 /public/hot
