@@ -7,6 +7,7 @@ use App\Models\Mod;
 use App\Models\Player;
 use App\Models\PlayerHistory;
 use App\Models\Server;
+use App\Models\ServerAddress;
 use App\Models\ServerHistory;
 use Carbon\Carbon;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -114,5 +115,62 @@ class LiveServerBrowserTest extends TestCase
 
         $response->assertStatus(200);
         $response->assertDontSee('Stale Offline Server');
+    }
+
+    /**
+     * Seed an online dual-stack DDNet server and an online vanilla 0.7 server, each with
+     * a current map/mod and protocol-tagged addresses.
+     */
+    private function seedTypedServers(): void
+    {
+        $map = Map::create(['name' => 'Multeasymap']);
+        $mod = Mod::create(['name' => 'DDraceNetwork']);
+
+        $ddnet = Server::create([
+            'name' => 'GER10 Novice', 'version' => '0.6.4, 19.1', 'flavor' => 'ddnet',
+            'ip' => '10.1.0.1', 'port' => 8303, 'last_seen' => Carbon::now(),
+        ]);
+        ServerHistory::create([
+            'server_id' => $ddnet->id, 'map_id' => $map->id, 'mod_id' => $mod->id,
+            'weekday' => 1, 'hour' => 12, 'continuous' => 1, 'minutes' => 60,
+        ]);
+        ServerAddress::create(['server_id' => $ddnet->id, 'ip' => '10.1.0.1', 'port' => 8303, 'protocol' => 6, 'is_canonical' => true]);
+        ServerAddress::create(['server_id' => $ddnet->id, 'ip' => '10.1.0.1', 'port' => 8303, 'protocol' => 7, 'is_canonical' => false]);
+
+        $vanilla = Server::create([
+            'name' => 'CTF Pro', 'version' => '0.7.5', 'flavor' => 'vanilla_07',
+            'ip' => '10.1.0.2', 'port' => 8303, 'last_seen' => Carbon::now(),
+        ]);
+        ServerHistory::create([
+            'server_id' => $vanilla->id, 'map_id' => $map->id, 'mod_id' => $mod->id,
+            'weekday' => 1, 'hour' => 12, 'continuous' => 1, 'minutes' => 60,
+        ]);
+        ServerAddress::create(['server_id' => $vanilla->id, 'ip' => '10.1.0.2', 'port' => 8303, 'protocol' => 7, 'is_canonical' => true]);
+    }
+
+    public function test_browser_shows_server_type_badges_and_protocol_pills(): void
+    {
+        $this->seedTypedServers();
+
+        $response = $this->get('/serverbrowser');
+
+        $response->assertStatus(200);
+        $response->assertSee('>DDNet</span>', false);            // flavor badge (not the server name)
+        $response->assertSee('>Vanilla</span>', false);
+        $response->assertSee('data-flavor="ddnet"', false);      // row attribute powers the filter
+        $response->assertSee('data-flavor="vanilla_07"', false);
+        $response->assertSee('>0.6</span>', false);              // dual-stack protocol pills
+        $response->assertSee('>0.7</span>', false);
+    }
+
+    public function test_browser_renders_the_type_filter_control(): void
+    {
+        $this->seedTypedServers();
+
+        $response = $this->get('/serverbrowser');
+
+        $response->assertStatus(200);
+        $response->assertSee('id="filter_type"', false);
+        $response->assertSee('All types');
     }
 }

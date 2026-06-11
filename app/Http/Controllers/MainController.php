@@ -88,7 +88,7 @@ class MainController extends Controller
     public function liveServers()
     {
         $servers = Server::where('last_seen', '>=', Carbon::now()->subMinutes(env('CRONTASK_INTERVAL') * 1.5))
-            ->with(['currentServerHistory.map', 'currentServerHistory.mod'])
+            ->with(['currentServerHistory.map', 'currentServerHistory.mod', 'addresses'])
             ->get()
             ->sortByDesc(fn (Server $server) => $server->currentPlayers->count())
             ->values();

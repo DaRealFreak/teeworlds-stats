@@ -17,9 +17,17 @@
 
                         {{-- client-side filter bar; serverbrowser.js reads these and shows/hides rows --}}
                         <div class="row g-2 mb-3" id="server_browser_filters">
-                            <div class="col-md-4">
+                            <div class="col-md-3">
                                 <input type="text" class="form-control" id="filter_name"
                                        placeholder="Filter by server or player…" autocomplete="off">
+                            </div>
+                            <div class="col-md-2">
+                                <select class="form-select" id="filter_type">
+                                    <option value="">All types</option>
+                                    <option value="ddnet">DDNet</option>
+                                    <option value="vanilla_06">Vanilla 0.6</option>
+                                    <option value="vanilla_07">Vanilla 0.7</option>
+                                </select>
                             </div>
                             <div class="col-md-3">
                                 <select class="form-select" id="filter_mod">
@@ -29,7 +37,7 @@
                                     @endforeach
                                 </select>
                             </div>
-                            <div class="col-md-3">
+                            <div class="col-md-2">
                                 <select class="form-select" id="filter_map">
                                     <option value="">All maps</option>
                                     @foreach ($servers->map(fn ($s) => $s->currentServerHistory?->map?->name)->filter()->unique()->sort() as $mapName)
@@ -50,6 +58,7 @@
                                 <thead>
                                 <tr>
                                     <th>Server</th>
+                                    <th>Type</th>
                                     <th>Map</th>
                                     <th>Gametype</th>
                                     <th>Players</th>
@@ -64,14 +73,29 @@
                                         $players = $serverEntry->currentPlayers;
                                         $playerCount = $players->count();
                                         $playerNames = mb_strtolower($players->pluck('name')->implode(' '));
+                                        // flavor → human label; protocol pills come from the address set
+                                        $flavorLabel = match ($serverEntry->flavor) {
+                                            'ddnet' => 'DDNet',
+                                            'vanilla_06', 'vanilla_07' => 'Vanilla',
+                                            default => null,
+                                        };
                                     @endphp
                                     <tr data-name="{{ mb_strtolower($serverEntry->name) }}"
                                         data-map="{{ $mapName }}"
                                         data-mod="{{ $modName }}"
+                                        data-flavor="{{ $serverEntry->flavor }}"
                                         data-players="{{ $playerCount }}"
                                         data-player-names="{{ $playerNames }}">
                                         <td>
                                             <a href="{{ url('server', [urlencode($serverEntry->id), urlencode($serverEntry->name)]) }}">{{ $serverEntry->name }}</a>
+                                        </td>
+                                        <td>
+                                            @if ($flavorLabel)
+                                                <span class="badge {{ $serverEntry->flavor === 'ddnet' ? 'bg-info' : 'bg-secondary' }}">{{ $flavorLabel }}</span>
+                                            @endif
+                                            @foreach ($serverEntry->protocols() as $protocol)
+                                                <span class="badge bg-dark">0.{{ $protocol }}</span>
+                                            @endforeach
                                         </td>
                                         <td>
                                             @if ($mapName)
