@@ -204,7 +204,7 @@
 @endsection
 @section('scripts')
     <script>
-        $(function() {
+        document.addEventListener('DOMContentLoaded', function () {
             $("#tee_name").autocomplete({
                 source: "search/tee",
                 minLength: 1,

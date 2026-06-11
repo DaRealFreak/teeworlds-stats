@@ -306,7 +306,7 @@
 @section('scripts')
     @if (!$clan->players->isEmpty())
         <script>
-            $(document).ready(function () {
+            document.addEventListener('DOMContentLoaded', function () {
 
                 // All-Time Records
                 let playerCountriesChart = ChartHelper.pieChart($('#playerCountries'),

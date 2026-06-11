@@ -178,7 +178,7 @@
 @endsection
 @section('scripts')
     <script>
-        $(document).ready(function () {
+        document.addEventListener('DOMContentLoaded', function () {
             // All-Time Records
             ChartHelper.lineChart($('#onlineLineChartDays'),
                 ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"],
