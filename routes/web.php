@@ -1,99 +1,48 @@
 <?php
 
-/*
-|--------------------------------------------------------------------------
-| Web Routes
-|--------------------------------------------------------------------------
-|
-| Here is where you can register web routes for your application. These
-| routes are loaded by the RouteServiceProvider within a group which
-| contains the "web" middleware group. Now create something great!
-|
-*/
+use App\Http\Controllers\AjaxSearchController;
+use App\Http\Controllers\InformationController;
+use App\Http\Controllers\MainController;
+use App\Http\Controllers\SearchController;
+use Illuminate\Support\Facades\Route;
 
-# Navigation general routes
-Route::get('/', 'MainController@home')->name('general');
-Route::get('/about', 'MainController@about')->name('about');
-Route::get('/general', 'MainController@general')->name('general');
-Route::get('/home', 'MainController@home')->name('home');
-Route::get('/search', 'SearchController@main')->name('search');
+// Navigation general routes
+Route::get('/', [MainController::class, 'home'])->name('home');
+Route::get('/about', [MainController::class, 'about'])->name('about');
+Route::get('/general', [MainController::class, 'general'])->name('general');
+Route::get('/search', [SearchController::class, 'main'])->name('search');
 
-# Navigation if logged in routes
-Route::get('/tee/edit/{tee_name}', 'InformationController@editPlayer')->name('editPlayer');
-Route::get('/clan/edit/{clan_name}', 'InformationController@editClan')->name('editClan');
-Route::get('/server/edit/{server_id}/{server_name}', 'InformationController@editServer')->name('editServer');
+// Edit routes (auth)
+Route::get('/tee/edit/{tee_name}', [InformationController::class, 'editPlayer'])->name('editPlayer');
+Route::get('/clan/edit/{clan_name}', [InformationController::class, 'editClan'])->name('editClan');
+Route::get('/server/edit/{server_id}/{server_name}', [InformationController::class, 'editServer'])->name('editServer');
 
-# Search and detail pages routes
-Route::get('/tee', 'SearchController@searchTee')->name('tee');
-Route::get('/tee/{tee_name}/', ['as' => 'searchTeeByName', 'uses' => 'SearchController@searchTeeByName']);
-Route::get('/clan', 'SearchController@searchClan')->name('clan');
-Route::get('/clan/{clan_name}/', ['as' => 'searchClanByName', 'uses' => 'SearchController@searchClanByName']);
-Route::get('/server', 'SearchController@searchServer')->name('server');
-Route::get('/server/{server_name}/', ['as' => 'searchServerByName', 'uses' => 'SearchController@searchServerByName']);
-Route::get('/server/{server_id}/{server_name}/', ['as' => 'searchServerByIdAndName', 'uses' => 'SearchController@searchServerByIdAndName']);
-Route::get('/mod', 'SearchController@searchMod')->name('mod');
-Route::get('/mod/{mod_name}/', ['as' => 'searchModByName', 'uses' => 'SearchController@searchModByName']);
-Route::get('/map', 'SearchController@searchMap')->name('map');
-Route::get('/map/{map_name}/', ['as' => 'searchMapByName', 'uses' => 'SearchController@searchMapByName']);
+// Search + detail routes
+Route::get('/tee', [SearchController::class, 'searchTee'])->name('tee');
+Route::get('/tee/{tee_name}/', [SearchController::class, 'searchTeeByName'])->name('searchTeeByName');
+Route::get('/clan', [SearchController::class, 'searchClan'])->name('clan');
+Route::get('/clan/{clan_name}/', [SearchController::class, 'searchClanByName'])->name('searchClanByName');
+Route::get('/server', [SearchController::class, 'searchServer'])->name('server');
+Route::get('/server/{server_name}/', [SearchController::class, 'searchServerByName'])->name('searchServerByName');
+Route::get('/server/{server_id}/{server_name}/', [SearchController::class, 'searchServerByIdAndName'])->name('searchServerByIdAndName');
+Route::get('/mod', [SearchController::class, 'searchMod'])->name('mod');
+Route::get('/mod/{mod_name}/', [SearchController::class, 'searchModByName'])->name('searchModByName');
+Route::get('/map', [SearchController::class, 'searchMap'])->name('map');
+Route::get('/map/{map_name}/', [SearchController::class, 'searchMapByName'])->name('searchMapByName');
 
-# List pages routes
-Route::get('/tees', 'MainController@players')->name('players');
-Route::get('/clans', 'MainController@clans')->name('clans');
-Route::get('/servers', 'MainController@servers')->name('servers');
-Route::get('/mods', 'MainController@mods')->name('mods');
-Route::get('/maps', 'MainController@maps')->name('maps');
+// List routes
+Route::get('/tees', [MainController::class, 'players'])->name('players');
+Route::get('/clans', [MainController::class, 'clans'])->name('clans');
+Route::get('/servers', [MainController::class, 'servers'])->name('servers');
+Route::get('/mods', [MainController::class, 'mods'])->name('mods');
+Route::get('/maps', [MainController::class, 'maps'])->name('maps');
 
-# Ajax search routes
-Route::get('/search/tee', 'AjaxSearchController@searchTee')->name('searchTeeAjax');
-Route::get('/search/clan', 'AjaxSearchController@searchClan')->name('searchClanAjax');
-Route::get('/search/server', 'AjaxSearchController@searchServer')->name('searchServerAjax');
-Route::get('/search/mod', 'AjaxSearchController@searchMod')->name('searchModAjax');
-Route::get('/search/map', 'AjaxSearchController@searchMap')->name('searchMapAjax');
+// Ajax search routes
+Route::get('/search/tee', [AjaxSearchController::class, 'searchTee'])->name('searchTeeAjax');
+Route::get('/search/clan', [AjaxSearchController::class, 'searchClan'])->name('searchClanAjax');
+Route::get('/search/server', [AjaxSearchController::class, 'searchServer'])->name('searchServerAjax');
+Route::get('/search/mod', [AjaxSearchController::class, 'searchMod'])->name('searchModAjax');
+Route::get('/search/map', [AjaxSearchController::class, 'searchMap'])->name('searchMapAjax');
 
-# Authentication routes
+// Authentication routes (laravel/ui)
 Auth::routes();
-
-# Test routes
-Route::get('/test', function () {
-    return "huge success";
-});
-
-# Create example rules for player and server mods
-Route::get('/rules', function () {
-    \App\Models\ModRule::firstOrCreate(
-        [
-            'decider' => 'mod',
-            'rule' => '%fng%',
-            'mod_id' => \App\Models\Mod::firstOrCreate(['name' => 'FNG'])->getAttribute('id'),
-            'priority' => 1
-        ]
-    );
-
-    \App\Models\ModRule::firstOrCreate(
-        [
-            'decider' => 'server',
-            'rule' => '%gores%',
-            'mod_id' => \App\Models\Mod::firstOrCreate(['name' => 'Gores'])->getAttribute('id'),
-            'priority' => 1
-        ]
-    );
-
-    \App\Models\ModRule::firstOrCreate(
-        [
-            'decider' => 'mod',
-            'rule' => '%BW%',
-            'mod_id' => \App\Models\Mod::firstOrCreate(['name' => 'BW'])->getAttribute('id'),
-            'priority' => 2
-        ]
-    );
-
-    \App\Models\ModRule::firstOrCreate(
-        [
-            'decider' => 'server',
-            'rule' => '%Block%',
-            'mod_id' => \App\Models\Mod::firstOrCreate(['name' => 'BW'])->getAttribute('id'),
-            'priority' => 1
-        ]
-    );
-});
-
