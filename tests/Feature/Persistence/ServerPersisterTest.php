@@ -89,4 +89,15 @@ class ServerPersisterTest extends TestCase
 
         (new ServerPersister())->persist($this->server([]));
     }
+
+    public function test_a_later_protocol_resolves_to_the_same_server_by_ip_and_port(): void
+    {
+        $persister = new ServerPersister();
+        $created = $persister->persist($this->server([new DiscoveredAddress('192.0.2.10', 8303, 6)]));
+        $matched = $persister->persist($this->server([new DiscoveredAddress('192.0.2.10', 8303, 7)], name: 'sixup'));
+
+        $this->assertSame($created->id, $matched->id);
+        $this->assertDatabaseCount('servers', 1);
+        $this->assertSame([6, 7], $matched->fresh()->protocols());
+    }
 }

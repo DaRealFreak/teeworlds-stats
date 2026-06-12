@@ -4,7 +4,7 @@ namespace App\TwStats\Discovery;
 
 /**
  * Combines discovered servers from one or more sources into logical servers: any servers that
- * share an address are the same logical server (mirroring how the DDNet master groups a server's
+ * share an ip:port are the same logical server (mirroring how the DDNet master groups a server's
  * addresses). Earlier servers in the input win on metadata and on client identity, so callers
  * pass higher-priority sources first. Clients are deduped by (name, clan) — a sixup server
  * reports the same humans on its 0.6 and 0.7 lists, and they must not be double-counted.
@@ -27,7 +27,7 @@ final class ServerMerger
         foreach ($servers as $server) {
             $groupId = null;
             foreach ($server->addresses as $address) {
-                $key = $this->addressKey($address);
+                $key = $this->groupKey($address);
                 if (isset($addressToGroup[$key])) {
                     $groupId = $addressToGroup[$key];
                     break;
@@ -42,7 +42,7 @@ final class ServerMerger
             }
 
             foreach ($groups[$groupId]->addresses as $address) {
-                $addressToGroup[$this->addressKey($address)] = $groupId;
+                $addressToGroup[$this->groupKey($address)] = $groupId;
             }
         }
 
@@ -84,6 +84,14 @@ final class ServerMerger
             location: $primary->location,
             flavor: $primary->flavor,
         );
+    }
+
+    private function groupKey(DiscoveredAddress $address): string
+    {
+        // a physical server is one ip:port regardless of protocol (UDP binding is exclusive), so the
+        // 0.6 and 0.7 endpoints of a sixup server — which different sources surface separately — are
+        // the same logical server. The address union still keeps both protocols (see addressKey).
+        return $address->ip . ':' . $address->port;
     }
 
     private function addressKey(DiscoveredAddress $address): string

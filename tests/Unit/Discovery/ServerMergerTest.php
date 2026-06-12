@@ -67,4 +67,17 @@ class ServerMergerTest extends TestCase
         $this->assertCount(1, $merged);
         $this->assertCount(2, $merged[0]->clients);
     }
+
+    public function test_same_ip_port_different_protocol_merge_into_one_dual_stack_server(): void
+    {
+        $ddnet = $this->server([new DiscoveredAddress('192.0.2.1', 8303, 6)], [$this->client('alice')], name: 'DDNet', flavor: 'ddnet');
+        $seven = $this->server([new DiscoveredAddress('192.0.2.1', 8303, 7)], [$this->client('alice')], name: 'Seven', flavor: 'vanilla_07');
+
+        $merged = (new ServerMerger())->merge([$ddnet, $seven]);
+
+        $this->assertCount(1, $merged);
+        $this->assertSame('DDNet', $merged[0]->name);
+        $this->assertSame([6, 7], array_map(fn ($a) => $a->protocol, $merged[0]->addresses));
+        $this->assertCount(1, $merged[0]->clients);
+    }
 }

@@ -10,10 +10,11 @@ use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
 
 /**
- * Writes one merged discovery result to the DB. The address set is the server's identity, so the
- * logical Server is found by any of its addresses (matching how a sixup server is reachable under
- * several protocols); otherwise it is created. ip/port stay on servers as the denormalised
- * canonical pointer for existing consumers; the full protocol-tagged set lives in server_addresses.
+ * Writes one merged discovery result to the DB. The logical Server is found by ip:port (any
+ * protocol) — a sixup server reachable on both 0.6 and 0.7 must resolve to the same row
+ * regardless of which protocol a given source observed; otherwise a new row is created. ip/port
+ * stay on servers as the denormalised canonical pointer for existing consumers; the full
+ * protocol-tagged set lives in server_addresses.
  */
 class ServerPersister
 {
@@ -34,8 +35,7 @@ class ServerPersister
                     foreach ($server->addresses as $address) {
                         $query->orWhere(function ($match) use ($address) {
                             $match->where('ip', $address->ip)
-                                ->where('port', $address->port)
-                                ->where('protocol', $address->protocol);
+                                ->where('port', $address->port);
                         });
                     }
                 })
