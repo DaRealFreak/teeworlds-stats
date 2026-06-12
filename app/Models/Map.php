@@ -18,9 +18,15 @@ use Illuminate\Database\Eloquent\Model;
  * @property \Carbon\Carbon|null $created_at
  * @property \Carbon\Carbon|null $updated_at
  * @property string $name
+ * @property string|null $sha256
+ * @property int|null $size
+ * @property string|null $crc
  * @method static \Illuminate\Database\Eloquent\Builder|\App\Models\Map whereCreatedAt($value)
+ * @method static \Illuminate\Database\Eloquent\Builder|\App\Models\Map whereCrc($value)
  * @method static \Illuminate\Database\Eloquent\Builder|\App\Models\Map whereId($value)
  * @method static \Illuminate\Database\Eloquent\Builder|\App\Models\Map whereName($value)
+ * @method static \Illuminate\Database\Eloquent\Builder|\App\Models\Map whereSha256($value)
+ * @method static \Illuminate\Database\Eloquent\Builder|\App\Models\Map whereSize($value)
  * @method static \Illuminate\Database\Eloquent\Builder|\App\Models\Map whereUpdatedAt($value)
  */
 class Map extends Model
@@ -28,6 +34,16 @@ class Map extends Model
     use HasPlayStatistics;
 
     protected $guarded = ['id', 'created_at', 'updated_at'];
+
+    /**
+     * Whether a downloadable .map file can be acquired for this map. Phase A: only DDNet maps
+     * (which advertise a sha256) are HTTP-retrievable; Phase E broadens this to any map with a
+     * known online host.
+     */
+    public function hasDownloadableFile(): bool
+    {
+        return $this->getAttribute('sha256') !== null;
+    }
 
     /**
      * Get the player play records associated with the map
