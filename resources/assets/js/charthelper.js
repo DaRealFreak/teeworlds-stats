@@ -91,7 +91,8 @@ import { Chart } from 'chart.js';
                     plugins: {
                         legend: {
                             display: true,
-                            position: "left"
+                            // right keeps long mod labels (e.g. "DDraceNetwork") clear of the pie on 1080p
+                            position: "right"
                         },
                         tooltip: {
                             callbacks: {
