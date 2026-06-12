@@ -26,6 +26,7 @@ final class Teeworlds07Source
     private const TOKEN_SIZE = 8; // the 8-byte SERVERBROWSE_* identifier prefix
     private const BROWSE_TOKEN = 0x1234;
     private const DRAIN_TIMEOUT_MS = 700;
+    private const MAX_DRAIN_MS = 8000; // hard cap per drain so a flooding peer can't hang the scrape
     private const INFO_CHUNK = 256;
 
     /** @var array<int, array{ip: string, port: int}> */
@@ -53,6 +54,25 @@ final class Teeworlds07Source
     }
 
     /**
+     * Receive datagrams until the network falls quiet (a full receive timeout returns null) or an
+     * overall deadline is hit. The deadline bounds the worst case so a peer flooding faster than the
+     * quiet timeout cannot keep the loop — and the whole scrape — running indefinitely.
+     *
+     * @param callable(array{ip: string, port: int, data: string}): void $onPacket
+     */
+    private function drain(callable $onPacket): void
+    {
+        $deadline = hrtime(true) + self::MAX_DRAIN_MS * 1_000_000;
+        while (hrtime(true) < $deadline) {
+            $packet = $this->transport->receive(self::DRAIN_TIMEOUT_MS);
+            if ($packet === null) {
+                return;
+            }
+            $onPacket($packet);
+        }
+    }
+
+    /**
      * @param array<int, array{ip: string, port: int}> $targets
      * @return array<string, array{ip: string, port: int, token: int}> keyed by "ip:port"
      */
@@ -63,7 +83,7 @@ final class Teeworlds07Source
         }
 
         $tokens = [];
-        while (($packet = $this->transport->receive(self::DRAIN_TIMEOUT_MS)) !== null) {
+        $this->drain(function (array $packet) use (&$tokens) {
             $token = SevenConnless::parseTokenResponse($packet['data']);
             if ($token !== null) {
                 $tokens[$packet['ip'] . ':' . $packet['port']] = [
@@ -72,7 +92,7 @@ final class Teeworlds07Source
                     'token' => $token,
                 ];
             }
-        }
+        });
 
         return $tokens;
     }
@@ -90,15 +110,15 @@ final class Teeworlds07Source
 
         $listCodec = new SevenListCodec();
         $addresses = [];
-        while (($packet = $this->transport->receive(self::DRAIN_TIMEOUT_MS)) !== null) {
+        $this->drain(function (array $packet) use (&$addresses, $listCodec) {
             $parsed = SevenConnless::parseConnless($packet['data']);
             if ($parsed === null || !str_starts_with($parsed['data'], self::SERVERBROWSE_LIST)) {
-                continue;
+                return;
             }
             foreach ($listCodec->parse(substr($parsed['data'], self::TOKEN_SIZE)) as $address) {
                 $addresses[$address->ip . ':' . $address->port] = ['ip' => $address->ip, 'port' => $address->port];
             }
-        }
+        });
 
         return array_values($addresses);
     }
@@ -121,17 +141,17 @@ final class Teeworlds07Source
                 $this->transport->send($server['ip'], $server['port'], $packet);
             }
 
-            while (($packet = $this->transport->receive(self::DRAIN_TIMEOUT_MS)) !== null) {
+            $this->drain(function (array $packet) use (&$servers, $infoCodec) {
                 $parsed = SevenConnless::parseConnless($packet['data']);
                 if ($parsed === null || !str_starts_with($parsed['data'], self::SERVERBROWSE_INFO)) {
-                    continue;
+                    return;
                 }
                 $address = new DiscoveredAddress($packet['ip'], $packet['port'], 7);
                 $server = $infoCodec->parse(substr($parsed['data'], self::TOKEN_SIZE), $address);
                 if ($server !== null) {
                     $servers[] = $server;
                 }
-            }
+            });
         }
 
         return $servers;

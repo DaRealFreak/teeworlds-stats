@@ -14,8 +14,6 @@ final class SocketUdpTransport implements UdpTransport
     public function __construct()
     {
         $this->socket = socket_create(AF_INET, SOCK_DGRAM, SOL_UDP);
-        // a short blocking read keeps the receive-drain loops responsive without a busy-wait
-        socket_set_option($this->socket, SOL_SOCKET, SO_RCVTIMEO, ['sec' => 1, 'usec' => 0]);
     }
 
     public function __destruct()
@@ -30,6 +28,7 @@ final class SocketUdpTransport implements UdpTransport
 
     public function receive(int $timeoutMs): ?array
     {
+        // set per-call timeout so each receive blocks at most $timeoutMs milliseconds
         socket_set_option($this->socket, SOL_SOCKET, SO_RCVTIMEO, [
             'sec' => intdiv($timeoutMs, 1000),
             'usec' => ($timeoutMs % 1000) * 1000,
