@@ -75,6 +75,7 @@ class TeeListSortTest extends TestCase
         $this->seedPlayer('Casual', playedMinutes: 20);
 
         $this->get('/tees?sort=played&dir=desc')->assertOk()->assertSeeInOrder(['Grinder', 'Casual']);
+        $this->get('/tees?sort=played&dir=asc')->assertOk()->assertSeeInOrder(['Casual', 'Grinder']);
     }
 
     public function test_sort_by_clan_name(): void
@@ -82,8 +83,10 @@ class TeeListSortTest extends TestCase
         // names deliberately inverse to clan order, so a pass proves clan (not name) sorting
         $this->seedPlayer('Zeta', clan: 'AAA');
         $this->seedPlayer('Alpha', clan: 'ZZZ');
+        $this->seedPlayer('NoClan'); // clanless → forced last in both directions
 
-        $this->get('/tees?sort=clan&dir=asc')->assertOk()->assertSeeInOrder(['Zeta', 'Alpha']);
+        $this->get('/tees?sort=clan&dir=asc')->assertOk()->assertSeeInOrder(['Zeta', 'Alpha', 'NoClan']);
+        $this->get('/tees?sort=clan&dir=desc')->assertOk()->assertSeeInOrder(['Alpha', 'Zeta', 'NoClan']);
     }
 
     public function test_invalid_sort_falls_back_to_name_without_error(): void
