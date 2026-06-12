@@ -16,9 +16,11 @@ const DARKEST_06 = 0.5;          // ddnet DARKEST_LGT — 0.6 tee lightness floo
 const DARKEST_07 = 61 / 255;     // teeworlds DARKEST_COLOR_LGT — 0.7 tee lightness floor
 const BODY_NEW_WEIGHT = 192;     // skins.cpp body grayscale renormalize target
 
-// standing tee: body centered at origin, feet at the idle keyframes, neutral gaze
+// standing tee: body centered at origin, feet at the idle keyframes. The gaze direction drives the
+// eye offset (RenderTee*): point it up-left so the eyes sit high toward the top-left like the
+// in-game default sprite, instead of centered.
 const FOOT = { back: { x: -7, y: 10 }, front: { x: 7, y: 10 } };
-const DIR = { x: 0, y: 0 };
+const DIR = { x: -0.6, y: -0.8 };
 
 // --- color ----------------------------------------------------------------------------------------
 
