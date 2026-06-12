@@ -15,6 +15,7 @@ use App\Service\SessionRecorder;
 use App\TwStats\Discovery\DdnetHttpSource;
 use App\TwStats\Discovery\DiscoveredServer;
 use App\TwStats\Discovery\ServerMerger;
+use App\TwStats\Discovery\Teeworlds07Source;
 use App\TwStats\Persistence\ServerPersister;
 use App\TwStats\Utility\Countries;
 use Carbon\Carbon;
@@ -39,6 +40,7 @@ class UpdateData extends Command
     public function __construct(
         private readonly SessionRecorder $sessionRecorder,
         private readonly DdnetHttpSource $ddnetHttpSource = new DdnetHttpSource(),
+        private readonly Teeworlds07Source $teeworldsSevenSource = new Teeworlds07Source(),
         private readonly ServerMerger $serverMerger = new ServerMerger(),
         private readonly ServerPersister $serverPersister = new ServerPersister(),
     ) {
@@ -50,9 +52,10 @@ class UpdateData extends Command
      */
     public function handle()
     {
-        // discover servers from every source, then collapse multi-protocol / duplicate
-        // sightings into one logical server each before persisting
-        $discovered = $this->ddnetHttpSource->fetch();
+        // DDNet first: its servers.json carries real limits, players and cosmetics, so it wins the
+        // merge over a 0.7 UDP sighting of the same sixup server. The 0.7 source adds the stock
+        // Teeworlds servers that register only to teeworlds.com's master.
+        $discovered = array_merge($this->ddnetHttpSource->fetch(), $this->teeworldsSevenSource->fetch());
         $servers = $this->serverMerger->merge($discovered);
 
         foreach ($servers as $server) {
@@ -199,12 +202,16 @@ class UpdateData extends Command
             // update player country stat (stored as a name, see Countries::getCodeByName)
             $playerModel->setAttribute('country', Countries::getCountryName($client->country));
 
-            // last-seen cosmetic snapshot — only the DDNet feed carries these; UDP sources leave them null
-            $playerModel->setAttribute('skin', $client->skin);
-            $playerModel->setAttribute('color_body', $client->colorBody);
-            $playerModel->setAttribute('color_feet', $client->colorFeet);
-            $playerModel->setAttribute('afk', $client->afk);
-            $playerModel->setAttribute('skin_parts', $client->skinParts);
+            // the DDNet feed is the only source of cosmetics; refresh the snapshot only when this
+            // observation carries it (afk is non-null for DDNet, null for UDP sources), so a 0.7/0.6
+            // sighting of the same player name never wipes a previously-recorded DDNet skin/colors
+            if ($client->afk !== null) {
+                $playerModel->setAttribute('skin', $client->skin);
+                $playerModel->setAttribute('color_body', $client->colorBody);
+                $playerModel->setAttribute('color_feet', $client->colorFeet);
+                $playerModel->setAttribute('afk', $client->afk);
+                $playerModel->setAttribute('skin_parts', $client->skinParts);
+            }
 
             $this->updatePlayerHistory($playerModel, $serverModel, $mapModel, $modModel, $originalModModel);
 
