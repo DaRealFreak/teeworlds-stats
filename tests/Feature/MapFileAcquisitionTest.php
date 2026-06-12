@@ -4,8 +4,11 @@ namespace Tests\Feature;
 
 use App\Models\Map;
 use App\Service\DdnetHttpMapSource;
+use App\Service\MapFileStore;
+use App\Service\MapFileUnavailable;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Storage;
 use Tests\TestCase;
 
 class MapFileAcquisitionTest extends TestCase
@@ -54,5 +57,64 @@ class MapFileAcquisitionTest extends TestCase
         // size guard in isolation: sha256 matches the body, but the advertised size is wrong
         $sizeWrong = Map::create(['name' => 'z', 'sha256' => hash('sha256', 'WRONGBYTES'), 'size' => 999]);
         $this->assertNull((new DdnetHttpMapSource())->fetch($sizeWrong)); // rejected on size, not sha
+    }
+
+    public function test_store_downloads_once_then_serves_from_cache(): void
+    {
+        Storage::fake('local');
+        $body = 'CACHEDBYTES';
+        $sha = hash('sha256', $body);
+        $map = Map::create(['name' => 'Kobra 4', 'sha256' => $sha, 'size' => strlen($body)]);
+        Http::fake(['maps.ddnet.org/*' => Http::response($body, 200)]);
+
+        $store = new MapFileStore();
+
+        $rel = $store->ensure($map);
+        $this->assertSame('maps/' . $sha . '.map', $rel);
+        Storage::disk('local')->assertExists($rel);
+        $this->assertSame($body, Storage::disk('local')->get($rel));
+
+        $store->ensure($map); // second call must hit cache, not the network
+        Http::assertSentCount(1);
+    }
+
+    public function test_store_throws_when_no_source_can_serve(): void
+    {
+        Storage::fake('local');
+        $map = Map::create(['name' => 'no-hash']); // no sha256 → no eligible source
+
+        $this->expectException(MapFileUnavailable::class);
+        (new MapFileStore())->ensure($map);
+    }
+
+    public function test_store_throws_when_all_sources_return_null(): void
+    {
+        Storage::fake('local');
+        $map = Map::create(['name' => 'ghost-map', 'sha256' => str_repeat('b', 64)]);
+
+        // a source that is eligible (map has a key) but can never serve this map
+        $nullSource = new class implements \App\Service\MapSource {
+            public function fetch(\App\Models\Map $map): ?string
+            {
+                return null;
+            }
+        };
+
+        $this->expectException(MapFileUnavailable::class);
+        (new MapFileStore([$nullSource]))->ensure($map);
+    }
+
+    public function test_store_returns_cached_path_without_calling_any_source(): void
+    {
+        Storage::fake('local');
+        $sha = str_repeat('c', 64);
+        $map = Map::create(['name' => 'cached-map', 'sha256' => $sha]);
+        Storage::disk('local')->put('maps/' . $sha . '.map', 'PRELOADED');
+
+        // empty sources array — if the cache-exists branch did not short-circuit, this would throw
+        $rel = (new MapFileStore([]))->ensure($map);
+
+        $this->assertSame('maps/' . $sha . '.map', $rel);
+        $this->assertSame('PRELOADED', Storage::disk('local')->get($rel));
     }
 }
