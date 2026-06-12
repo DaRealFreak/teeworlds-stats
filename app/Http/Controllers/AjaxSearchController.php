@@ -8,6 +8,7 @@ use App\Models\Mod;
 use App\Models\Player;
 use App\Models\Server;
 use App\Service\FuzzySearch;
+use App\Utility\TeeSkin;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
@@ -151,6 +152,9 @@ class AjaxSearchController extends Controller
             ->map(fn (Player $p) => [
                 'name' => $p->name,
                 'url' => url('tee', urlencode($p->name)),
+                // the same tee descriptor the server browser/profile render; null for a UDP-only
+                // sighting with no cosmetics, in which case the dropdown shows the generic avatar
+                'tee' => TeeSkin::describe($p->skin, $p->color_body, $p->color_feet, $p->skin_parts),
             ])->values();
 
         $clans = FuzzySearch::on(Clan::query(), 'name', $term)

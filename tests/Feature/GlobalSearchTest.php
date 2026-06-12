@@ -64,4 +64,29 @@ class GlobalSearchTest extends TestCase
             'mods' => [],
         ]);
     }
+
+    /**
+     * Player results carry the same tee descriptor the server browser/profile render so the navbar
+     * dropdown can draw a sprite; a player with no observed cosmetics yields a null descriptor (the
+     * dropdown then falls back to the generic avatar).
+     */
+    public function test_global_search_attaches_a_tee_descriptor_to_players(): void
+    {
+        Player::create([
+            'name' => 'skinful', 'country' => 'DE',
+            'skin' => 'default', 'color_body' => 0, 'color_feet' => 0,
+        ]);
+        Player::create(['name' => 'skinless one', 'country' => 'DE']);
+
+        $response = $this->getJson('/search/global?term=skin');
+
+        $response->assertOk();
+        $response->assertJsonStructure(['players' => [['name', 'url', 'tee']]]);
+
+        $players = collect($response->json('players'))->keyBy('name');
+
+        $this->assertSame('06', $players['skinful']['tee']['mode']);
+        $this->assertArrayHasKey('tee', $players['skinless one']);
+        $this->assertNull($players['skinless one']['tee']);
+    }
 }

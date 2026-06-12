@@ -755,8 +755,9 @@ section.section-content {
     }
   }
 
+  // unified leading column so names line up whether a row leads with an icon, a tee, or an avatar
   &__item-icon {
-    flex: 0 0 1rem;
+    flex: 0 0 22px;
     text-align: center;
     color: #864DD9;
   }
@@ -765,6 +766,19 @@ section.section-content {
   &__item:hover &__item-icon,
   &__item.is-active &__item-icon {
     color: #fff;
+  }
+
+  // tee sprite (players) / avatar image (clans, skinless players) leading a result row
+  &__item-tee,
+  &__item-avatar {
+    flex: 0 0 22px;
+    width: 22px;
+    height: 22px;
+  }
+
+  &__item-avatar {
+    border-radius: 50%;
+    object-fit: cover;
   }
 
   &__item-name {

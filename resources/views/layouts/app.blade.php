@@ -50,7 +50,9 @@
                     <i class="fa fa-search global-search__icon" aria-hidden="true"></i>
                     <input type="search" id="global_search_input" class="global-search__input"
                            placeholder="Search players, clans, servers…" aria-label="Global search"
-                           data-global-search="{{ url('search/global') }}">
+                           data-global-search="{{ url('search/global') }}"
+                           data-clan-avatar="{{ asset('images/teehut.png') }}"
+                           data-player-fallback="{{ asset('images/user.png') }}">
                     <ul class="global-search__menu" id="global_search_menu" hidden></ul>
                 </form>
                 <div class="right-menu list-inline no-margin-bottom">

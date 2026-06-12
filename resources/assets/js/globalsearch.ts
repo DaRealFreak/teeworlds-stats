@@ -4,28 +4,64 @@
 // list, Enter follows the active (or first) hit, Esc closes. '/' and Ctrl/Cmd+K focus the box
 // from anywhere (ignored while typing in another field). Names are user-controlled (from
 // Teeworlds), so every label is set via textContent — never innerHTML — to avoid XSS.
+import { renderTee } from './tee';
+
 interface SearchResult {
     url: string;
     name: string;
+    // present only for players: the App\Utility\TeeSkin descriptor (null for a skinless sighting)
+    tee?: Record<string, unknown> | null;
 }
+
+// what leads each result row: a rendered tee sprite (players), an avatar image (clans), or a
+// Font Awesome icon (servers/maps/mods)
+type Leading = 'tee' | 'avatar' | 'icon';
 
 interface SearchGroup {
     key: string;
     label: string;
-    icon: string;
+    leading: Leading;
+    icon?: string;
 }
 
 const DEBOUNCE_MS = 200;
 const MIN_LENGTH = 2;
 
-// display order + label + Font Awesome 4.7 icon per result group
+// display order + label + leading visual per result group (Font Awesome 4.7 icons for the icon ones)
 const GROUPS: SearchGroup[] = [
-    { key: 'players', label: 'Players', icon: 'fa-user' },
-    { key: 'clans', label: 'Clans', icon: 'fa-users' },
-    { key: 'servers', label: 'Servers', icon: 'fa-server' },
-    { key: 'maps', label: 'Maps', icon: 'fa-map-o' },
-    { key: 'mods', label: 'Mods', icon: 'fa-gamepad' },
+    { key: 'players', label: 'Players', leading: 'tee' },
+    { key: 'clans', label: 'Clans', leading: 'avatar' },
+    { key: 'servers', label: 'Servers', leading: 'icon', icon: 'fa-server' },
+    { key: 'maps', label: 'Maps', leading: 'icon', icon: 'fa-map-o' },
+    { key: 'mods', label: 'Mods', leading: 'icon', icon: 'fa-gamepad' },
 ];
+
+// build the leading visual for a result row: a tee canvas for players (the generic avatar stands in
+// for a skinless sighting), the clan avatar image for clans, or a Font Awesome icon otherwise.
+// `avatars` maps a group key to its image URL (resolved from data-* attributes so asset() base paths
+// are honoured).
+function buildLeadingVisual(group: SearchGroup, result: SearchResult, avatars: Record<string, string>): HTMLElement {
+    if (group.leading === 'tee' && result.tee) {
+        const canvas = document.createElement('canvas');
+        canvas.className = 'global-search__item-tee';
+        canvas.width = 24;
+        canvas.height = 24;
+        canvas.setAttribute('data-tee', JSON.stringify(result.tee));
+        renderTee(canvas);
+        return canvas;
+    }
+    if (group.leading === 'tee' || group.leading === 'avatar') {
+        const img = document.createElement('img');
+        img.className = 'global-search__item-avatar';
+        img.src = avatars[group.key] ?? '';
+        img.alt = '';
+        return img;
+    }
+    const icon = document.createElement('i');
+    icon.className = 'fa ' + (group.icon ?? '') + ' global-search__item-icon';
+    icon.setAttribute('aria-hidden', 'true');
+    return icon;
+}
 
 function debounce<Args extends unknown[]>(fn: (...args: Args) => void, wait: number): (...args: Args) => void {
     let timer: ReturnType<typeof setTimeout>;
@@ -43,6 +79,12 @@ document.addEventListener('DOMContentLoaded', function () {
     }
     const form = input.closest('.global-search');
     const url = input.getAttribute('data-global-search') ?? '';
+    // per-group fallback/avatar images, resolved from the input's data-* attributes so the app's
+    // asset() base path is honoured (clans show the tee-hut; skinless players the generic avatar)
+    const avatars: Record<string, string> = {
+        players: input.getAttribute('data-player-fallback') ?? '',
+        clans: input.getAttribute('data-clan-avatar') ?? '',
+    };
 
     // flattened list of the currently-rendered result anchors, for ↑/↓ navigation
     let items: HTMLAnchorElement[] = [];
@@ -95,10 +137,7 @@ document.addEventListener('DOMContentLoaded', function () {
                 a.className = 'global-search__item';
                 a.href = result.url;
 
-                const icon = document.createElement('i');
-                icon.className = 'fa ' + group.icon + ' global-search__item-icon';
-                icon.setAttribute('aria-hidden', 'true');
-                a.appendChild(icon);
+                a.appendChild(buildLeadingVisual(group, result, avatars));
 
                 const label = document.createElement('span');
                 label.className = 'global-search__item-name';
