@@ -73,6 +73,8 @@ class MapModDetailPageTest extends TestCase
         $response->assertStatus(200);
         $response->assertSee('Map: RankedMap');
         $response->assertSee('Top players');
+        $response->assertSee('Top clans');
+        $response->assertSee('Top servers');
         $response->assertSee('RankedTee');
         $response->assertSee('RankedClan');
         $response->assertSee('RankedServer');
@@ -86,6 +88,17 @@ class MapModDetailPageTest extends TestCase
 
         $response->assertStatus(200);
         $response->assertSee('Map: LonelyMap');
+        $response->assertSee('No player activity recorded yet.');
+    }
+
+    public function test_empty_mod_detail_page_still_renders(): void
+    {
+        Mod::create(['name' => 'LonelyMod']);
+
+        $response = $this->get('/mod/' . urlencode('LonelyMod') . '/');
+
+        $response->assertStatus(200);
+        $response->assertSee('Mod: LonelyMod');
         $response->assertSee('No player activity recorded yet.');
     }
 }

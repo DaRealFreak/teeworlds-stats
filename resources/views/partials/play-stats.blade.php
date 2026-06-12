@@ -47,13 +47,13 @@
         <div class="row">
             <div class="col-lg-6">
                 <div class="line-chart block chart">
-                    <div class="title"><strong>{{ $entity->name }}'s online probability</strong></div>
+                    <div class="title"><strong>{{ $entity->name }}'s activity by weekday</strong></div>
                     <canvas id="onlineLineChartDays"></canvas>
                 </div>
             </div>
             <div class="col-lg-6">
                 <div class="line-chart block chart">
-                    <div class="title"><strong>{{ $entity->name }}'s online probability per day</strong></div>
+                    <div class="title"><strong>{{ $entity->name }}'s activity by hour</strong></div>
                     <canvas id="onlineLineChartHours"></canvas>
                 </div>
             </div>
@@ -81,7 +81,7 @@
                 <div class="block">
                     <div class="title"><strong>Top players</strong></div>
                     @if ($topPlayers->count())
-                        <ul class="toplist toplist--servers">
+                        <ul class="toplist">
                             @foreach ($topPlayers as $row)
                                 @continue(!$row->player)
                                 <li>
@@ -108,7 +108,7 @@
                 <div class="block">
                     <div class="title"><strong>Top clans</strong></div>
                     @if ($topClans->count())
-                        <ul class="toplist toplist--servers">
+                        <ul class="toplist">
                             @foreach ($topClans as $row)
                                 <li>
                                     <div class="toplist__row">
