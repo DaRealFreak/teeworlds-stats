@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Models\Map;
 use App\Models\Player;
 use App\Models\PlayerSession;
 use App\Models\Server;
@@ -219,5 +220,35 @@ class UpdateDataTest extends TestCase
         $this->assertDatabaseHas('servers', ['name' => 'Vanilla 0.6 DM', 'flavor' => 'vanilla_06']);
         $this->assertDatabaseHas('players', ['name' => 'Sixplayer']);
         $this->assertDatabaseHas('server_addresses', ['ip' => '198.51.100.6', 'port' => 8303, 'protocol' => 6]);
+    }
+
+    public function test_it_stores_ddnet_map_identity_from_the_feed(): void
+    {
+        $this->bindEmptySevenSource();
+        $this->bindEmptySixSource();
+        $this->fakeMaster();
+
+        $this->artisan('data:update')->assertSuccessful();
+
+        $this->assertDatabaseHas('maps', [
+            'name' => 'Multeasymap',
+            'sha256' => 'aabbccddeeff00112233445566778899aabbccddeeff00112233445566778899',
+            'size' => 654321,
+        ]);
+    }
+
+    public function test_a_udp_sighting_does_not_wipe_a_known_map_sha256(): void
+    {
+        // 'dm1' already has a sha256 from an earlier DDNet sighting
+        Map::create(['name' => 'dm1', 'sha256' => str_repeat('b', 64), 'size' => 999]);
+
+        Http::fake(['master1.ddnet.org/*' => Http::response('{"servers":[]}', 200)]);
+        $this->bindEmptySevenSource();
+        // the 0.6 source reports a server on map 'dm1' carrying no sha256
+        $this->bindSixSourceWithServer('Vanilla 0.6 DM', 'Sixplayer');
+
+        $this->artisan('data:update')->assertSuccessful();
+
+        $this->assertDatabaseHas('maps', ['name' => 'dm1', 'sha256' => str_repeat('b', 64), 'size' => 999]);
     }
 }

@@ -84,10 +84,28 @@ class UpdateData extends Command
     {
         /** @var Map $mapModel */
         $mapModel = Map::firstOrCreate(['name' => $server->map]);
+        $this->updateMapIdentity($mapModel, $server);
         /** @var Mod $modModel */
         [$modModel, $originalModModel] = $this->retrieveOrCreateMod($serverModel, $server->gametype);
 
         $this->updateServerHistory($serverModel, $mapModel, $modModel, $originalModModel);
+    }
+
+    /**
+     * Refresh a map's download identity from a sighting, but only with values the sighting
+     * actually carries — a UDP/0.6 source that knows the crc but not the sha256 must never null
+     * out a sha256 a DDNet sighting already recorded (mirrors the afk/skin no-clobber rule).
+     */
+    private function updateMapIdentity(Map $mapModel, DiscoveredServer $server): void
+    {
+        $updates = array_filter(
+            ['sha256' => $server->mapSha256, 'size' => $server->mapSize, 'crc' => $server->mapCrc],
+            static fn ($value) => $value !== null,
+        );
+
+        if ($updates !== []) {
+            $mapModel->update($updates);
+        }
     }
 
     /**
