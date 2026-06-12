@@ -13,9 +13,15 @@
             <div class="row">
                 <div class="col-lg-12">
                     <div class="block">
+                        @php
+                            // the freshest last_seen is when the scraper last touched a server, i.e. the last refresh
+                            $lastRefreshed = $servers->max('last_seen');
+                        @endphp
                         <div class="title">
-                            <strong>Servers online right now</strong>
-                            <span class="text-muted" id="online_server_count">({{ number_format($servers->count()) }})</span>
+                            <strong><span id="online_server_count">{{ number_format($servers->count()) }}</span> Servers online</strong>
+                            @if ($lastRefreshed)
+                                <span class="server-browser-refreshed">&mdash; Last refreshed: {{ \Carbon\Carbon::parse($lastRefreshed)->format('M j, Y H:i') }}</span>
+                            @endif
                         </div>
 
                         {{-- client-side filter bar; serverbrowser.js reads these and shows/hides rows --}}

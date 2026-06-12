@@ -587,6 +587,14 @@ section.section-content {
   }
 }
 
+/* secondary "last refreshed" metadata in the server-browser title; legible on the dark
+   header (the theme's muted grey is too dim) and lighter than the bold count next to it */
+.server-browser-refreshed {
+  color: #a7adb5;
+  font-size: 0.875rem;
+  font-weight: 400;
+}
+
 /* the joinable address under each server name; click/Enter copies ip:port. Its own colour
    (not .text-muted) because the theme's muted grey is too dim to read on the dark rows. */
 .server-connect {

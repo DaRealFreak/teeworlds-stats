@@ -181,7 +181,9 @@ class LiveServerBrowserTest extends TestCase
         $response = $this->get('/serverbrowser');
 
         $response->assertStatus(200);
-        $response->assertSee('id="online_server_count">(2)</span>', false);
+        $response->assertSee('id="online_server_count">2</span>', false); // count leads the heading
+        $response->assertSee('Servers online');
+        $response->assertSee('Last refreshed:');
     }
 
     public function test_browser_shows_player_count_over_max_clients(): void
