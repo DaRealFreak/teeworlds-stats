@@ -1,0 +1,15 @@
+<?php
+
+namespace App\Service;
+
+use App\Models\Map;
+
+/**
+ * A strategy that tries to produce the raw bytes of a map's .map file. Implementations return
+ * the verified bytes on success or null if they cannot serve this map, so MapFileStore can try
+ * the next source. Phase A ships DdnetHttpMapSource; Phase E adds the UDP GameServerMapSource.
+ */
+interface MapSource
+{
+    public function fetch(Map $map): ?string;
+}
