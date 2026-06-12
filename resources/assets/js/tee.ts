@@ -323,7 +323,8 @@ async function render07(canvas: HTMLCanvasElement, d: Tee07Descriptor): Promise<
         const c = d.parts[name]?.color;
         return c === null || c === undefined ? null : decodeColor(c, DARKEST_07, useAlpha);
     };
-    const pp = (img: CanvasImageSource, cell: Rect, rgb: Rgba | null) => part(img, cell[0], cell[1], cell[2], cell[3], rgb);
+    const pp = (img: CanvasImageSource, cell: Rect, rgb: Rgba | null) =>
+        part(img, cell[0], cell[1], cell[2], cell[3], rgb);
 
     const feetRgb = colorOf('feet', false);
     const drawFoot = (outline: boolean, pos: { x: number; y: number }) => {
@@ -414,7 +415,10 @@ export function renderTee(canvas: HTMLCanvasElement): void {
 // Render every tee in root. By default only visible canvases are drawn, so the page-load pass skips
 // the server browser's thousands of hidden roster tees (those are drawn into the popover clone when
 // it opens — pass {onlyVisible:false} for that). offsetParent is null for display:none elements.
-export function renderAllTees(root: ParentNode = document, { onlyVisible = true }: { onlyVisible?: boolean } = {}): void {
+export function renderAllTees(
+    root: ParentNode = document,
+    { onlyVisible = true }: { onlyVisible?: boolean } = {},
+): void {
     root.querySelectorAll<HTMLCanvasElement>('canvas[data-tee]').forEach((canvas) => {
         if (onlyVisible && canvas.offsetParent === null) return;
         renderTee(canvas);

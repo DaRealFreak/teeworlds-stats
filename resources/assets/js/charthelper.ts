@@ -139,12 +139,7 @@ class ChartHelper {
         });
     }
 
-    static radarChart(
-        chartSelector: ChartItem,
-        chartLabels: string[],
-        chartData: number[],
-        chartMax: number,
-    ): void {
+    static radarChart(chartSelector: ChartItem, chartLabels: string[], chartData: number[], chartMax: number): void {
         new Chart(chartSelector, {
             type: 'radar',
             options: {
