@@ -92,7 +92,14 @@ import { Chart } from 'chart.js';
                         legend: {
                             display: true,
                             // right keeps long mod labels (e.g. "DDraceNetwork") clear of the pie on 1080p
-                            position: "right"
+                            position: "right",
+                            // the chart splits its 260px width evenly, so the default 40px colour
+                            // swatch leaves too little room for the label and it clips at the edge;
+                            // a small swatch frees that space for the full mod name
+                            labels: {
+                                boxWidth: 12,
+                                boxHeight: 12
+                            }
                         },
                         tooltip: {
                             callbacks: {
