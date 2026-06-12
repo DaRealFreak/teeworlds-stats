@@ -24,6 +24,7 @@ window.humanizeDuration = humanizeDuration;
 import './laravel';
 import './charthelper';
 import './autocomplete';
+import './globalsearch';
 import './front';
 import './serverbrowser';
 import './tee';
