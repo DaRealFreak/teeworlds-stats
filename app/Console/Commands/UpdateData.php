@@ -209,14 +209,22 @@ class UpdateData extends Command
             // update player country stat (stored as a name, see Countries::getCodeByName)
             $playerModel->setAttribute('country', Countries::getCountryName($client->country));
 
-            // the DDNet feed is the only source of cosmetics; refresh the snapshot only when this
-            // observation carries it (afk is non-null for DDNet, null for UDP sources), so a 0.7/0.6
-            // sighting of the same player name never wipes a previously-recorded DDNet skin/colors
+            // afk is a live state, reported per scrape by the DDNet feed; refresh it whenever the
+            // sighting carries it (UDP sources carry no afk and leave it null)
             if ($client->afk !== null) {
+                $playerModel->setAttribute('afk', $client->afk);
+            }
+
+            // cosmetics are a stable identity, not a per-scrape state, so refresh the snapshot only
+            // when THIS sighting actually carries one. Otherwise a later skinless sighting — a 0.6/FNG
+            // server (or any UDP source) that reports no skin — would wipe a previously-recorded skin,
+            // blanking the tee of a player we have already seen skinned elsewhere (e.g. on DDNet). A
+            // null skin means "not reported" (skip); an empty-string skin is a real default-skin
+            // observation and still applies.
+            if ($client->skin !== null || !empty($client->skinParts)) {
                 $playerModel->setAttribute('skin', $client->skin);
                 $playerModel->setAttribute('color_body', $client->colorBody);
                 $playerModel->setAttribute('color_feet', $client->colorFeet);
-                $playerModel->setAttribute('afk', $client->afk);
                 $playerModel->setAttribute('skin_parts', $client->skinParts);
             }
 

@@ -168,6 +168,24 @@ class UpdateDataTest extends TestCase
         $this->assertFalse($vin->afk);
     }
 
+    public function test_a_skinless_feed_observation_does_not_wipe_a_stored_cosmetic_snapshot(): void
+    {
+        // Bob already carries a skin from an earlier sighting that did report one
+        Player::factory()->create(['name' => 'Bob', 'skin' => 'cammostripes', 'color_body' => 255, 'color_feet' => 255]);
+
+        $this->bindEmptySevenSource();
+        $this->bindEmptySixSource();
+        // the fixture reports Bob on "Vanilla 0.7 CTF" with no skin (a feed sighting: afk resolves
+        // to false, skin to null) — the kind of skinless 0.6/vanilla entry that was wiping skins
+        $this->fakeMaster();
+
+        $this->artisan('data:update')->assertSuccessful();
+
+        $bob = Player::where('name', 'Bob')->first();
+        $this->assertSame('cammostripes', $bob->skin, 'a skinless feed sighting must not wipe a known skin');
+        $this->assertSame(255, $bob->color_body);
+    }
+
     public function test_it_ingests_a_vanilla_06_server_from_the_six_source(): void
     {
         Http::fake(['master1.ddnet.org/*' => Http::response('{"servers":[]}', 200)]);
