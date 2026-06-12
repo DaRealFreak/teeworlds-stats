@@ -13,7 +13,7 @@ use App\Models\Server;
 use App\Models\ServerHistory;
 use App\Service\SessionRecorder;
 use App\TwStats\Discovery\DdnetHttpSource;
-use App\TwStats\Discovery\DiscoveredServer;
+use App\TwStats\Model\DiscoveredServer;
 use App\TwStats\Discovery\ServerMerger;
 use App\TwStats\Discovery\Teeworlds07Source;
 use App\TwStats\Persistence\ServerPersister;

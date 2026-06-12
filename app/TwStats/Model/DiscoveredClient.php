@@ -1,6 +1,6 @@
 <?php
 
-namespace App\TwStats\Discovery;
+namespace App\TwStats\Model;
 
 /**
  * One client (player or spectator) on a discovered server. Skin/colors/afk come only from

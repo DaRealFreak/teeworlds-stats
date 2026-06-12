@@ -2,9 +2,9 @@
 
 namespace Tests\Unit\Discovery;
 
-use App\TwStats\Discovery\DiscoveredAddress;
-use App\TwStats\Discovery\DiscoveredClient;
-use App\TwStats\Discovery\DiscoveredServer;
+use App\TwStats\Model\DiscoveredAddress;
+use App\TwStats\Model\DiscoveredClient;
+use App\TwStats\Model\DiscoveredServer;
 use App\TwStats\Discovery\ServerMerger;
 use PHPUnit\Framework\TestCase;
 

@@ -2,6 +2,10 @@
 
 namespace App\TwStats\Discovery;
 
+use App\TwStats\Model\DiscoveredAddress;
+use App\TwStats\Model\DiscoveredClient;
+use App\TwStats\Model\DiscoveredServer;
+
 /**
  * Parses a DDNet master `servers.json` body into normalized servers. The feed is an external
  * contract, so every entry/field is validated and anything malformed is skipped rather than

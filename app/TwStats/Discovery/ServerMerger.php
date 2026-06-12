@@ -2,6 +2,10 @@
 
 namespace App\TwStats\Discovery;
 
+use App\TwStats\Model\DiscoveredAddress;
+use App\TwStats\Model\DiscoveredClient;
+use App\TwStats\Model\DiscoveredServer;
+
 /**
  * Combines discovered servers from one or more sources into logical servers: any servers that
  * share an ip:port are the same logical server (mirroring how the DDNet master groups a server's

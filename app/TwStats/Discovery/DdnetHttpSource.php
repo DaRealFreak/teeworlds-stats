@@ -2,6 +2,7 @@
 
 namespace App\TwStats\Discovery;
 
+use App\TwStats\Model\DiscoveredServer;
 use Illuminate\Support\Facades\Http;
 
 /**

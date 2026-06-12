@@ -2,7 +2,7 @@
 
 namespace Tests\Unit\Protocol\Seven;
 
-use App\TwStats\Discovery\DiscoveredAddress;
+use App\TwStats\Model\DiscoveredAddress;
 use App\TwStats\Protocol\Seven\SevenInfoCodec;
 use App\TwStats\Protocol\Seven\VariableInt;
 use PHPUnit\Framework\TestCase;

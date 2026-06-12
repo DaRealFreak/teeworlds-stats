@@ -4,8 +4,8 @@ namespace App\TwStats\Persistence;
 
 use App\Models\Server;
 use App\Models\ServerAddress;
-use App\TwStats\Discovery\DiscoveredAddress;
-use App\TwStats\Discovery\DiscoveredServer;
+use App\TwStats\Model\DiscoveredAddress;
+use App\TwStats\Model\DiscoveredServer;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
 

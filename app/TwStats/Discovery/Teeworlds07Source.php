@@ -2,6 +2,8 @@
 
 namespace App\TwStats\Discovery;
 
+use App\TwStats\Model\DiscoveredAddress;
+use App\TwStats\Model\DiscoveredServer;
 use App\TwStats\Net\SocketUdpTransport;
 use App\TwStats\Net\UdpTransport;
 use App\TwStats\Protocol\Seven\SevenConnless;

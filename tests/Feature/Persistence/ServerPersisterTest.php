@@ -4,8 +4,8 @@ namespace Tests\Feature\Persistence;
 
 use App\Models\Server;
 use App\Models\ServerAddress;
-use App\TwStats\Discovery\DiscoveredAddress;
-use App\TwStats\Discovery\DiscoveredServer;
+use App\TwStats\Model\DiscoveredAddress;
+use App\TwStats\Model\DiscoveredServer;
 use App\TwStats\Persistence\ServerPersister;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;

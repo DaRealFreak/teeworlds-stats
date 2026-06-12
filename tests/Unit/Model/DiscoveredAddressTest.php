@@ -1,8 +1,8 @@
 <?php
 
-namespace Tests\Unit\Discovery;
+namespace Tests\Unit\Model;
 
-use App\TwStats\Discovery\DiscoveredAddress;
+use App\TwStats\Model\DiscoveredAddress;
 use PHPUnit\Framework\TestCase;
 
 class DiscoveredAddressTest extends TestCase

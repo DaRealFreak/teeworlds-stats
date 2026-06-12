@@ -1,6 +1,6 @@
 <?php
 
-namespace App\TwStats\Discovery;
+namespace App\TwStats\Model;
 
 /**
  * A normalized logical server produced by a source adapter. The address set is its identity

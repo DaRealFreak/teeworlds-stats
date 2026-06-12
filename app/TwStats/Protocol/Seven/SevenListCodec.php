@@ -2,7 +2,7 @@
 
 namespace App\TwStats\Protocol\Seven;
 
-use App\TwStats\Discovery\DiscoveredAddress;
+use App\TwStats\Model\DiscoveredAddress;
 
 /**
  * Parses a Teeworlds 0.7 `lis2` master payload into game-server addresses. Each entry is a

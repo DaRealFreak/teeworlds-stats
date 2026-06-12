@@ -1,6 +1,6 @@
 <?php
 
-namespace App\TwStats\Discovery;
+namespace App\TwStats\Model;
 
 /**
  * One protocol-tagged endpoint of a discovered server. Immutable; produced by the source
