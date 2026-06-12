@@ -118,4 +118,39 @@ class SessionRecorderTest extends TestCase
         $this->assertSame(0, $closed);
         $this->assertNull(PlayerSession::first()->ended_at);
     }
+
+    public function test_afk_true_accrues_both_afk_and_tracked_minutes(): void
+    {
+        Carbon::setTestNow('2026-06-11 20:00:00');
+        $first = $this->recorder->record($this->player, $this->server, $this->map, $this->mod, afk: true);
+        $this->assertSame(10, $first->afk_minutes);
+        $this->assertSame(10, $first->afk_tracked_minutes);
+
+        Carbon::setTestNow('2026-06-11 20:10:00');
+        $second = $this->recorder->record($this->player, $this->server, $this->map, $this->mod, afk: true);
+        $this->assertSame($first->id, $second->id);
+        $this->assertSame(20, $second->minutes);
+        $this->assertSame(20, $second->afk_minutes);
+        $this->assertSame(20, $second->afk_tracked_minutes);
+    }
+
+    public function test_afk_false_accrues_only_tracked_minutes(): void
+    {
+        Carbon::setTestNow('2026-06-11 20:00:00');
+        $session = $this->recorder->record($this->player, $this->server, $this->map, $this->mod, afk: false);
+
+        $this->assertSame(10, $session->minutes);
+        $this->assertSame(0, $session->afk_minutes);
+        $this->assertSame(10, $session->afk_tracked_minutes);
+    }
+
+    public function test_unknown_afk_accrues_neither_counter(): void
+    {
+        Carbon::setTestNow('2026-06-11 20:00:00');
+        $session = $this->recorder->record($this->player, $this->server, $this->map, $this->mod, afk: null);
+
+        $this->assertSame(10, $session->minutes);
+        $this->assertSame(0, $session->afk_minutes);
+        $this->assertSame(0, $session->afk_tracked_minutes);
+    }
 }

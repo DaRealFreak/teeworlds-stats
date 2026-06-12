@@ -22,9 +22,14 @@ class SessionRecorder
     /**
      * record one observation of a player on a server, returning the affected session
      */
-    public function record(Player $player, Server $server, Map $map, Mod $mod): PlayerSession
+    public function record(Player $player, Server $server, Map $map, Mod $mod, ?bool $afk = null): PlayerSession
     {
         $interval = $this->interval();
+
+        // an interval counts as idle only on a positive afk=true observation; false and null
+        // (UDP, unknown) are active. tracked counts every interval the source reported afk at all.
+        $afkDelta = $afk === true ? $interval : 0;
+        $trackedDelta = $afk !== null ? $interval : 0;
 
         $open = PlayerSession::where('player_id', $player->getAttribute('id'))
             ->whereNull('ended_at')
@@ -37,6 +42,8 @@ class SessionRecorder
             && $open->getAttribute('last_seen_at') >= $this->staleThreshold()
         ) {
             $open->setAttribute('minutes', $open->getAttribute('minutes') + $interval);
+            $open->setAttribute('afk_minutes', $open->getAttribute('afk_minutes') + $afkDelta);
+            $open->setAttribute('afk_tracked_minutes', $open->getAttribute('afk_tracked_minutes') + $trackedDelta);
             $open->setAttribute('last_seen_at', Carbon::now());
             $open->setAttribute('map_id', $map->getAttribute('id'));
             $open->setAttribute('mod_id', $mod->getAttribute('id'));
@@ -56,6 +63,8 @@ class SessionRecorder
             'map_id' => $map->getAttribute('id'),
             'mod_id' => $mod->getAttribute('id'),
             'minutes' => $interval,
+            'afk_minutes' => $afkDelta,
+            'afk_tracked_minutes' => $trackedDelta,
             'started_at' => Carbon::now(),
             'last_seen_at' => Carbon::now(),
         ]);

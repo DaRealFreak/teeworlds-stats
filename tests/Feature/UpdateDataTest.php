@@ -3,6 +3,7 @@
 namespace Tests\Feature;
 
 use App\Models\Player;
+use App\Models\PlayerSession;
 use App\Models\Server;
 use App\TwStats\Discovery\Teeworlds06Source;
 use App\TwStats\Discovery\Teeworlds07Source;
@@ -184,6 +185,27 @@ class UpdateDataTest extends TestCase
         $bob = Player::where('name', 'Bob')->first();
         $this->assertSame('cammostripes', $bob->skin, 'a skinless feed sighting must not wipe a known skin');
         $this->assertSame(255, $bob->color_body);
+    }
+
+    public function test_sessions_record_afk_from_the_feed_observation(): void
+    {
+        $this->bindEmptySevenSource();
+        $this->bindEmptySixSource();
+        $this->fakeMaster();
+
+        $this->artisan('data:update')->assertSuccessful();
+
+        // glow is reported afk=true on DDNet GER10 → one idle interval, tracked
+        $glow = Player::where('name', 'glow')->first();
+        $glowSession = PlayerSession::where('player_id', $glow->id)->first();
+        $this->assertSame(10, $glowSession->afk_minutes);
+        $this->assertSame(10, $glowSession->afk_tracked_minutes);
+
+        // vin is reported afk=false → tracked but not idle
+        $vin = Player::where('name', 'vin')->first();
+        $vinSession = PlayerSession::where('player_id', $vin->id)->first();
+        $this->assertSame(0, $vinSession->afk_minutes);
+        $this->assertSame(10, $vinSession->afk_tracked_minutes);
     }
 
     public function test_it_ingests_a_vanilla_06_server_from_the_six_source(): void

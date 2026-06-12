@@ -232,8 +232,8 @@ class UpdateData extends Command
 
             $playerModel->save();
 
-            // extend or open the player's discrete session for the sessions timeline
-            $this->sessionRecorder->record($playerModel, $serverModel, $mapModel, $modModel);
+            // feed the observation's afk into the session so AFK time accrues per scrape
+            $this->sessionRecorder->record($playerModel, $serverModel, $mapModel, $modModel, $client->afk);
         }
     }
 
