@@ -80,7 +80,7 @@
                         @endif
                         · {{ $humanize($player->totalHoursOnline()) }} played
                         @if ($tee)
-                            · skin {{ $tee['name'] }}@if (!empty($tee['fallback']))<span class="player-hero__skin-fallback" title="The original skin isn't in the default client set, so the default tee is shown."> (default shown)</span>@endif
+                            · skin {{ $tee['name'] }}
                         @endif
                     </div>
                 </div>

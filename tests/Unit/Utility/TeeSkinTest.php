@@ -22,44 +22,48 @@ class TeeSkinTest extends TestCase
         $this->assertSame('06', $tee['mode']);
         $this->assertSame('default', $tee['name']);
         $this->assertStringContainsString('skins/06/default.png', $tee['url']);
-        $this->assertFalse($tee['fallback']); // it IS the default skin, not an unknown-skin fallback
+        $this->assertFalse($tee['external']); // it IS the local default skin, not a DDNet-DB fetch
         $this->assertSame(5, $tee['colorBody']);
         $this->assertSame(6, $tee['colorFeet']);
     }
 
-    public function test_describes_a_known_06_skin(): void
+    public function test_a_locally_shipped_skin_resolves_to_a_local_url(): void
     {
         $tee = TeeSkin::describe('default', null, null, null);
 
         $this->assertSame('06', $tee['mode']);
         $this->assertSame('default', $tee['name']);
         $this->assertStringContainsString('skins/06/default.png', $tee['url']);
-        $this->assertFalse($tee['fallback']);
+        $this->assertFalse($tee['external']);
         $this->assertNull($tee['colorBody']);
         $this->assertNull($tee['colorFeet']);
     }
 
-    public function test_falls_back_to_the_default_skin_for_an_unknown_name(): void
+    public function test_an_unshipped_skin_fetches_from_the_ddnet_db_with_a_default_fallback(): void
     {
         $tee = TeeSkin::describe('SomeCustomCommunitySkin', 100, 200, null);
 
         $this->assertSame('06', $tee['mode']);
         $this->assertSame('SomeCustomCommunitySkin', $tee['name']);
-        $this->assertStringContainsString('skins/06/default.png', $tee['url']);
-        $this->assertTrue($tee['fallback']);
-        // colors are preserved even on the fallback skin
+        $this->assertTrue($tee['external']);
+        $this->assertStringContainsString('skins.ddnet.org/skin/SomeCustomCommunitySkin.png', $tee['url']);
+        // local default tee is the fallback when the DDNet DB doesn't have it
+        $this->assertStringContainsString('skins/06/default.png', $tee['fallbackUrl']);
+        // colors are preserved
         $this->assertSame(100, $tee['colorBody']);
         $this->assertSame(200, $tee['colorFeet']);
     }
 
-    public function test_a_malicious_skin_name_cannot_escape_the_skin_directory(): void
+    public function test_a_malicious_skin_name_cannot_escape_the_path(): void
     {
         $tee = TeeSkin::describe('../../../../etc/passwd', null, null, null);
 
-        // whitelist resolution → the traversal name is simply unknown → default fallback
-        $this->assertTrue($tee['fallback']);
-        $this->assertStringContainsString('skins/06/default.png', $tee['url']);
-        $this->assertStringNotContainsString('..', $tee['url']);
+        // rawurlencode escapes the slashes (../ -> ..%2F), so the name can only ever 404, never
+        // traverse — there is no real path-separator sequence left in the URL
+        $this->assertTrue($tee['external']);
+        $this->assertStringNotContainsString('../', $tee['url']);
+        $this->assertStringContainsString('skins.ddnet.org', $tee['url']);
+        $this->assertStringContainsString('skins/06/default.png', $tee['fallbackUrl']);
     }
 
     public function test_describes_a_07_six_part_skin(): void

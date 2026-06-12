@@ -144,17 +144,34 @@ function makeStage(canvas) {
     };
 }
 
-function loadImage(url) {
+function loadImage(url, crossOrigin = false) {
     return new Promise((resolve, reject) => {
         const img = new Image();
+        // CORS-clean load so getImageData (the colored path) works on DDNet-DB skins; the DB sends
+        // Access-Control-Allow-Origin: *
+        if (crossOrigin) img.crossOrigin = 'anonymous';
         img.onload = () => resolve(img);
         img.onerror = reject;
         img.src = url;
     });
 }
 
+// Load the skin sheet following the client's local > fetch > default order: try the descriptor's
+// url (a local asset, or a DDNet-DB fetch when external), and on failure fall back to the bundled
+// default tee. Returns the loaded image.
+async function loadSkinSheet(d) {
+    try {
+        return await loadImage(d.url, !!d.external);
+    } catch (e) {
+        if (!d.fallbackUrl) throw e;
+        return loadImage(d.fallbackUrl);
+    }
+}
+
 // --- 0.6 single-sheet skin ------------------------------------------------------------------------
 
+// rects in the canonical 256x128 sheet; scaled to the actual sheet below so HD skins (512x256,
+// etc. — common in the DDNet DB) render from the same layout
 const SHEET = {
     body: [0, 0, 96, 96],
     bodyOutline: [96, 0, 96, 96],
@@ -162,15 +179,20 @@ const SHEET = {
     footOutline: [192, 64, 64, 32],
     eye: [64, 96, 32, 32],
 };
+const SHEET_W = 256;
+const SHEET_H = 128;
 
 async function render06(canvas, d) {
-    const img = await loadImage(d.url);
+    const img = await loadSkinSheet(d);
     const draw = makeStage(canvas);
     const colored = d.colorBody !== null && d.colorBody !== undefined;
     const bodyRgb = colored ? decodeColor(d.colorBody, DARKEST_06, false) : null;
     const feetRgb = colored ? decodeColor(d.colorFeet, DARKEST_06, false) : null;
 
-    const p = (rect, rgb, opts) => part(img, rect[0], rect[1], rect[2], rect[3], rgb, opts);
+    // scale the canonical sheet rects to the real sheet size
+    const fx = img.width / SHEET_W;
+    const fy = img.height / SHEET_H;
+    const p = (rect, rgb, opts) => part(img, rect[0] * fx, rect[1] * fy, rect[2] * fx, rect[3] * fy, rgb, opts);
     const body = p(SHEET.body, bodyRgb, { gray: colored, renorm: colored });
     const bodyOutline = p(SHEET.bodyOutline, bodyRgb, { gray: colored });
     const foot = p(SHEET.foot, feetRgb, { gray: colored });

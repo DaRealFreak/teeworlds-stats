@@ -42,13 +42,12 @@
                             <div class="title">
                                 <strong>Players</strong>
                             </div>
-                            <div class="messages pre-scrollable pre-scrollable-needed">
+                            <div class="messages pre-scrollable pre-scrollable-needed @if ($clan->players->count() > 12) messages--grid @endif">
                                 @foreach ($clan->players as $player)
                                     <a href="{{ url("tee", urlencode($player->name)) }}"
                                        class="message d-flex align-items-center">
                                         <div class="profile">
-                                            <img src="{{ asset('images/user.png') }}" alt="{{ $player->name }}"
-                                                 class="img-fluid">
+                                            <x-player-tee :player="$player" :size="50" />
                                             @if ($player->online())
                                                 <div class="status online"></div>
                                             @else
@@ -84,8 +83,7 @@
                                     <div class="order">Newest member:</div>
                                 </div>
                                 <div class="col-lg-4 d-flex align-items-center">
-                                    <div class="avatar"><img src="{{ asset('images/user.png') }}" alt="..."
-                                                             class="img-fluid"></div>
+                                    <div class="avatar"><x-player-tee :player="$clan->statsYoungestPlayer()->player" :size="50" /></div>
                                     <a href="{{ url("tee", urlencode($clan->statsYoungestPlayer()->player->name)) }}"
                                        class="name">
                                         <strong class="d-block">{{ $clan->statsYoungestPlayer()->player->name }}</strong>
@@ -103,8 +101,7 @@
                                     <div class="order">Oldest member:</div>
                                 </div>
                                 <div class="col-lg-4 d-flex align-items-center">
-                                    <div class="avatar"><img src="{{ asset('images/user.png') }}" alt="..."
-                                                             class="img-fluid"></div>
+                                    <div class="avatar"><x-player-tee :player="$clan->statsOldestPlayer()->player" :size="50" /></div>
                                     <a href="{{ url("tee", urlencode($clan->statsOldestPlayer()->player->name)) }}"
                                        class="name">
                                         <strong class="d-block">{{ $clan->statsOldestPlayer()->player->name }}</strong>
@@ -122,8 +119,7 @@
                                     <div class="order">Most active member:</div>
                                 </div>
                                 <div class="col-lg-4 d-flex align-items-center">
-                                    <div class="avatar"><img src="{{ asset('images/user.png') }}" alt="..."
-                                                             class="img-fluid"></div>
+                                    <div class="avatar"><x-player-tee :player="$clan->statsMostActivePlayer()" :size="50" /></div>
                                     <a href="{{ url("tee", urlencode($clan->statsMostActivePlayer()->name)) }}"
                                        class="name">
                                         <strong class="d-block">{{ $clan->statsMostActivePlayer()->name }}</strong>
@@ -276,8 +272,7 @@
                                         <a href="{{ url("tee", urlencode($exPlayer->name)) }}"
                                            class="message d-flex align-items-center">
                                             <div class="profile">
-                                                <img src="{{ asset('images/user.png') }}" alt="{{ $exPlayer->name }}"
-                                                     class="img-fluid">
+                                                <x-player-tee :player="$exPlayer" :size="50" />
                                                 @if ($exPlayer->online())
                                                     <div class="status online"></div>
                                                 @else

@@ -604,14 +604,16 @@ section.section-content {
   }
 }
 
-/* server detail "currently playing" roster: tee avatars in the round 50px frame, flowed into
-   columns when the roster is long so it doesn't run far down the page */
-.messages-block .profile .profile-tee {
+/* the <x-player-tee> canvas fills the round 50px avatar frame used by the messages/stat-card lists
+   (server detail "currently playing", clan players + newest/oldest member) */
+.profile .player-tee,
+.avatar .player-tee {
   width: 100%;
   height: 100%;
   border-radius: 50%;
 }
 
+/* roster lists flow into columns when long so they don't run far down the page */
 .messages--grid {
   column-width: 300px;
   column-gap: 10px;

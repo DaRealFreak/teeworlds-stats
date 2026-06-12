@@ -14,6 +14,9 @@ final class TeeSkin
     private const SIX_DIR = 'skins/06';
     private const SEVEN_DIR = 'skins/07';
 
+    /** the DDNet skin database the game client downloads from (cl_skin_download_url); CORS-enabled */
+    private const DDNET_SKIN_DB = 'https://skins.ddnet.org/skin/';
+
     /** part order is not significant here; the renderer composites in its own order */
     public const SEVEN_PARTS = ['body', 'marking', 'decoration', 'hands', 'feet', 'eyes'];
 
@@ -45,19 +48,31 @@ final class TeeSkin
      */
     private static function describeSix(string $skin, ?int $colorBody, ?int $colorFeet): array
     {
-        // an empty skin name is the default skin (the client falls back to "default"), so it is the
-        // genuine skin — not an unknown-skin fallback
+        // an empty skin name is the default skin (the client falls back to "default")
         $effective = $skin === '' ? 'default' : $skin;
-        $known = in_array($effective, self::shippedNames(self::SIX_DIR), true);
-        $file = $known ? $effective : 'default';
 
-        return [
+        $descriptor = [
             'mode' => '06',
             'name' => $effective,
-            'url' => asset(self::SIX_DIR . '/' . rawurlencode($file) . '.png'),
-            'fallback' => !$known,
             'colorBody' => $colorBody,
             'colorFeet' => $colorFeet,
+        ];
+
+        // local: a skin we ship (the bundled defaults + any imported from the DDNet DB)
+        if (in_array($effective, self::shippedNames(self::SIX_DIR), true)) {
+            return $descriptor + [
+                'url' => asset(self::SIX_DIR . '/' . rawurlencode($effective) . '.png'),
+                'external' => false,
+            ];
+        }
+
+        // fetch: ask the DDNet skin database on the fly (as the game client does); the renderer
+        // falls back to the default tee if the skin isn't published there. rawurlencode keeps a
+        // hostile name from doing anything but 404 (it can't escape the path).
+        return $descriptor + [
+            'url' => self::DDNET_SKIN_DB . rawurlencode($effective) . '.png',
+            'external' => true,
+            'fallbackUrl' => asset(self::SIX_DIR . '/default.png'),
         ];
     }
 
