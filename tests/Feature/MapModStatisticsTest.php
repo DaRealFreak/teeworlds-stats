@@ -56,6 +56,10 @@ class MapModStatisticsTest extends TestCase
         // a record on the variant that points back at the parent via mod_original_id
         $this->playRecord(['server_id' => $server->id, 'player_id' => $player->id, 'map_id' => $map->id, 'mod_id' => $variant->id, 'mod_original_id' => $parent->id, 'minutes' => 50]);
 
+        // an unrelated mod's record must NOT count toward the parent's total
+        $unrelated = Mod::create(['name' => 'gores']);
+        $this->playRecord(['server_id' => $server->id, 'player_id' => $player->id, 'map_id' => $map->id, 'mod_id' => $unrelated->id, 'minutes' => 999]);
+
         $this->assertSame(120, $parent->totalPlayerMinutes());
     }
 
@@ -98,5 +102,10 @@ class MapModStatisticsTest extends TestCase
         $this->assertCount(1, $topClans);
         $this->assertSame($current->id, $topClans->first()['clan']->id);
         $this->assertSame(80, $topClans->first()['minutes']);
+
+        // topClans is shared trait logic, so it holds on the Map side too
+        $mapClans = $map->topClans(10);
+        $this->assertCount(1, $mapClans);
+        $this->assertSame($current->id, $mapClans->first()['clan']->id);
     }
 }

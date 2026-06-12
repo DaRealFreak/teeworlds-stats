@@ -130,6 +130,7 @@ class Mod extends Model
             ->selectRaw('`' . (new PlayerHistory)->getTable() . '`.*, SUM(`minutes`) as `sum_minutes`')
             ->groupBy('map_id')
             ->orderByDesc('sum_minutes')
+            ->with('map')
             ->get();
 
         $results = [];

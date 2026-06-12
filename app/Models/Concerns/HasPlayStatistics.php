@@ -59,9 +59,10 @@ trait HasPlayStatistics
     }
 
     /**
-     * top players by accumulated minutes; rows carry `sum_minutes` and an eager-loaded `player`.
+     * top players by accumulated minutes; rows carry only `player_id` and `sum_minutes`,
+     * plus an eager-loaded `player` relation.
      *
-     * @return \Illuminate\Database\Eloquent\Collection|PlayerHistory[]
+     * @return \Illuminate\Database\Eloquent\Collection<int, PlayerHistory>
      */
     public function topPlayers(int $limit = 10)
     {
@@ -75,10 +76,10 @@ trait HasPlayStatistics
     }
 
     /**
-     * top servers by accumulated minutes this record was live; rows carry `sum_minutes`
-     * and an eager-loaded `server`.
+     * top servers by accumulated minutes this record was live; rows carry only `server_id`
+     * and `sum_minutes`, plus an eager-loaded `server` relation.
      *
-     * @return \Illuminate\Database\Eloquent\Collection|ServerHistory[]
+     * @return \Illuminate\Database\Eloquent\Collection<int, ServerHistory>
      */
     public function topServers(int $limit = 10)
     {
@@ -147,7 +148,7 @@ trait HasPlayStatistics
      *
      * @return array<int, float|int>
      */
-    private function normalisedDistribution(string $column, int $slots): array
+    protected function normalisedDistribution(string $column, int $slots): array
     {
         $entries = $this->serverHistoryQuery()
             ->selectRaw("$column as slot, SUM(minutes) as sum_minutes")
