@@ -61,9 +61,6 @@
                         <div class="list-inline-item">
                             <a class="nav-link" href="{{ route('login') }}">{{ __('Login') }}</a>
                         </div>
-                        <div class="list-inline-item">
-                            <a class="nav-link" href="{{ route('register') }}">{{ __('Register') }}</a>
-                        </div>
                     @else
                         <li class="nav-item dropdown">
                             <a id="navbarDropdown" class="nav-link dropdown-toggle" href="#" role="button"

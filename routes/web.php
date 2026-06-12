@@ -49,5 +49,6 @@ Route::get('/search/server', [AjaxSearchController::class, 'searchServer'])->nam
 Route::get('/search/mod', [AjaxSearchController::class, 'searchMod'])->name('searchModAjax');
 Route::get('/search/map', [AjaxSearchController::class, 'searchMap'])->name('searchMapAjax');
 
-// Authentication routes (laravel/ui)
-Auth::routes();
+// Authentication routes (laravel/ui) — registration is closed; this is an admin-only app.
+// Admins are provisioned with `php artisan admin:create`.
+Auth::routes(['register' => false]);
