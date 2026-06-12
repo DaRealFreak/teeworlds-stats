@@ -58,12 +58,14 @@
 
                         <div class="table-responsive">
                             <table class="table table-striped table-hover" id="server_browser_table">
+                                {{-- the server name (+ address) is the widest content and the players badge the
+                                     narrowest, so the columns are weighted toward Server and away from Players --}}
                                 <colgroup>
-                                    <col style="width: 30%;">
-                                    <col style="width: 15%;">
-                                    <col style="width: 20%;">
-                                    <col style="width: 20%;">
-                                    <col style="width: 15%;">
+                                    <col style="width: 36%;">
+                                    <col style="width: 17%;">
+                                    <col style="width: 18%;">
+                                    <col style="width: 16%;">
+                                    <col style="width: 13%;">
                                 </colgroup>
                                 <thead>
                                 <tr>
