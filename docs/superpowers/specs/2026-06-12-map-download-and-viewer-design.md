@@ -93,7 +93,8 @@ last without reworking the viewer.
 
 **A3. `App\Service\MapFileStore`.** The single entry point the controller uses.
 - `path(Map $map): string` → returns the local path to a cached `.map`, acquiring it on
-  miss. Cache location: `storage/app/maps/<sha256-or-crc>.map`.
+  miss. Cache location: `storage/app/private/maps/<sha256-or-crc>.map` (the `local` disk root
+  is `storage/app/private`).
 - Acquisition delegates to a `MapSource` chain (Phase A ships only `DdnetHttpMapSource`;
   Phase E appends `GameServerMapSource`). The chain returns the first success.
 - Throws a typed `MapFileUnavailable` when no source can produce verified bytes.
@@ -204,6 +205,12 @@ network*.cpp` and `client.cpp`.
   runs a `MapDownloadSession`, returns verified bytes. Appended to the `MapFileStore` chain
   after `DdnetHttpMapSource`. After this phase, the Download button shows whenever any
   source is viable (sha256 **or** a known online host), not only for DDNet.
+  - **Security guardrail:** when this phase first writes `crc`, validate it is hex at the
+    source (as `DdnetServerListParser` already does for sha256: `strlen === 64 && ctype_xdigit`),
+    and/or have `MapFileStore::ensure` assert `ctype_xdigit($key)` before building the cache
+    filename `maps/<key>.map` — otherwise an unvalidated crc becomes a path-traversal vector.
+    (Not a Phase A concern: `crc` is never written until this phase, and `sha256` is already
+    validated at its only write site.)
 
 **Operational caveats** (documented, accepted): a UDP download briefly occupies a player
 slot; some servers disable in-game map download; non-base mod protocols are out of scope; a
