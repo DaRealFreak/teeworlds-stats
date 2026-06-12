@@ -58,14 +58,14 @@
 
                         <div class="table-responsive">
                             <table class="table table-striped table-hover" id="server_browser_table">
-                                {{-- the server name (+ address) is the widest content and the players badge the
-                                     narrowest, so the columns are weighted toward Server and away from Players --}}
+                                {{-- server name and map hold the longest values (incl. map hashes) and wrap, so they
+                                     get equal, generous width; type is just a few badges and players a single count --}}
                                 <colgroup>
-                                    <col style="width: 36%;">
-                                    <col style="width: 17%;">
+                                    <col style="width: 30%;">
+                                    <col style="width: 10%;">
+                                    <col style="width: 30%;">
                                     <col style="width: 18%;">
-                                    <col style="width: 16%;">
-                                    <col style="width: 13%;">
+                                    <col style="width: 12%;">
                                 </colgroup>
                                 <thead>
                                 <tr>
@@ -109,8 +109,8 @@
                                         data-player-names="{{ $playerNames }}">
                                         <td>
                                             <a href="{{ url('server', [urlencode($serverEntry->id), urlencode($serverEntry->name)]) }}"
-                                               class="server-name d-block" title="{{ $serverEntry->name }}">{{ $serverEntry->name }}</a>
-                                            <span class="server-connect small text-muted" role="button" tabindex="0"
+                                               class="server-name d-block">{{ $serverEntry->name }}</a>
+                                            <span class="server-connect small" role="button" tabindex="0"
                                                   data-connect="{{ $connectAddress }}"
                                                   aria-label="Copy {{ $connectAddress }} to clipboard"
                                                   title="Copy {{ $connectAddress }} to clipboard">{{ $connectAddress }} <i class="fa fa-clipboard" aria-hidden="true"></i></span>
@@ -123,9 +123,9 @@
                                                 <span class="badge bg-dark">0.{{ $protocol }}</span>
                                             @endforeach
                                         </td>
-                                        <td class="cell-truncate">
+                                        <td class="cell-wrap">
                                             @if ($mapName)
-                                                <a href="{{ url('map', urlencode($mapName)) }}" title="{{ $mapName }}">{{ $mapName }}</a>
+                                                <a href="{{ url('map', urlencode($mapName)) }}">{{ $mapName }}</a>
                                             @endif
                                         </td>
                                         <td class="cell-truncate">

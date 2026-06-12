@@ -567,8 +567,9 @@ section.section-content {
   }
 }
 
-/* Fixed layout so columns keep their width when filtering hides/shows rows (the
-   colgroup sets the proportions); long map/gametype/name values ellipsize instead. */
+/* Fixed layout so columns keep their width when filtering hides/shows rows (the colgroup
+   sets the proportions). The server name and map can be long unbroken tokens (e.g. a map
+   hash), so they wrap rather than overflow; the gametype stays single-line with an ellipsis. */
 #server_browser_table {
   table-layout: fixed;
   width: 100%;
@@ -579,14 +580,15 @@ section.section-content {
     white-space: nowrap;
   }
 
+  td.cell-wrap,
   .server-name {
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
+    // `anywhere` (not `break-word`) so a long unbroken token like a map hash actually breaks
+    overflow-wrap: anywhere;
   }
 }
 
-/* the joinable address under each server name; click/Enter copies ip:port */
+/* the joinable address under each server name; click/Enter copies ip:port. Its own colour
+   (not .text-muted) because the theme's muted grey is too dim to read on the dark rows. */
 .server-connect {
   display: inline-block;
   max-width: 100%;
@@ -594,6 +596,7 @@ section.section-content {
   text-overflow: ellipsis;
   white-space: nowrap;
   cursor: pointer;
+  color: #a7adb5;
   font-family: var(--bs-font-monospace, monospace);
 
   &:hover {
@@ -602,6 +605,6 @@ section.section-content {
 
   .fa {
     margin-left: 0.25rem;
-    opacity: 0.7;
+    opacity: 0.85;
   }
 }
