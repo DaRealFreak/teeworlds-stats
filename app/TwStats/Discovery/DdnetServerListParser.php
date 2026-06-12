@@ -75,6 +75,13 @@ final class DdnetServerListParser
             }
         }
 
+        $mapInfo = $info['map'];
+        $rawSha256 = $mapInfo['sha256'] ?? null;
+        $mapSha256 = is_string($rawSha256) && strlen($rawSha256) === 64 && ctype_xdigit($rawSha256)
+            ? strtolower($rawSha256)
+            : null;
+        $mapSize = isset($mapInfo['size']) && is_int($mapInfo['size']) ? $mapInfo['size'] : null;
+
         return new DiscoveredServer(
             addresses: $addresses,
             name: (string) $info['name'],
@@ -86,6 +93,8 @@ final class DdnetServerListParser
             clients: $clients,
             location: isset($entry['location']) && is_string($entry['location']) ? $entry['location'] : null,
             flavor: FlavorClassifier::classify((string) $info['version']),
+            mapSha256: $mapSha256,
+            mapSize: $mapSize,
         );
     }
 

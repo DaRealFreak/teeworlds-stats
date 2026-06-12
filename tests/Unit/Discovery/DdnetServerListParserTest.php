@@ -82,6 +82,37 @@ class DdnetServerListParserTest extends TestCase
         $this->assertSame([], $server->clients);
     }
 
+    public function test_captures_ddnet_map_identity_and_leaves_it_null_when_absent(): void
+    {
+        $servers = (new DdnetServerListParser())->parse($this->fixture());
+
+        $this->assertSame('aabbccddeeff00112233445566778899aabbccddeeff00112233445566778899', $servers[0]->mapSha256);
+        $this->assertSame(654321, $servers[0]->mapSize);
+        $this->assertNull($servers[0]->mapCrc);
+
+        // the vanilla 0.7 server carries no sha256/size in the feed
+        $this->assertNull($servers[1]->mapSha256);
+        $this->assertNull($servers[1]->mapSize);
+    }
+
+    public function test_rejects_a_malformed_map_sha256(): void
+    {
+        $json = json_encode(['servers' => [[
+            'addresses' => ['tw-0.6+udp://192.0.2.1:8303'],
+            'location' => 'eu',
+            'info' => [
+                'name' => 'S', 'map' => ['name' => 'm', 'sha256' => 'XYZ', 'size' => 10],
+                'game_type' => 'DM', 'version' => '0.6.4', 'max_clients' => 8, 'max_players' => 8, 'clients' => [],
+            ],
+        ]]]);
+
+        $servers = (new DdnetServerListParser())->parse($json);
+
+        $this->assertCount(1, $servers);
+        $this->assertNull($servers[0]->mapSha256); // 'XYZ' is not 64-char hex → rejected
+        $this->assertSame(10, $servers[0]->mapSize);
+    }
+
     public function test_returns_empty_for_unusable_json(): void
     {
         $parser = new DdnetServerListParser();

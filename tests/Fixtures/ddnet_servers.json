@@ -5,7 +5,7 @@
       "location": "eu",
       "info": {
         "name": "DDNet GER10",
-        "map": {"name": "Multeasymap"},
+        "map": {"name": "Multeasymap", "sha256": "aabbccddeeff00112233445566778899aabbccddeeff00112233445566778899", "size": 654321},
         "game_type": "DDraceNetwork",
         "version": "0.6.4, 19.1",
         "max_clients": 64,

@@ -68,6 +68,39 @@ class ServerMergerTest extends TestCase
         $this->assertCount(2, $merged[0]->clients);
     }
 
+    public function test_combine_coalesces_map_identity_fields_from_primary_and_secondary(): void
+    {
+        $addr = new DiscoveredAddress('192.0.2.1', 8303, 6);
+        $sha256 = str_repeat('a', 64);
+
+        $primary = new DiscoveredServer(
+            [$addr], 'S', 'm', 'g', '0.6.4', 64, 64, [], null, 'ddnet',
+            mapSha256: $sha256, mapSize: 512, mapCrc: null,
+        );
+        $secondary = new DiscoveredServer(
+            [$addr], 'S', 'm', 'g', '0.6.4', 64, 64, [], null, 'ddnet',
+            mapSha256: null, mapSize: null, mapCrc: 'deadbeef',
+        );
+
+        $merged = (new ServerMerger())->merge([$primary, $secondary]);
+
+        $this->assertCount(1, $merged);
+        $server = $merged[0];
+
+        // primary fills sha256 + size; secondary fills the missing crc via ?? coalesce
+        $this->assertSame($sha256, $server->mapSha256);
+        $this->assertSame(512, $server->mapSize);
+        $this->assertSame('deadbeef', $server->mapCrc);
+
+        // primary wins when both have sha256 (primary's value survives)
+        $secondary2 = new DiscoveredServer(
+            [$addr], 'S', 'm', 'g', '0.6.4', 64, 64, [], null, 'ddnet',
+            mapSha256: str_repeat('b', 64), mapSize: null, mapCrc: null,
+        );
+        $merged2 = (new ServerMerger())->merge([$primary, $secondary2]);
+        $this->assertSame($sha256, $merged2[0]->mapSha256);
+    }
+
     public function test_same_ip_port_different_protocol_merge_into_one_dual_stack_server(): void
     {
         $ddnet = $this->server([new DiscoveredAddress('192.0.2.1', 8303, 6)], [$this->client('alice')], name: 'DDNet', flavor: 'ddnet');

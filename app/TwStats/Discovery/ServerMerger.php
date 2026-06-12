@@ -87,6 +87,9 @@ final class ServerMerger
             clients: $clients,
             location: $primary->location,
             flavor: $primary->flavor,
+            mapSha256: $primary->mapSha256 ?? $secondary->mapSha256,
+            mapSize: $primary->mapSize ?? $secondary->mapSize,
+            mapCrc: $primary->mapCrc ?? $secondary->mapCrc,
         );
     }
 
