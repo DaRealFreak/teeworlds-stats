@@ -7,6 +7,9 @@
         "strict": true,
         "noUncheckedIndexedAccess": true,
         "noImplicitOverride": true,
+        // browser-only bundle: include no ambient @types (e.g. transitive @types/node),
+        // so setTimeout resolves to the DOM lib (returns number, not NodeJS.Timeout)
+        "types": [],
         "noEmit": true,
         "skipLibCheck": true,
         "esModuleInterop": true,
