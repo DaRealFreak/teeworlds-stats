@@ -93,4 +93,27 @@ class TeeListSortTest extends TestCase
 
         $this->get('/tees?sort=garbage&dir=sideways')->assertOk()->assertSeeInOrder(['Alpha', 'Zeta']);
     }
+
+    public function test_afk_column_renders_percentage_and_dash(): void
+    {
+        $this->seedPlayer('IdleIvan', afk: 40, afkTracked: 80); // 50%
+        $this->seedPlayer('FreshNed');                          // no session → no AFK data
+
+        $response = $this->get('/tees');
+
+        $response->assertOk();
+        $response->assertSee('50%');
+        $response->assertSee('—', false); // FreshNed's AFK cell (he has history, so Mod/Map are not dashes)
+    }
+
+    public function test_active_sort_header_shows_a_caret_and_sort_links(): void
+    {
+        $this->seedPlayer('Solo');
+
+        $response = $this->get('/tees?sort=afk&dir=desc');
+
+        $response->assertOk();
+        $response->assertSee('fa-caret-down', false); // active AFK header, descending
+        $response->assertSee('sort=afk', false);      // header links carry the sort param
+    }
 }

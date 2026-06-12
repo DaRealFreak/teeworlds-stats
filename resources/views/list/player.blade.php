@@ -18,36 +18,49 @@
                             <table class="table table-striped table-hover" id="player_table">
                                 <thead>
                                 <tr>
-                                    <th>Tee</th>
-                                    <th>Clan</th>
-                                    <th>Played time</th>
+                                    <x-sortable-th column="name" label="Tee" />
+                                    <x-sortable-th column="clan" label="Clan" />
+                                    <x-sortable-th column="played" label="Played time" default-dir="desc" />
+                                    <x-sortable-th column="afk" label="AFK %" default-dir="desc" />
                                     <th>Most played mod</th>
                                     <th>Most played map</th>
                                 </tr>
                                 </thead>
                                 <tbody>
                                 @foreach($players as $playerEntry)
+                                    @php
+                                        $topMods = $playerEntry->chartPlayedMods();
+                                        $topMaps = $playerEntry->chartPlayedMaps();
+                                        $afkTracked = (int) $playerEntry->afk_tracked;
+                                    @endphp
                                     <tr>
                                         <th scope="row">
                                             <a href="{{ url("tee", urlencode($playerEntry->name)) }}">{{ $playerEntry->name }}</a>
                                         </th>
                                         <td>
-                                            @if ($playerEntry->clan())
-                                                <a href="{{ url("clan", urlencode($playerEntry->clan()->name)) }}">{{ $playerEntry->clan()->name }}</a>
+                                            @if ($playerEntry->clan_name)
+                                                <a href="{{ url("clan", urlencode($playerEntry->clan_name)) }}">{{ $playerEntry->clan_name }}</a>
                                             @endif
                                         </td>
                                         <td>
-                                            {{ $playerEntry->totalHoursOnline(0, True) }}
+                                            {{ \App\Utility\ChartUtility::humanizeDuration((int) $playerEntry->played_minutes) }}
                                         </td>
                                         <td>
-                                            <a href="{{ url("mod", urlencode(array_keys($playerEntry->chartPlayedMods())[0])) }}">
-                                                {{ array_keys($playerEntry->chartPlayedMods())[0] }}
-                                            </a>
+                                            {{ $afkTracked > 0 ? round($playerEntry->afk_sum / $afkTracked * 100) . '%' : '—' }}
                                         </td>
                                         <td>
-                                            <a href="{{ url("map", urlencode(array_keys($playerEntry->chartPlayedMaps())[0])) }}">
-                                                {{ array_keys($playerEntry->chartPlayedMaps())[0] }}
-                                            </a>
+                                            @if ($topMods)
+                                                <a href="{{ url("mod", urlencode(array_key_first($topMods))) }}">{{ array_key_first($topMods) }}</a>
+                                            @else
+                                                —
+                                            @endif
+                                        </td>
+                                        <td>
+                                            @if ($topMaps)
+                                                <a href="{{ url("map", urlencode(array_key_first($topMaps))) }}">{{ array_key_first($topMaps) }}</a>
+                                            @else
+                                                —
+                                            @endif
                                         </td>
                                     </tr>
                                 @endforeach
