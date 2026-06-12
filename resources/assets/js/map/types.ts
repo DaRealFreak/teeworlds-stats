@@ -1,8 +1,28 @@
-export interface Tile { id: number; flags: number; skip: number }
-export interface TeleTile { number: number; id: number }
-export interface SpeedupTile { force: number; maxSpeed: number; id: number; angle: number }
-export interface SwitchTile { number: number; id: number; flags: number; delay: number }
-export interface TuneTile { number: number; id: number }
+export interface Tile {
+    id: number;
+    flags: number;
+    skip: number;
+}
+export interface TeleTile {
+    number: number;
+    id: number;
+}
+export interface SpeedupTile {
+    force: number;
+    maxSpeed: number;
+    id: number;
+    angle: number;
+}
+export interface SwitchTile {
+    number: number;
+    id: number;
+    flags: number;
+    delay: number;
+}
+export interface TuneTile {
+    number: number;
+    id: number;
+}
 
 export type LayerKind = 'tiles' | 'game' | 'tele' | 'speedup' | 'front' | 'switch' | 'tune';
 
@@ -29,24 +49,56 @@ export interface Quad {
     colorEnvOffset: number;
 }
 
-export interface QuadLayer { type: 'quads'; image: number; name: string; quads: Quad[] }
+export interface QuadLayer {
+    type: 'quads';
+    image: number;
+    name: string;
+    quads: Quad[];
+}
 
 export type Layer = TileLayer | QuadLayer;
 
 export interface Group {
-    xOffset: number; yOffset: number;
-    xParallax: number; yParallax: number;
-    clipping: boolean; clipX: number; clipY: number; clipW: number; clipH: number;
+    xOffset: number;
+    yOffset: number;
+    xParallax: number;
+    yParallax: number;
+    clipping: boolean;
+    clipX: number;
+    clipY: number;
+    clipW: number;
+    clipH: number;
     name: string;
     layers: Layer[];
 }
 
-export interface MapImage { width: number; height: number; external: boolean; name: string; data: number }
+export interface MapImage {
+    width: number;
+    height: number;
+    external: boolean;
+    name: string;
+    data: number;
+}
 
-export interface EnvPoint { time: number; curve: number; values: [number, number, number, number] }
-export interface Envelope { channels: number; synchronized: boolean; name: string; points: EnvPoint[] }
+export interface EnvPoint {
+    time: number;
+    curve: number;
+    values: [number, number, number, number];
+}
+export interface Envelope {
+    channels: number;
+    synchronized: boolean;
+    name: string;
+    points: EnvPoint[];
+}
 
-export interface MapInfo { author: string; version: string; credits: string; license: string; settings: string[] }
+export interface MapInfo {
+    author: string;
+    version: string;
+    credits: string;
+    license: string;
+    settings: string[];
+}
 
 export interface MapScene {
     info: MapInfo;

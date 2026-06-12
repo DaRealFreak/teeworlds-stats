@@ -151,11 +151,7 @@ async function parseGroups(df: DataFile): Promise<Group[]> {
     return Promise.all(groupItems.map((item) => parseGroup(df, item, layerItems)));
 }
 
-async function parseGroup(
-    df: DataFile,
-    item: DataFileItem,
-    allLayers: DataFileItem[],
-): Promise<Group> {
+async function parseGroup(df: DataFile, item: DataFileItem, allLayers: DataFileItem[]): Promise<Group> {
     const d = item.data;
     const xOffset = d[1] ?? 0;
     const yOffset = d[2] ?? 0;
@@ -226,9 +222,10 @@ function tileDataIndex(d: Int32Array, kind: LayerKind): number {
         tune: 22,
     };
     const idx = kindIndex[kind];
-    // Guard: read the extended field only if item data is long enough; else fall back to
-    // the primary data field ([14]) so non-physics layers always have tile data.
-    if (idx > 14 && d.length <= idx) return d[14] ?? -1;
+    // Guard: if the kind-specific extended field is beyond the item's actual length,
+    // the item is truncated — return -1 so the caller produces an all-air layer rather
+    // than misreading a design/game data ref as a physics data ref.
+    if (idx > 14 && d.length <= idx) return -1;
     return d[idx] ?? -1;
 }
 
@@ -240,12 +237,7 @@ async function parseTilemapLayer(df: DataFile, item: DataFileItem): Promise<Tile
     const width = d[4] ?? 0;
     const height = d[5] ?? 0;
     const flags = d[6] ?? 0;
-    const color: [number, number, number, number] = [
-        d[7] ?? 255,
-        d[8] ?? 255,
-        d[9] ?? 255,
-        d[10] ?? 255,
-    ];
+    const color: [number, number, number, number] = [d[7] ?? 255, d[8] ?? 255, d[9] ?? 255, d[10] ?? 255];
     const colorEnv = d[11] ?? -1;
     const colorEnvOffset = d[12] ?? 0;
     const image = d[13] ?? -1;
@@ -262,8 +254,9 @@ async function parseTilemapLayer(df: DataFile, item: DataFileItem): Promise<Tile
         // Skip-RLE is used when tilemap version >= 4
         tiles = expandTiles(bytes, width, height, version >= 4);
     } else {
-        // No data block — fill with empty tiles
-        tiles = Array.from({ length: width * height }, () => ({ id: 0, flags: 0, skip: 0 }));
+        // Physics-layer item too short to carry its kind-specific pointer (truncated map),
+        // or genuinely no data — produce an all-air layer without fetching any data block.
+        tiles = expandTiles(new Uint8Array(0), width, height, false);
     }
 
     return { type: 'tilemap', kind, width, height, color, colorEnv, colorEnvOffset, image, name, tiles };
@@ -335,9 +328,9 @@ function parseQuads(bytes: Uint8Array, count: number): Quad[] {
         const colorEnvOffset = ri(37);
 
         quads.push({
-            points: points as [number, number][],
-            colors: colors as [number, number, number, number][],
-            texCoords: texCoords as [number, number][],
+            points,
+            colors,
+            texCoords,
             posEnv,
             posEnvOffset,
             colorEnv,

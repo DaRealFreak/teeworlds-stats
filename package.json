@@ -7,7 +7,7 @@
     "type-check": "tsc --noEmit",
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
-    "format": "prettier --write \"resources/assets/js/**/*.ts\"",
+    "format": "prettier --write \"resources/assets/js/**/*.ts\" \"tests/js/**/*.ts\"",
     "test": "vitest run"
   },
   "devDependencies": {

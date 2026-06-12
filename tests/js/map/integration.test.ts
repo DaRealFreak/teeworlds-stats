@@ -10,7 +10,11 @@ describe('parseMap integration', () => {
         expect(layers.length).toBe(11);
         for (const l of layers) {
             if (l.type === 'tilemap') expect(l.tiles.length).toBe(l.width * l.height);
-            else for (const q of l.quads) { expect(q.points).toHaveLength(5); expect(q.colors).toHaveLength(4); }
+            else
+                for (const q of l.quads) {
+                    expect(q.points).toHaveLength(5);
+                    expect(q.colors).toHaveLength(4);
+                }
         }
         for (const l of layers) if ('image' in l) expect(l.image === -1 || l.image < scene.images.length).toBe(true);
     });
