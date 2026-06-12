@@ -132,6 +132,12 @@ import { Chart } from 'chart.js';
             new Chart(chartSelector, {
                 type: 'radar',
                 options: {
+                    // the radial scale reserves exactly each point label's width, so the
+                    // 3- and 9-o'clock labels (e.g. "RelayGor race") sit flush against the
+                    // canvas edge and clip — this margin keeps them off the edge
+                    layout: {
+                        padding: { left: 14, right: 14, top: 4, bottom: 4 }
+                    },
                     scales: {
                         r: {
                             max: chartMax,
