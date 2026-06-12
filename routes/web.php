@@ -48,6 +48,8 @@ Route::get('/search/clan', [AjaxSearchController::class, 'searchClan'])->name('s
 Route::get('/search/server', [AjaxSearchController::class, 'searchServer'])->name('searchServerAjax');
 Route::get('/search/mod', [AjaxSearchController::class, 'searchMod'])->name('searchModAjax');
 Route::get('/search/map', [AjaxSearchController::class, 'searchMap'])->name('searchMapAjax');
+// Unified search for the navbar global-search box (grouped, URL-carrying results)
+Route::get('/search/global', [AjaxSearchController::class, 'searchGlobal'])->name('searchGlobalAjax');
 
 // Authentication routes (laravel/ui) — registration is closed; this is an admin-only app.
 // Admins are provisioned with `php artisan admin:create`.
