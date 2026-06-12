@@ -147,4 +147,19 @@ class MapFileAcquisitionTest extends TestCase
         $this->get('/map/no-hash/file')->assertNotFound();
         $this->get('/map/does-not-exist/file')->assertNotFound();
     }
+
+    public function test_map_page_shows_download_button_only_when_downloadable(): void
+    {
+        Map::create(['name' => 'Kobra 4', 'sha256' => str_repeat('a', 64), 'size' => 10]);
+        Map::create(['name' => 'no-hash']);
+
+        $this->get('/map/' . rawurlencode('Kobra 4') . '/')
+            ->assertOk()
+            ->assertSee('Download .map');
+
+        $this->get('/map/no-hash/')
+            ->assertOk()
+            ->assertDontSee('Download .map')
+            ->assertSee('Map file not available');
+    }
 }
