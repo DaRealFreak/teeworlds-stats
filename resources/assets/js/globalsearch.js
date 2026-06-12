@@ -45,6 +45,10 @@
             menu.innerHTML = '';
             items = [];
             activeIndex = -1;
+            // collapse the mobile-expanded box back to just the magnifier
+            if (form) {
+                form.classList.remove('global-search--open');
+            }
         }
 
         function setActive(index) {
