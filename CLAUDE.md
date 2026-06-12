@@ -28,7 +28,12 @@ work here; do not push unless asked.
 
 - `npm run build` — compile assets. There is no dev server running by default, so
   **rebuild after any SCSS/JS change** (built assets live in the git-ignored
-  `public/build/`, so they are rebuilt on deploy too).
+  `public/build/`, so they are rebuilt on deploy too). After a rebuild, run
+  **`php artisan responsecache:clear`** before testing response-cached pages
+  (`/serverbrowser` and any `CacheResponse` route): their cached HTML pins the old
+  content-hashed bundle name, so the browser 404s `build/assets/app-*.js` and that
+  page's scripts silently don't run. The scheduler self-heals this on deploy by
+  clearing responsecache after each `data:update` scrape.
 - `npm run type-check` — `tsc --noEmit` over the front-end bundle. `npm run lint` —
   ESLint; `npm run format` — Prettier. CI (`.github/workflows/theme.yml`) runs
   type-check + lint before the build, so keep both green.
