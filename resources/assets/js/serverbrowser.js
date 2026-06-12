@@ -1,5 +1,5 @@
-// Server browser page: client-side filtering + a hover popover listing the players
-// currently on each server. Vanilla JS (no jQuery), runs only on the browser page.
+// Server browser page: client-side filtering + a hover-preview / click-to-pin popover listing the
+// players currently on each server. Vanilla JS (no jQuery), runs only on the browser page.
 import { Popover } from 'bootstrap';
 import { renderAllTees } from './tee';
 
@@ -10,17 +10,50 @@ document.addEventListener('DOMContentLoaded', function () {
     }
 
     // ---- player-count popovers: each row's hidden .server-players carries the roster + tee canvases ----
-    // Manually controlled (not Bootstrap's 'hover focus'): the roster holds tee links the user opens in
-    // new tabs, and the built-in 'focus' trigger fired focusout on ctrl/middle-click and slammed the
-    // popover shut before the tab opened. A click toggles a roster open (pinning it); it closes only on an
-    // outside click or Esc, so modifier-clicking a link inside it leaves it open.
-    let openPopover = null;
+    // Hovering a badge previews that server's roster; clicking it PINS the roster open so the user can
+    // ctrl/middle-click tee links into new tabs without it vanishing. Driven manually rather than with
+    // Bootstrap's 'hover focus' trigger, whose focusout fired on a modifier-click and slammed the tip shut
+    // before the new tab opened. A short grace timer bridges the gap from badge to tip so an unpinned
+    // preview survives the pointer travelling onto it; a pinned roster ignores mouseleave entirely and
+    // closes only on an outside click, Esc, or a second click on its badge.
+    let activePopover = null; // the roster currently shown (previewed or pinned)
+    let hideTimer = null;
 
-    function closeOpenPopover() {
-        if (openPopover) {
-            openPopover.hide();
-            openPopover = null;
+    function hideRoster(popover) {
+        if (!popover) {
+            return;
         }
+        window.clearTimeout(hideTimer);
+        popover.pinned = false;
+        popover.hide();
+        if (activePopover === popover) {
+            activePopover = null;
+        }
+    }
+
+    function showRoster(popover) {
+        window.clearTimeout(hideTimer);
+        if (activePopover === popover) {
+            return; // already shown
+        }
+        if (activePopover) {
+            hideRoster(activePopover); // only one roster at a time
+        }
+        popover.show();
+        activePopover = popover;
+    }
+
+    function scheduleHide(popover) {
+        if (popover.pinned) {
+            return; // pinned rosters ignore mouseleave
+        }
+        window.clearTimeout(hideTimer);
+        // a short grace period lets the pointer travel from the badge onto the tip without it vanishing
+        hideTimer = window.setTimeout(() => {
+            if (!popover.pinned) {
+                hideRoster(popover);
+            }
+        }, 160);
     }
 
     table.querySelectorAll('.server-player-count').forEach((trigger) => {
@@ -57,38 +90,54 @@ document.addEventListener('DOMContentLoaded', function () {
                 return clone;
             },
         });
+        popover.pinned = false;
 
-        // click toggles this roster; stopPropagation keeps the document handler below from
-        // immediately treating the same click as an "outside" click
+        // hover previews the roster; the badge's own mouseleave starts the grace timer
+        trigger.addEventListener('mouseenter', () => showRoster(popover));
+        trigger.addEventListener('mouseleave', () => scheduleHide(popover));
+
+        // click pins the previewed roster open (or unpins + closes it if already pinned). stopPropagation
+        // keeps the document handler below from treating this same click as an "outside" click.
         trigger.addEventListener('click', (event) => {
             event.preventDefault();
             event.stopPropagation();
-            if (openPopover === popover) {
-                closeOpenPopover();
+            if (popover.pinned) {
+                hideRoster(popover);
+            } else {
+                showRoster(popover);
+                popover.pinned = true;
+            }
+        });
+
+        // keep the tip alive while the pointer is over it, and start the grace timer when it leaves. The
+        // tip element is reused across shows, so guard against binding these listeners more than once.
+        trigger.addEventListener('inserted.bs.popover', () => {
+            const tip = popover.tip;
+            if (!tip || tip.dataset.rosterBound) {
                 return;
             }
-            closeOpenPopover();
-            popover.show();
-            openPopover = popover;
+            tip.dataset.rosterBound = 'true';
+            tip.addEventListener('mouseenter', () => window.clearTimeout(hideTimer));
+            tip.addEventListener('mouseleave', () => scheduleHide(popover));
         });
     });
 
-    // close the open roster on an outside click; a click inside it (including a ctrl/middle-click on a
-    // tee link that opens a new tab) is left alone, so the roster stays pinned
+    // an outside click closes the roster; clicks inside it (incl. ctrl/middle-clicks on tee links that
+    // open a new tab) are ignored, so the roster stays put
     document.addEventListener('click', (event) => {
-        if (!openPopover) {
+        if (!activePopover) {
             return;
         }
         if (event.target.closest('.server-roster-popover')) {
             return;
         }
-        closeOpenPopover();
+        hideRoster(activePopover);
     });
 
-    // Esc closes any open roster
+    // Esc closes the open roster
     document.addEventListener('keydown', (event) => {
         if (event.key === 'Escape') {
-            closeOpenPopover();
+            hideRoster(activePopover);
         }
     });
 
