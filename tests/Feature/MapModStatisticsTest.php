@@ -9,7 +9,6 @@ use App\Models\Player;
 use App\Models\PlayerClanHistory;
 use App\Models\PlayerHistory;
 use App\Models\Server;
-use App\Models\ServerHistory;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
