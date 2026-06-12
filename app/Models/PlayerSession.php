@@ -20,6 +20,8 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  * @property int $map_id
  * @property int $mod_id
  * @property int $minutes
+ * @property int $afk_minutes
+ * @property int $afk_tracked_minutes
  * @property \Carbon\Carbon $started_at
  * @property \Carbon\Carbon $last_seen_at
  * @property \Carbon\Carbon|null $ended_at
