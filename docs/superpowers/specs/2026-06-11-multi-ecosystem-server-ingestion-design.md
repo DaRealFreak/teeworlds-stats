@@ -90,14 +90,22 @@ each has a list of protocol-tagged `Address(ip, port, protocol)` and an optional
   - Info: `gie3` → `inf3` parsed with the **0.7 payload layout** (§5.2).
 - Covers vanilla 0.7 servers that register only to the Teeworlds master.
 
-### 4.3 `Teeworlds06Source`
-- The existing 0.6 path, refactored out of `GameServerController`: `gie3`/`inf3` vanilla +
-  DDNet-extended `iext`/`iex+` (the `"xe"`-header extended request).
-- There is no live standalone 0.6 master (teeworlds.com moved to 0.7), so 0.6 endpoints come from the
-  `tw-0.6` addresses surfaced by `DdnetHttpSource`. The legacy `req2`/`lis2` 0.6 master query is retained
-  only as best-effort fallback and may be removed if it yields nothing.
-- Info stays native (vanilla + extended) so 0.6 data is first-hand; **always prefer the extended (`iext`)
-  response** for counts to avoid the 16-cap.
+### 4.3 `Teeworlds06Source` (built in Phase 6 as the DDNet-outage fallback)
+- Native 0.6 path: `req2`/`lis2` against the live `teeworlds.com:8300` master, then `gie3` → `inf3`
+  vanilla + DDNet-extended `iext`/`iex+` (the `"xe"`-header extended request). Implemented as
+  `App\TwStats\Protocol\Six` (`SixConnless`/`SixListCodec`/`SixInfoCodec`) + `Discovery\Teeworlds06Source`
+  over the injectable `UdpTransport`.
+- **Correction to the original design:** the `teeworlds.com:8300` 0.6 master is **alive** (verified
+  2026-06-12: ~1256 addresses; `master4` answers in ~20 ms, `master1` is flaky). The DDNet feed mirrors
+  it to within ~1 server out of 1248, so when DDNet is up this source's data is largely redundant and
+  loses the ip:port merge to DDNet's richer feed. Its purpose is **resilience**: if DDNet's
+  community-financed HTTP master disappears, this source keeps the ~890 responding 0.6 servers reachable
+  on its own. It is wired **last** in `UpdateData`'s `array_merge`, so it never overrides DDNet/0.7.
+- The masters answer the `"xe"` extended request with the **plain** 6×`0xFF` connless header, so the
+  response parser matches on the `\xff\xff\xff\xff` command marker rather than an echoed `"xe"`.
+- Info stays native (vanilla + extended) so 0.6 data is first-hand; the extended (`iext`/`iex+`)
+  response is requested via the `"xe"` framing to avoid the 16-cap. The 64-player legacy `fstd`/`dtsf`
+  path is deliberately omitted (deprecated; extended supersedes it).
 
 ## 5. Protocol reference (verified facts we depend on)
 
