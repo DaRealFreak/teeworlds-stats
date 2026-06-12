@@ -8,7 +8,7 @@ export default defineConfig({
             input: [
                 'resources/assets/sass/app.scss',
                 'resources/assets/sass/font-awesome.scss',
-                'resources/assets/js/app.js',
+                'resources/assets/js/app.ts',
             ],
             refresh: true,
         }),

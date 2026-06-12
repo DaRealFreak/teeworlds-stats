@@ -17,7 +17,9 @@ work here; do not push unless asked.
 
 - PHP 8.3+, Laravel 13 (`laravel/ui` auth, `spatie/laravel-responsecache`).
 - Frontend: Bootstrap 5.3 + SCSS compiled by **Vite** (`npm run build`), Chart.js 4,
-  jQuery + jQuery UI, `flag-icons`, Font Awesome 4.7.
+  `flag-icons`, Font Awesome 4.7. The browser bundle is **TypeScript**
+  (`resources/assets/js/*.ts`, strict; no jQuery) — type-checked by `tsc` and linted by
+  ESLint + Prettier.
 - DB: MySQL in DDEV; SQLite `:memory:` for tests.
 - Runs **inside** the DDEV web container — use bare `php artisan`, `composer`, `npm`,
   and `curl` with a `Host:` header.
@@ -27,6 +29,9 @@ work here; do not push unless asked.
 - `npm run build` — compile assets. There is no dev server running by default, so
   **rebuild after any SCSS/JS change** (built assets live in the git-ignored
   `public/build/`, so they are rebuilt on deploy too).
+- `npm run type-check` — `tsc --noEmit` over the front-end bundle. `npm run lint` —
+  ESLint; `npm run format` — Prettier. CI (`.github/workflows/theme.yml`) runs
+  type-check + lint before the build, so keep both green.
 - `vendor/bin/phpunit` — run the test suite (`tests/Unit`, `tests/Feature`).
 - `php artisan migrate` — run migrations against the dev DB.
 - `php artisan data:update` — the scraper (scheduled every 10 min in `bootstrap/app.php`).
@@ -50,6 +55,10 @@ work here; do not push unless asked.
 - **Country flags**: `flag-icons` SVGs are copied to `/build/flags/4x3` by
   `vite.config.js` (`stripBase`); `$flag-icons-path` in `app.scss` points there
   (Sass does not rebase the package's relative `url()`s).
+- **Inline-script seam**: a few detail views (`general`, `detail.server/clan/player`)
+  run inline `<script>` blocks that are *not* part of the TS build — they reach the
+  bundle only through `window.*` globals (`Chart`, `ChartHelper`, `humanizeDuration`,
+  `blade`), declared in `resources/assets/js/global.d.ts`. Keep those globals stable.
 
 ## Testing notes
 

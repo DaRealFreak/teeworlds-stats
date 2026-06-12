@@ -3,6 +3,13 @@
 import { Popover } from 'bootstrap';
 import { renderAllTees } from './tee';
 
+// our roster popovers carry a `pinned` flag and we read Bootstrap's internal `.tip` element;
+// neither is in the public Popover type, so widen the instance for this module
+interface RosterPopover extends Popover {
+    pinned: boolean;
+    tip: HTMLElement | null;
+}
+
 document.addEventListener('DOMContentLoaded', function () {
     const table = document.getElementById('server_browser_table');
     if (!table) {
@@ -16,10 +23,10 @@ document.addEventListener('DOMContentLoaded', function () {
     // before the new tab opened. A short grace timer bridges the gap from badge to tip so an unpinned
     // preview survives the pointer travelling onto it; a pinned roster ignores mouseleave entirely and
     // closes only on an outside click, Esc, or a second click on its badge.
-    let activePopover = null; // the roster currently shown (previewed or pinned)
-    let hideTimer = null;
+    let activePopover: RosterPopover | null = null; // the roster currently shown (previewed or pinned)
+    let hideTimer: ReturnType<typeof setTimeout> | undefined;
 
-    function hideRoster(popover) {
+    function hideRoster(popover: RosterPopover | null) {
         if (!popover) {
             return;
         }
@@ -31,7 +38,7 @@ document.addEventListener('DOMContentLoaded', function () {
         }
     }
 
-    function showRoster(popover) {
+    function showRoster(popover: RosterPopover) {
         window.clearTimeout(hideTimer);
         if (activePopover === popover) {
             return; // already shown
@@ -43,7 +50,7 @@ document.addEventListener('DOMContentLoaded', function () {
         activePopover = popover;
     }
 
-    function scheduleHide(popover) {
+    function scheduleHide(popover: RosterPopover) {
         if (popover.pinned) {
             return; // pinned rosters ignore mouseleave
         }
@@ -57,7 +64,7 @@ document.addEventListener('DOMContentLoaded', function () {
     }
 
     table.querySelectorAll('.server-player-count').forEach((trigger) => {
-        const roster = trigger.parentElement.querySelector('.server-players');
+        const roster = trigger.parentElement?.querySelector('.server-players');
         if (!roster) {
             return;
         }
@@ -75,21 +82,21 @@ document.addEventListener('DOMContentLoaded', function () {
                 // right here: canvas bitmaps survive being moved into the tip, and because tee.js
                 // caches the composed result this is instant on repeat opens and never leaves a
                 // permanently-blank canvas. Only the opened server's sprites draw, never the page's rest.
-                const clone = roster.cloneNode(true);
+                const clone = roster.cloneNode(true) as HTMLElement;
                 clone.classList.remove('d-none');
                 // flow big rosters into columns so they don't scroll forever. A multicol box is
                 // shrink-to-fit, so it needs an explicit width to actually form columns.
                 const count = clone.childElementCount;
-                const cols = count > 24 ? 3 : (count > 8 ? 2 : 1);
+                const cols = count > 24 ? 3 : count > 8 ? 2 : 1;
                 if (cols > 1) {
                     clone.style.columnCount = String(cols);
                     clone.style.columnGap = '16px';
-                    clone.style.width = (cols * 176) + 'px';
+                    clone.style.width = cols * 176 + 'px';
                 }
                 renderAllTees(clone, { onlyVisible: false });
                 return clone;
             },
-        });
+        }) as RosterPopover;
         popover.pinned = false;
 
         // hover previews the roster; the badge's own mouseleave starts the grace timer
@@ -128,7 +135,7 @@ document.addEventListener('DOMContentLoaded', function () {
         if (!activePopover) {
             return;
         }
-        if (event.target.closest('.server-roster-popover')) {
+        if (event.target instanceof Element && event.target.closest('.server-roster-popover')) {
             return;
         }
         hideRoster(activePopover);
@@ -142,19 +149,24 @@ document.addEventListener('DOMContentLoaded', function () {
     });
 
     // ---- click/Enter on an address copies ip:port for the in-game connect field ----
-    table.querySelectorAll('.server-connect').forEach((el) => {
+    table.querySelectorAll<HTMLElement>('.server-connect').forEach((el) => {
         const label = el.innerHTML;
         const copy = () => {
             // navigator.clipboard is undefined outside secure (HTTPS) contexts; skip rather than throw
             if (!navigator.clipboard) {
                 return;
             }
-            navigator.clipboard.writeText(el.dataset.connect || '').then(() => {
-                el.textContent = 'Copied!';
-                window.setTimeout(() => { el.innerHTML = label; }, 1200);
-            }).catch(() => {
-                el.innerHTML = label;
-            });
+            navigator.clipboard
+                .writeText(el.dataset.connect || '')
+                .then(() => {
+                    el.textContent = 'Copied!';
+                    window.setTimeout(() => {
+                        el.innerHTML = label;
+                    }, 1200);
+                })
+                .catch(() => {
+                    el.innerHTML = label;
+                });
         };
         el.addEventListener('click', copy);
         el.addEventListener('keydown', (event) => {
@@ -166,24 +178,24 @@ document.addEventListener('DOMContentLoaded', function () {
     });
 
     // ---- client-side filtering ----
-    const nameInput = document.getElementById('filter_name');
-    const modSelect = document.getElementById('filter_mod');
-    const mapSelect = document.getElementById('filter_map');
-    const typeSelect = document.getElementById('filter_type');
-    const hideEmpty = document.getElementById('filter_hide_empty');
+    const nameInput = document.getElementById('filter_name') as HTMLInputElement | null;
+    const modSelect = document.getElementById('filter_mod') as HTMLSelectElement | null;
+    const mapSelect = document.getElementById('filter_map') as HTMLSelectElement | null;
+    const typeSelect = document.getElementById('filter_type') as HTMLSelectElement | null;
+    const hideEmpty = document.getElementById('filter_hide_empty') as HTMLInputElement | null;
 
     if (!nameInput || !modSelect || !mapSelect || !hideEmpty || !typeSelect) {
         return;
     }
 
-    const rows = Array.from(table.querySelectorAll('tbody tr'));
+    const rows = Array.from(table.querySelectorAll<HTMLElement>('tbody tr'));
 
     function applyFilters() {
-        const name = nameInput.value.trim().toLowerCase();
-        const mod = modSelect.value;
-        const map = mapSelect.value;
-        const type = typeSelect.value;
-        const empty = hideEmpty.checked;
+        const name = nameInput!.value.trim().toLowerCase();
+        const mod = modSelect!.value;
+        const map = mapSelect!.value;
+        const type = typeSelect!.value;
+        const empty = hideEmpty!.checked;
 
         rows.forEach((row) => {
             const serverMatches = !name || (row.dataset.name || '').includes(name);

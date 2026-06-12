@@ -3,13 +3,13 @@
 // the navbar dropdown fade. (The template's form-validate, material-input and
 // search-popup hooks are not used by any view, so they are intentionally absent.)
 document.addEventListener('DOMContentLoaded', function () {
-    const pageContent = document.querySelector('.page-content');
+    const pageContent = document.querySelector<HTMLElement>('.page-content');
 
     // ------------------------------------------------------- //
     // Footer: keep page padding clear of the absolutely-positioned footer
     // ------------------------------------------------------ //
     function adjustFooter() {
-        const footerBlock = document.querySelector('.footer__block');
+        const footerBlock = document.querySelector<HTMLElement>('.footer__block');
         if (footerBlock && pageContent) {
             pageContent.style.paddingBottom = footerBlock.offsetHeight + 'px';
         }
@@ -55,3 +55,5 @@ document.addEventListener('DOMContentLoaded', function () {
         });
     });
 });
+
+export {};
