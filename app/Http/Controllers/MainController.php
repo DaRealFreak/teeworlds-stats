@@ -7,10 +7,13 @@ use App\Models\DailySummary;
 use App\Models\Map;
 use App\Models\Mod;
 use App\Models\Player;
+use App\Models\PlayerClanHistory;
+use App\Models\PlayerSession;
 use App\Models\Server;
 use App\Models\PlayerHistory;
 use App\Utility\ChartUtility;
 use Carbon\Carbon;
+use Illuminate\Http\Request;
 
 class MainController extends Controller
 {
@@ -50,12 +53,44 @@ class MainController extends Controller
     }
 
     /**
+     * The player list, sortable across the whole set. Played time, AFK share and the current
+     * clan are joined as grouped aggregates so the sort works over every player (not just the
+     * page) — which also drops the old per-row clan()/totalHoursOnline() lookups.
+     *
      * @return \Illuminate\Contracts\View\Factory|\Illuminate\View\View
      */
-    public function players()
+    public function players(Request $request)
     {
-        return view('list.player')
-            ->with('players', Player::orderBy('name')->paginate(50));
+        $dir = strtolower((string) $request->query('dir')) === 'desc' ? 'desc' : 'asc';
+        $sort = (string) $request->query('sort');
+
+        $query = Player::query()
+            ->leftJoinSub(
+                PlayerHistory::query()->selectRaw('player_id, SUM(minutes) as minutes')->groupBy('player_id'),
+                'played', 'played.player_id', '=', 'players.id'
+            )
+            ->leftJoinSub(
+                PlayerSession::query()->selectRaw('player_id, SUM(afk_minutes) as afk_sum, SUM(afk_tracked_minutes) as afk_tracked')->groupBy('player_id'),
+                'afk', 'afk.player_id', '=', 'players.id'
+            )
+            ->leftJoinSub(
+                PlayerClanHistory::query()->whereNull('left_at')->selectRaw('player_id, MAX(clan_id) as clan_id')->groupBy('player_id'),
+                'cur_clan', 'cur_clan.player_id', '=', 'players.id'
+            )
+            ->leftJoin('clans', 'clans.id', '=', 'cur_clan.clan_id')
+            ->select('players.*', 'played.minutes as played_minutes', 'afk.afk_sum', 'afk.afk_tracked', 'clans.name as clan_name');
+
+        // afk share over idle-tracked time; null when nothing was tracked → forced to the bottom
+        $afkRatio = '(afk.afk_sum * 1.0 / NULLIF(afk.afk_tracked, 0))';
+
+        match ($sort) {
+            'played' => $query->orderByRaw('COALESCE(played.minutes, 0) ' . $dir),
+            'afk'    => $query->orderByRaw($afkRatio . ' IS NULL ASC')->orderByRaw($afkRatio . ' ' . $dir),
+            'clan'   => $query->orderByRaw('clans.name IS NULL ASC')->orderByRaw('clans.name ' . $dir),
+            default  => $query->orderBy('players.name', $dir), // 'name' and any unknown sort
+        };
+
+        return view('list.player')->with('players', $query->paginate(50)->withQueryString());
     }
 
     /**
