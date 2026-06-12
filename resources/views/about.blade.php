@@ -26,19 +26,6 @@
                             </div>
 
                             <div class="form-group-material">
-                                <h3>Choose which statistics to display</h3>
-                                <div>You are now free to choose whever or not to display these statistics.</div>
-                                <div>Just access your account via facebook login to setup your preferences.</div>
-                            </div>
-
-                            <div class="form-group-material">
-                                <h3>Facebook login</h3>
-                                <div>Facebook is only used as a mean of identification.</div>
-                                <div>Teeworlds-stats will not publish anything on your wall.</div>
-                                <div>Teeworlds will not even appear on your facebook profile.</div>
-                            </div>
-
-                            <div class="form-group-material">
                                 <h3>If a clan/server/tee is missing</h3>
                                 <div>It could be because this clan/server/tee</div>
                                 <div>
