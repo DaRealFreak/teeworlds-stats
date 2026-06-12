@@ -258,8 +258,29 @@ async function render07(canvas, d) {
 
 // --- bootstrap ------------------------------------------------------------------------------------
 
+// A tee is composed once per distinct skin descriptor to a cached offscreen canvas, then blitted to
+// each target. Caching the *result* (not a "rendered" flag) is what makes this robust: a target can
+// be drawn any number of times — so the server browser's popover, which clones fresh canvases on
+// every hover and may churn faster than the skin images load, always ends up with a real tee instead
+// of a permanently-blank flagged canvas. It also means thousands of identical "default" tees cost one
+// compose. COMPOSE_SIZE is the offscreen resolution; targets downscale from it.
+const COMPOSE_SIZE = 96;
+const teeCache = new Map(); // descriptor JSON -> Promise<HTMLCanvasElement>
+
+function composeTee(descriptor) {
+    const key = JSON.stringify(descriptor);
+    if (!teeCache.has(key)) {
+        const off = document.createElement('canvas');
+        off.setAttribute('width', COMPOSE_SIZE);
+        off.setAttribute('height', COMPOSE_SIZE);
+        const render = descriptor.mode === '07' ? render07 : render06;
+        // resolve to the offscreen whether the skin loads or not (a failed load leaves it blank)
+        teeCache.set(key, render(off, descriptor).then(() => off, () => off));
+    }
+    return teeCache.get(key);
+}
+
 export function renderTee(canvas) {
-    if (canvas.dataset.teeRendered) return; // idempotent — re-renders are no-ops
     let d;
     try {
         d = JSON.parse(canvas.getAttribute('data-tee'));
@@ -267,14 +288,20 @@ export function renderTee(canvas) {
         return;
     }
     if (!d || !d.mode) return;
-    canvas.dataset.teeRendered = '1';
-    const render = d.mode === '07' ? render07 : render06;
-    render(canvas, d).catch(() => { /* a missing/blocked skin image just leaves the canvas blank */ });
+    composeTee(d).then((composed) => {
+        const dpr = window.devicePixelRatio || 1;
+        const size = canvas.clientWidth || parseInt(canvas.getAttribute('width'), 10) || 24;
+        canvas.width = Math.round(size * dpr);
+        canvas.height = Math.round(size * dpr);
+        const ctx = canvas.getContext('2d');
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        ctx.drawImage(composed, 0, 0, canvas.width, canvas.height);
+    });
 }
 
 // Render every tee in root. By default only visible canvases are drawn, so the page-load pass skips
-// the server browser's thousands of hidden roster tees (those are rendered on demand when a popover
-// opens — pass {onlyVisible:false} for that). offsetParent is null for display:none elements.
+// the server browser's thousands of hidden roster tees (those are drawn into the popover clone when
+// it opens — pass {onlyVisible:false} for that). offsetParent is null for display:none elements.
 export function renderAllTees(root = document, { onlyVisible = true } = {}) {
     root.querySelectorAll('canvas[data-tee]').forEach((canvas) => {
         if (onlyVisible && canvas.offsetParent === null) return;

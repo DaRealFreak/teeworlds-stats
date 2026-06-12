@@ -594,6 +594,33 @@ section.section-content {
   height: 24px;
 }
 
+/* player popover: allow it past Bootstrap's 276px cap (serverbrowser.js sets the column count and a
+   matching width on the roster) and keep each player row whole within its column */
+.server-roster-popover {
+  max-width: 560px;
+
+  .server-player {
+    break-inside: avoid;
+  }
+}
+
+/* server detail "currently playing" roster: tee avatars in the round 50px frame, flowed into
+   columns when the roster is long so it doesn't run far down the page */
+.messages-block .profile .profile-tee {
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+}
+
+.messages--grid {
+  column-width: 300px;
+  column-gap: 10px;
+
+  .message {
+    break-inside: avoid;
+  }
+}
+
 /* Fixed layout so columns keep their width when filtering hides/shows rows (the colgroup
    sets the proportions). The server name and map can be long unbroken tokens (e.g. a map
    hash), so they wrap rather than overflow; the gametype stays single-line with an ellipsis. */

@@ -9,20 +9,29 @@
     </div>
     <section class="section-content">
         <div class="container-fluid">
-            @if ($server->currentPlayers)
+            @if ($server->currentPlayers->count())
+                @php $playerCount = $server->currentPlayers->count(); @endphp
                 <div class="row">
                     <div class="col-lg-12">
                         <div class="messages-block block">
                             <div class="title">
                                 <strong>Currently playing tees</strong>
                             </div>
-                            <div class="messages pre-scrollable pre-scrollable-needed">
+                            {{-- flow into columns once the roster is long, so it doesn't run off the page --}}
+                            <div class="messages pre-scrollable pre-scrollable-needed @if ($playerCount > 12) messages--grid @endif">
                                 @foreach ($server->currentPlayers as $player)
+                                    @php
+                                        $playerTee = \App\Utility\TeeSkin::describe($player->skin, $player->color_body, $player->color_feet, $player->skin_parts);
+                                    @endphp
                                     <a href="{{ url("tee", urlencode($player->name)) }}"
                                        class="message d-flex align-items-center">
                                         <div class="profile">
-                                            <img src="{{ asset('images/user.png') }}" alt="{{ $player->name }}"
-                                                 class="img-fluid">
+                                            @if ($playerTee)
+                                                <canvas class="profile-tee" width="50" height="50" data-tee='@json($playerTee)'></canvas>
+                                            @else
+                                                <img src="{{ asset('images/user.png') }}" alt="{{ $player->name }}"
+                                                     class="img-fluid">
+                                            @endif
                                             <div class="status online"></div>
                                         </div>
                                         <div class="content">

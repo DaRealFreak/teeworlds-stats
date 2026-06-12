@@ -23,22 +23,28 @@ document.addEventListener('DOMContentLoaded', function () {
             sanitize: false,
             trigger: 'hover focus',
             container: 'body',
-            // clone the live DOM nodes rather than innerHTML: a serialized <canvas> loses its pixels,
-            // so we pass the elements and render them once the tip is in the DOM (below). Drop the
-            // roster's d-none (it's hidden on the page) so the clone shows inside the popover.
+            customClass: 'server-roster-popover', // wider + multi-column (see app.scss)
             content: () => {
+                // clone the live DOM nodes rather than innerHTML — a serialized <canvas> loses its
+                // pixels. Drop the roster's d-none so the clone shows. Draw the tees onto the clone
+                // right here: canvas bitmaps survive being moved into the tip, and because tee.js
+                // caches the composed result this is instant on repeat hovers and never leaves a
+                // permanently-blank canvas (the bug when fast-hovering churned tips faster than the
+                // skin images loaded). Only the hovered server's sprites draw, never the page's rest.
                 const clone = roster.cloneNode(true);
                 clone.classList.remove('d-none');
+                // flow big rosters into columns so they don't scroll forever. A multicol box is
+                // shrink-to-fit, so it needs an explicit width to actually form columns.
+                const count = clone.childElementCount;
+                const cols = count > 24 ? 3 : (count > 8 ? 2 : 1);
+                if (cols > 1) {
+                    clone.style.columnCount = String(cols);
+                    clone.style.columnGap = '16px';
+                    clone.style.width = (cols * 176) + 'px';
+                }
+                renderAllTees(clone, { onlyVisible: false });
                 return clone;
             },
-        });
-        // draw the cloned roster's tees lazily — only the hovered server's ≤max-clients sprites,
-        // never the thousands of hidden ones on the page
-        trigger.addEventListener('inserted.bs.popover', () => {
-            const tip = document.querySelector('.popover');
-            if (tip) {
-                renderAllTees(tip, { onlyVisible: false });
-            }
         });
     });
 
