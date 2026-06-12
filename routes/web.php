@@ -3,6 +3,7 @@
 use App\Http\Controllers\AjaxSearchController;
 use App\Http\Controllers\InformationController;
 use App\Http\Controllers\MainController;
+use App\Http\Controllers\MapFileController;
 use App\Http\Controllers\SearchController;
 use Illuminate\Support\Facades\Route;
 use Spatie\ResponseCache\Middlewares\CacheResponse;
@@ -30,6 +31,9 @@ Route::get('/mod', [SearchController::class, 'searchMod'])->name('mod');
 Route::get('/mod/{mod_name}/', [SearchController::class, 'searchModByName'])->name('searchModByName');
 Route::get('/map', [SearchController::class, 'searchMap'])->name('map');
 Route::get('/map/{map_name}/', [SearchController::class, 'searchMapByName'])->name('searchMapByName');
+// Map file acquisition: inline bytes for the viewer + an attachment download. Not cached.
+Route::get('/map/{map_name}/file', [MapFileController::class, 'file'])->name('mapFile');
+Route::get('/map/{map_name}/download', [MapFileController::class, 'download'])->name('mapDownload');
 
 // List routes
 Route::get('/tees', [MainController::class, 'players'])->name('players');

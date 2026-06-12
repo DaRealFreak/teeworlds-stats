@@ -117,4 +117,34 @@ class MapFileAcquisitionTest extends TestCase
         $this->assertSame('maps/' . $sha . '.map', $rel);
         $this->assertSame('PRELOADED', Storage::disk('local')->get($rel));
     }
+
+    public function test_download_route_streams_attachment_and_caches(): void
+    {
+        Storage::fake('local');
+        $body = 'ROUTEBYTES';
+        $sha = hash('sha256', $body);
+        Map::create(['name' => 'Kobra 4', 'sha256' => $sha, 'size' => strlen($body)]);
+        Http::fake(['maps.ddnet.org/*' => Http::response($body, 200)]);
+
+        $response = $this->get('/map/' . rawurlencode('Kobra 4') . '/download');
+
+        $response->assertOk();
+        $response->assertDownload('Kobra 4.map'); // Symfony quotes the spaced filename; match via the helper
+        $this->assertSame($body, $response->streamedContent());
+
+        $fileResponse = $this->get('/map/' . rawurlencode('Kobra 4') . '/file'); // inline variant
+        $fileResponse->assertOk();
+        // robust partial match — Symfony emits `inline; filename="Kobra 4.map"; filename*=...` for a spaced name
+        $this->assertStringStartsWith('inline', (string) $fileResponse->headers->get('content-disposition'));
+        Http::assertSentCount(1); // both requests served one cached file
+    }
+
+    public function test_file_route_404s_for_unavailable_and_unknown_maps(): void
+    {
+        Storage::fake('local');
+        Map::create(['name' => 'no-hash']); // exists but not downloadable
+
+        $this->get('/map/no-hash/file')->assertNotFound();
+        $this->get('/map/does-not-exist/file')->assertNotFound();
+    }
 }
