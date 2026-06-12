@@ -4,7 +4,7 @@
 
 **Goal:** Delete the now-dead legacy 0.6 UDP scraper (controllers, transient DTOs, the IPv6 helper, and its parser test), which nothing references since `UpdateData` cut over to the DDNet HTTP + Teeworlds 0.7 pipeline.
 
-**Background & scope decision:** Phase 4 made the live scraper source from `DdnetHttpSource` + `Teeworlds07Source`. The spec's "native 0.6 source" is intentionally **not** built: there is no live Teeworlds 0.6 master to discover from (teeworlds.com's masters require the 0.7 token handshake now), and the 0.6 server population is already covered by the DDNet feed (which carries richer data — real player lists and cosmetics — than a 0.6 UDP re-query could). A native 0.6 source would be dead code, so Phase 5 is the cleanup half only.
+**Background & scope decision:** Phase 4 made the live scraper source from `DdnetHttpSource` + `Teeworlds07Source`. The spec's "native 0.6 source" is intentionally **not** built — but note the reason: the legacy `teeworlds.com:8300` 0.6 master is **still alive** (it answers the plain `xe…req2` browse request and returns ~1256 addresses; `master1` is flaky but `master4` answers instantly). The native 0.6 source is omitted because it is **redundant**, not dead: a 2026-06-12 measurement found the DDNet `servers.json` feed already contains 1247/1248 of the 0.6 master's servers (gap of exactly 1 transient server) and carries strictly richer data — real player lists, skins, colors, afk — than a 0.6 UDP `inf3` re-query could. So Phase 5 is the cleanup half only. (Future resilience note: if DDNet's HTTP master ever goes away, a native 0.6 source querying `teeworlds.com:8300` — all four masters, aggregated — is the natural fallback for the vanilla-0.6 population. Not built now: YAGNI.)
 
 **Dependency graph (verified):** the legacy classes form a closed island — `NetworkController`, `MasterServerController`, `GameServerController`, the `App\TwStats\Models\{GameServer,MasterServer,Server,Player}` DTOs, and `App\TwStats\Utility\IPv6Utility` are referenced only by each other and by `tests/Unit/TwStatsParseTest.php`. `App\TwStats\Utility\Countries` is NOT part of the island (used by `UpdateData` + `ChartUtility`) and stays.
 
@@ -81,7 +81,7 @@ Co-Authored-By: Claude Opus 4.8 <noreply@anthropic.com>"
 
 **Spec coverage (Phase 5):**
 - Remove the dead legacy controllers + DTOs → Task 1. ✓
-- Native 0.6 source: consciously omitted (no live 0.6 master; DDNet feed covers 0.6 with richer data) — documented in the commit message and this plan. ✓
+- Native 0.6 source: consciously omitted because it is **redundant** (the live `teeworlds.com:8300` 0.6 master IS reachable — ~1256 servers — but the DDNet feed mirrors it to within 1/1248 and carries richer data) — documented in this plan. The `a79499e` commit message states the older, incorrect "no live 0.6 master" rationale; this plan supersedes it. ✓
 - `App\TwStats\Utility\Countries` retained (live consumer: `UpdateData`/`ChartUtility`). ✓
 
 **Placeholder scan:** none.
