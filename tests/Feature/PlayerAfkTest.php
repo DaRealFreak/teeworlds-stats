@@ -55,4 +55,60 @@ class PlayerAfkTest extends TestCase
         $this->assertSame(0, $player->afkPercent());
         $this->assertFalse($player->hasAfkData());
     }
+
+    public function test_player_page_shows_the_afk_tile_and_session_annotation(): void
+    {
+        $player = Player::factory()->create(['name' => 'Idle Ivan', 'last_seen' => Carbon::now()]);
+        $server = Server::factory()->create(['name' => 'Idle Server']);
+        $map = Map::create(['name' => 'idlemap']);
+        $mod = Mod::create(['name' => 'idlemod']);
+
+        // 30 idle of 120 tracked → 25%
+        PlayerSession::create([
+            'player_id' => $player->id,
+            'server_id' => $server->id,
+            'map_id' => $map->id,
+            'mod_id' => $mod->id,
+            'minutes' => 120,
+            'afk_minutes' => 30,
+            'afk_tracked_minutes' => 120,
+            'started_at' => Carbon::now()->subDay()->setTime(20, 0),
+            'last_seen_at' => Carbon::now()->subDay()->setTime(22, 0),
+            'ended_at' => Carbon::now()->subDay()->setTime(22, 0),
+        ]);
+
+        $response = $this->get('/tee/' . urlencode('Idle Ivan'));
+
+        $response->assertOk();
+        $response->assertSee('on servers tracking idle status');
+        $response->assertSee('25%');
+        // per-session annotation (lowercase "afk" only appears on the session row)
+        $response->assertSee('afk', false);
+    }
+
+    public function test_player_page_hides_the_afk_tile_without_tracked_data(): void
+    {
+        $player = Player::factory()->create(['name' => 'No Idle Ned', 'last_seen' => Carbon::now()]);
+        $server = Server::factory()->create();
+        $map = Map::create(['name' => 'plainmap']);
+        $mod = Mod::create(['name' => 'plainmod']);
+
+        PlayerSession::create([
+            'player_id' => $player->id,
+            'server_id' => $server->id,
+            'map_id' => $map->id,
+            'mod_id' => $mod->id,
+            'minutes' => 60,
+            'afk_minutes' => 0,
+            'afk_tracked_minutes' => 0,
+            'started_at' => Carbon::now()->subHour(),
+            'last_seen_at' => Carbon::now(),
+            'ended_at' => Carbon::now(),
+        ]);
+
+        $response = $this->get('/tee/' . urlencode('No Idle Ned'));
+
+        $response->assertOk();
+        $response->assertDontSee('on servers tracking idle status');
+    }
 }

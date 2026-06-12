@@ -117,6 +117,13 @@
                         <div class="stat-tile__hint">avg {{ $humanize($player->averageSessionMinutes()) }} · longest {{ $humanize($player->longestSessionMinutes()) }}</div>
                     @endif
                 </div>
+                @if ($player->hasAfkData())
+                    <div class="stat-tile">
+                        <div class="stat-tile__label">AFK</div>
+                        <div class="stat-tile__value"><i class="fa fa-bed"></i>{{ $player->afkPercent() }}%</div>
+                        <div class="stat-tile__hint">{{ $humanize($player->totalAfkMinutes()) }} on servers tracking idle status</div>
+                    </div>
+                @endif
                 <div class="stat-tile">
                     <div class="stat-tile__label">Servers</div>
                     <div class="stat-tile__value"><i class="fa fa-server"></i>{{ number_format($player->distinctServersCount()) }}</div>
@@ -219,6 +226,9 @@
                                                 {{ $session->started_at->format('H:i') }}–{{ ($session->ended_at ?? $session->last_seen_at)->format('H:i') }}
                                                 @if ($session->map)
                                                     · {{ $session->map->name }}
+                                                @endif
+                                                @if ($session->afk_minutes > 0)
+                                                    · <i class="fa fa-bed"></i> {{ $humanize($session->afk_minutes) }} afk
                                                 @endif
                                             </div>
                                         </div>
