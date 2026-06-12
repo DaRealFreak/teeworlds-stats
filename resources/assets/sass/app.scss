@@ -243,6 +243,18 @@ section.section-content {
     background: #22252a;
   }
 
+  // the rendered tee sits on the same round frame; keep its own pixels crisp (no padding so the
+  // tee fills the disc) and never let the browser smooth the upscaled skin sprites
+  &__tee {
+    padding: 2px;
+    image-rendering: auto;
+  }
+
+  &__skin-fallback {
+    color: #6f7378;
+    font-style: italic;
+  }
+
   &__id {
     flex: 1 1 240px;
     min-width: 0;

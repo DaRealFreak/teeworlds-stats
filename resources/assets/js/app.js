@@ -26,3 +26,4 @@ import './charthelper';
 import './autocomplete';
 import './front';
 import './serverbrowser';
+import './tee';

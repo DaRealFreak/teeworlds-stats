@@ -3,11 +3,15 @@
 @php
     use App\TwStats\Utility\Countries;
     use App\Utility\ChartUtility;
+    use App\Utility\TeeSkin;
     use Carbon\Carbon;
 
     // resolved once: each call queries the clan history relation
     $clan = $player->clan();
     $flag = Countries::getFlagCode($player->country);
+
+    // the player's rendered tee, or null when no skin was ever observed (UDP-only sightings)
+    $tee = TeeSkin::describe($player->skin, $player->color_body, $player->color_feet, $player->skin_parts);
     $isOnline = $player->online();
     $currentSession = $player->currentSession();
     $lastSeen = Carbon::parse($player->last_seen);
@@ -52,7 +56,13 @@
 
             <!-- Identity / KPI header -->
             <div class="player-hero">
-                <img src="{{ asset('images/user.png') }}" alt="{{ $player->name }}" class="player-hero__avatar">
+                @if ($tee)
+                    <canvas class="player-hero__avatar player-hero__tee" width="72" height="72"
+                            data-tee='@json($tee)' role="img"
+                            aria-label="{{ $player->name }}'s tee"></canvas>
+                @else
+                    <img src="{{ asset('images/user.png') }}" alt="{{ $player->name }}" class="player-hero__avatar">
+                @endif
                 <div class="player-hero__id">
                     <div class="player-hero__name">
                         @if ($flag)
@@ -69,6 +79,9 @@
                             · tracked since {{ $player->created_at->format('M Y') }}
                         @endif
                         · {{ $humanize($player->totalHoursOnline()) }} played
+                        @if ($tee)
+                            · skin {{ $tee['name'] }}@if (!empty($tee['fallback']))<span class="player-hero__skin-fallback" title="The original skin isn't in the default client set, so the default tee is shown."> (default shown)</span>@endif
+                        @endif
                     </div>
                 </div>
                 <div>
