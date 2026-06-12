@@ -10,27 +10,38 @@ document.addEventListener('DOMContentLoaded', function () {
     }
 
     // ---- player-count popovers: each row's hidden .server-players carries the roster + tee canvases ----
+    // Manually controlled (not Bootstrap's 'hover focus'): the roster holds tee links the user opens in
+    // new tabs, and the built-in 'focus' trigger fired focusout on ctrl/middle-click and slammed the
+    // popover shut before the tab opened. A click toggles a roster open (pinning it); it closes only on an
+    // outside click or Esc, so modifier-clicking a link inside it leaves it open.
+    let openPopover = null;
+
+    function closeOpenPopover() {
+        if (openPopover) {
+            openPopover.hide();
+            openPopover = null;
+        }
+    }
+
     table.querySelectorAll('.server-player-count').forEach((trigger) => {
         const roster = trigger.parentElement.querySelector('.server-players');
         if (!roster) {
             return;
         }
-        // eslint-disable-next-line no-new
-        new Popover(trigger, {
+        const popover = new Popover(trigger, {
             html: true,
             // we own this markup (Blade-escaped); disable the sanitizer so the tee <canvas> elements
             // and their data-tee attrs are not stripped
             sanitize: false,
-            trigger: 'hover focus',
+            trigger: 'manual',
             container: 'body',
             customClass: 'server-roster-popover', // wider + multi-column (see app.scss)
             content: () => {
                 // clone the live DOM nodes rather than innerHTML — a serialized <canvas> loses its
                 // pixels. Drop the roster's d-none so the clone shows. Draw the tees onto the clone
                 // right here: canvas bitmaps survive being moved into the tip, and because tee.js
-                // caches the composed result this is instant on repeat hovers and never leaves a
-                // permanently-blank canvas (the bug when fast-hovering churned tips faster than the
-                // skin images loaded). Only the hovered server's sprites draw, never the page's rest.
+                // caches the composed result this is instant on repeat opens and never leaves a
+                // permanently-blank canvas. Only the opened server's sprites draw, never the page's rest.
                 const clone = roster.cloneNode(true);
                 clone.classList.remove('d-none');
                 // flow big rosters into columns so they don't scroll forever. A multicol box is
@@ -46,6 +57,39 @@ document.addEventListener('DOMContentLoaded', function () {
                 return clone;
             },
         });
+
+        // click toggles this roster; stopPropagation keeps the document handler below from
+        // immediately treating the same click as an "outside" click
+        trigger.addEventListener('click', (event) => {
+            event.preventDefault();
+            event.stopPropagation();
+            if (openPopover === popover) {
+                closeOpenPopover();
+                return;
+            }
+            closeOpenPopover();
+            popover.show();
+            openPopover = popover;
+        });
+    });
+
+    // close the open roster on an outside click; a click inside it (including a ctrl/middle-click on a
+    // tee link that opens a new tab) is left alone, so the roster stays pinned
+    document.addEventListener('click', (event) => {
+        if (!openPopover) {
+            return;
+        }
+        if (event.target.closest('.server-roster-popover')) {
+            return;
+        }
+        closeOpenPopover();
+    });
+
+    // Esc closes any open roster
+    document.addEventListener('keydown', (event) => {
+        if (event.key === 'Escape') {
+            closeOpenPopover();
+        }
     });
 
     // ---- click/Enter on an address copies ip:port for the in-game connect field ----
