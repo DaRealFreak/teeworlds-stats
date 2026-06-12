@@ -151,6 +151,41 @@ class Player extends Model
     }
 
     /**
+     * total minutes the player was observed idle across all sessions
+     */
+    public function totalAfkMinutes(): int
+    {
+        return (int) $this->sessions()->sum('afk_minutes');
+    }
+
+    /**
+     * total minutes spent on servers that reported idle status at all — the honest
+     * denominator for the AFK percentage
+     */
+    public function afkTrackedMinutes(): int
+    {
+        return (int) $this->sessions()->sum('afk_tracked_minutes');
+    }
+
+    /**
+     * idle share of the idle-tracked time (0 when no idle-tracking server was ever seen)
+     */
+    public function afkPercent(): int
+    {
+        $tracked = $this->afkTrackedMinutes();
+
+        return $tracked > 0 ? (int) round($this->totalAfkMinutes() / $tracked * 100) : 0;
+    }
+
+    /**
+     * whether any session was on an idle-tracking server — gates the AFK display
+     */
+    public function hasAfkData(): bool
+    {
+        return $this->afkTrackedMinutes() > 0;
+    }
+
+    /**
      * count of distinct values the player was recorded on, for the summary tiles
      */
     public function distinctServersCount(): int
