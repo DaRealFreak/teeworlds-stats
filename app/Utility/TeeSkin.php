@@ -30,7 +30,10 @@ final class TeeSkin
             }
         }
 
-        if ($skin !== null && $skin !== '') {
+        // null skin means we never observed cosmetics (UDP-only sighting) → nothing to render.
+        // An empty string is different: the DDNet feed reported this player with an empty skin name,
+        // which in Teeworlds resolves to the default skin — so it renders (handled in describeSix).
+        if ($skin !== null) {
             return self::describeSix($skin, $colorBody, $colorFeet);
         }
 
@@ -42,12 +45,15 @@ final class TeeSkin
      */
     private static function describeSix(string $skin, ?int $colorBody, ?int $colorFeet): array
     {
-        $known = in_array($skin, self::shippedNames(self::SIX_DIR), true);
-        $file = $known ? $skin : 'default';
+        // an empty skin name is the default skin (the client falls back to "default"), so it is the
+        // genuine skin — not an unknown-skin fallback
+        $effective = $skin === '' ? 'default' : $skin;
+        $known = in_array($effective, self::shippedNames(self::SIX_DIR), true);
+        $file = $known ? $effective : 'default';
 
         return [
             'mode' => '06',
-            'name' => $skin,
+            'name' => $effective,
             'url' => asset(self::SIX_DIR . '/' . rawurlencode($file) . '.png'),
             'fallback' => !$known,
             'colorBody' => $colorBody,

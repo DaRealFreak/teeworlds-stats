@@ -7,10 +7,24 @@ use Tests\TestCase;
 
 class TeeSkinTest extends TestCase
 {
-    public function test_returns_null_when_there_is_nothing_to_render(): void
+    public function test_returns_null_only_when_no_cosmetics_were_ever_observed(): void
     {
+        // null skin = UDP-only sighting, no cosmetics → nothing to render
         $this->assertNull(TeeSkin::describe(null, null, null, null));
-        $this->assertNull(TeeSkin::describe('', null, null, null));
+    }
+
+    public function test_an_empty_skin_name_renders_the_default_tee(): void
+    {
+        // the DDNet feed reports some players with an empty skin name; in Teeworlds that is the
+        // default skin, so it renders (with the player's colors) rather than showing nothing
+        $tee = TeeSkin::describe('', 5, 6, null);
+
+        $this->assertSame('06', $tee['mode']);
+        $this->assertSame('default', $tee['name']);
+        $this->assertStringContainsString('skins/06/default.png', $tee['url']);
+        $this->assertFalse($tee['fallback']); // it IS the default skin, not an unknown-skin fallback
+        $this->assertSame(5, $tee['colorBody']);
+        $this->assertSame(6, $tee['colorFeet']);
     }
 
     public function test_describes_a_known_06_skin(): void
