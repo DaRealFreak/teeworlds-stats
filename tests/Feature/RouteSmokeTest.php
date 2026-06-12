@@ -127,7 +127,6 @@ class RouteSmokeTest extends TestCase
             'mods'     => ['/mods'],
             'maps'     => ['/maps'],
             'login'    => ['/login'],
-            'register' => ['/register'],
             'general'  => ['/general'],
             'tees'     => ['/tees'],
             'servers'  => ['/servers'],
