@@ -19,8 +19,8 @@ const BODY_NEW_WEIGHT = 192;     // skins.cpp body grayscale renormalize target
 // standing tee: body centered at origin, feet at the idle keyframes. The gaze direction drives the
 // eye offset (RenderTee*): point it up-left so the eyes sit high toward the top-left like the
 // in-game default sprite, instead of centered.
-const FOOT = { back: { x: -7, y: 10 }, front: { x: 7, y: 10 } };
-const DIR = { x: -0.6, y: -0.8 };
+const FOOT = { back: { x: -10, y: 14 }, front: { x: 9, y: 12 } };
+const DIR = { x: -0.6, y: -0.5 };
 
 // --- color ----------------------------------------------------------------------------------------
 
