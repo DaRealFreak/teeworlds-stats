@@ -38,9 +38,20 @@ class SixConnlessTest extends TestCase
         $this->assertNull(SixConnless::parse('short'));
     }
 
-    public function test_parse_returns_null_when_the_extended_header_is_missing(): void
+    public function test_parses_a_plain_six_ff_response_header(): void
     {
-        // 14 bytes but not starting with "xe"
-        $this->assertNull(SixConnless::parse("\xff\xff\xff\xff\xff\xff\xff\xff\xff\xfflis2"));
+        // the live masters answer our extended request with the PLAIN connless header (6x 0xFF)
+        $datagram = "\xff\xff\xff\xff\xff\xff" . "\xff\xff\xff\xfflis2" . 'PAYLOAD';
+
+        $parsed = SixConnless::parse($datagram);
+
+        $this->assertSame('lis2', $parsed['command']);
+        $this->assertSame('PAYLOAD', $parsed['payload']);
+    }
+
+    public function test_parse_returns_null_for_a_non_connless_packet(): void
+    {
+        // 14 bytes but no \xff\xff\xff\xff command marker at offset 6
+        $this->assertNull(SixConnless::parse("xe\x00\x00\x00\x00ABCDlis2"));
     }
 }

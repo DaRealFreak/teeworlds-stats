@@ -46,9 +46,11 @@ final class SixConnless
         return self::HEADER_EXTENDED . str_pad(substr($token, 0, 2), self::EXTRA_SIZE, "\x00") . $payload;
     }
 
+    private const COMMAND_MARKER = "\xff\xff\xff\xff"; // SERVERBROWSE_* prefix, present in every browse packet
+
     /**
      * @return array{command: string, payload: string}|null the 4-char command and the bytes
-     *         after the 14-byte framing+command prefix, or null if this is not a 0.6 extended packet
+     *         after the 14-byte framing+command prefix, or null if this is not a 0.6 browse packet
      */
     public static function parse(string $datagram): ?array
     {
@@ -56,7 +58,10 @@ final class SixConnless
             return null;
         }
 
-        if (!str_starts_with($datagram, self::HEADER_EXTENDED)) {
+        // both connless headers — plain (6x 0xFF) and extended ("xe" + 4-byte token) — are 6 bytes,
+        // then the 8-byte command (\xff\xff\xff\xff + 4 chars) follows. The live masters answer our
+        // extended request with the PLAIN header, so match on the command marker, not the "xe" prefix.
+        if (substr($datagram, self::FRAMING_SIZE, 4) !== self::COMMAND_MARKER) {
             return null;
         }
 
