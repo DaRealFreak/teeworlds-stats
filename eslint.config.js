@@ -5,8 +5,17 @@ import globals from 'globals';
 
 export default tseslint.config(
     {
-        // generated/vendored trees ESLint should never walk
-        ignores: ['public/**', 'vendor/**', 'storage/**', 'bootstrap/cache/**'],
+        // generated/vendored trees and untracked reference checkouts ESLint should never walk
+        ignores: [
+            'public/**',
+            'vendor/**',
+            'storage/**',
+            'bootstrap/cache/**',
+            'ddnet/**',
+            'ddnet-web/**',
+            'ddnet-scripts/**',
+            'teeworlds/**',
+        ],
     },
     {
         // the front-end bundle: browser globals + TypeScript rules
@@ -22,6 +31,14 @@ export default tseslint.config(
         extends: [js.configs.recommended],
         languageOptions: {
             globals: { ...globals.node },
+        },
+    },
+    {
+        // vitest tests run in Node but exercise browser/Web APIs (DecompressionStream, etc.)
+        files: ['tests/js/**/*.ts'],
+        extends: [js.configs.recommended, ...tseslint.configs.recommended],
+        languageOptions: {
+            globals: { ...globals.node, ...globals.browser },
         },
     },
     // turn off rules that would fight Prettier (must stay last)
