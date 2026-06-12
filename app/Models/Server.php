@@ -30,6 +30,8 @@ use Khill\Duration\Duration;
  * @property string|null $flavor
  * @property string $ip
  * @property int $port
+ * @property int|null $max_clients
+ * @property int|null $max_players
  * @method static \Illuminate\Database\Eloquent\Builder|\App\Models\Server whereCreatedAt($value)
  * @method static \Illuminate\Database\Eloquent\Builder|\App\Models\Server whereId($value)
  * @method static \Illuminate\Database\Eloquent\Builder|\App\Models\Server whereIp($value)
@@ -44,6 +46,11 @@ class Server extends Model
     use HasFactory;
 
     protected $guarded = ['id', 'created_at', 'updated_at'];
+
+    protected $casts = [
+        'max_clients' => 'integer',
+        'max_players' => 'integer',
+    ];
 
     /**
      * check if the player was seen in the passed time span

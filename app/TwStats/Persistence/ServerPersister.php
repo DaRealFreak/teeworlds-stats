@@ -46,6 +46,8 @@ class ServerPersister
             $model->setAttribute('name', $server->name);
             $model->setAttribute('version', $server->version);
             $model->setAttribute('flavor', $server->flavor);
+            $model->setAttribute('max_clients', $server->maxClients);
+            $model->setAttribute('max_players', $server->maxPlayers);
             $model->setAttribute('ip', $canonical->ip);
             $model->setAttribute('port', $canonical->port);
             $model->setAttribute('last_seen', Carbon::now());

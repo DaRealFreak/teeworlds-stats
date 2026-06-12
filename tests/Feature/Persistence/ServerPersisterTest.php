@@ -100,4 +100,17 @@ class ServerPersisterTest extends TestCase
         $this->assertDatabaseCount('servers', 1);
         $this->assertSame([6, 7], $matched->fresh()->protocols());
     }
+
+    public function test_persists_max_clients_and_max_players(): void
+    {
+        $discovered = new DiscoveredServer(
+            [new DiscoveredAddress('192.0.2.20', 8303, 6)],
+            'CapServer', 'Multeasymap', 'DDraceNetwork', '0.6.4, 19.1', 128, 64, [], 'eu', 'ddnet'
+        );
+
+        $server = (new ServerPersister())->persist($discovered);
+
+        $this->assertSame(128, $server->fresh()->max_clients);
+        $this->assertSame(64, $server->fresh()->max_players);
+    }
 }
