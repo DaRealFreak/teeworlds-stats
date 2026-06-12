@@ -173,4 +173,79 @@ class LiveServerBrowserTest extends TestCase
         $response->assertSee('id="filter_type"', false);
         $response->assertSee('All types');
     }
+
+    public function test_browser_shows_the_online_server_count(): void
+    {
+        $this->seedBrowserFixture(); // two online, one stale
+
+        $response = $this->get('/serverbrowser');
+
+        $response->assertStatus(200);
+        $response->assertSee('id="online_server_count">(2)</span>', false);
+    }
+
+    public function test_browser_shows_player_count_over_max_clients(): void
+    {
+        $map = Map::create(['name' => 'ctf5']);
+        $mod = Mod::create(['name' => 'ctf']);
+        $server = Server::create([
+            'name' => 'Capacity Server', 'version' => '0.7.5', 'ip' => '10.0.5.1', 'port' => 8303,
+            'last_seen' => Carbon::now(), 'max_clients' => 64, 'max_players' => 64,
+        ]);
+        ServerHistory::create([
+            'server_id' => $server->id, 'map_id' => $map->id, 'mod_id' => $mod->id,
+            'weekday' => 1, 'hour' => 12, 'continuous' => 1, 'minutes' => 60,
+        ]);
+        $player = Player::create(['name' => 'CapTee', 'country' => 'DE']);
+        PlayerHistory::create([
+            'server_id' => $server->id, 'player_id' => $player->id, 'map_id' => $map->id, 'mod_id' => $mod->id,
+            'weekday' => 1, 'hour' => 12, 'continuous' => 1, 'minutes' => 60,
+        ]);
+
+        $response = $this->get('/serverbrowser');
+
+        $response->assertStatus(200);
+        $response->assertSee('Players on this server">1/64</span>', false); // current/max in the badge
+    }
+
+    public function test_browser_falls_back_to_a_bare_count_when_max_is_unknown(): void
+    {
+        $this->seedBrowserFixture(); // online servers have no max_clients (legacy rows)
+
+        $response = $this->get('/serverbrowser');
+
+        $response->assertStatus(200);
+        $response->assertSee('Players on this server">1</span>', false); // no "/" when max is unknown
+        $response->assertDontSee('Players on this server">1/', false); // positively confirm no ratio slash
+    }
+
+    public function test_browser_shows_a_copyable_ip_port(): void
+    {
+        $this->seedBrowserFixture();
+
+        $response = $this->get('/serverbrowser');
+
+        $response->assertStatus(200);
+        $response->assertSee('class="server-connect', false);
+        $response->assertSee('data-connect="10.0.0.1:8303"', false); // the online server's join address
+    }
+
+    public function test_browser_brackets_an_ipv6_connect_address(): void
+    {
+        $map = Map::create(['name' => 'ctf5']);
+        $mod = Mod::create(['name' => 'ctf']);
+        $server = Server::create([
+            'name' => 'v6 Server', 'version' => '0.7.5', 'ip' => '2001:db8::5', 'port' => 8303,
+            'last_seen' => \Carbon\Carbon::now(),
+        ]);
+        ServerHistory::create([
+            'server_id' => $server->id, 'map_id' => $map->id, 'mod_id' => $mod->id,
+            'weekday' => 1, 'hour' => 12, 'continuous' => 1, 'minutes' => 60,
+        ]);
+
+        $response = $this->get('/serverbrowser');
+
+        $response->assertStatus(200);
+        $response->assertSee('data-connect="[2001:db8::5]:8303"', false);
+    }
 }

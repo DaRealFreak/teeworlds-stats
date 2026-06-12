@@ -13,7 +13,10 @@
             <div class="row">
                 <div class="col-lg-12">
                     <div class="block">
-                        <div class="title"><strong>Servers online right now</strong></div>
+                        <div class="title">
+                            <strong>Servers online right now</strong>
+                            <span class="text-muted" id="online_server_count">({{ number_format($servers->count()) }})</span>
+                        </div>
 
                         {{-- client-side filter bar; serverbrowser.js reads these and shows/hides rows --}}
                         <div class="row g-2 mb-3" id="server_browser_filters">
@@ -55,6 +58,13 @@
 
                         <div class="table-responsive">
                             <table class="table table-striped table-hover" id="server_browser_table">
+                                <colgroup>
+                                    <col style="width: 30%;">
+                                    <col style="width: 15%;">
+                                    <col style="width: 20%;">
+                                    <col style="width: 20%;">
+                                    <col style="width: 15%;">
+                                </colgroup>
                                 <thead>
                                 <tr>
                                     <th>Server</th>
@@ -79,6 +89,15 @@
                                             'vanilla_06', 'vanilla_07' => 'Vanilla',
                                             default => null,
                                         };
+                                        $maxClients = $serverEntry->max_clients;
+                                        // legacy rows that pre-date the max_clients column never reported slot data, so
+                                        // there is no meaningful denominator to show for them — fall back to a bare count.
+                                        $ratio = $maxClients > 0 ? $playerCount . '/' . $maxClients : (string) $playerCount;
+                                        // IPv6 literals contain colons, so the host must be bracketed ([host]:port) for the
+                                        // game's connect field to parse host vs. port; IPv4 addresses are left untouched.
+                                        $connectAddress = str_contains($serverEntry->ip, ':')
+                                            ? '[' . $serverEntry->ip . ']:' . $serverEntry->port
+                                            : $serverEntry->ip . ':' . $serverEntry->port;
                                     @endphp
                                     <tr data-name="{{ mb_strtolower($serverEntry->name) }}"
                                         data-map="{{ $mapName }}"
@@ -87,7 +106,12 @@
                                         data-players="{{ $playerCount }}"
                                         data-player-names="{{ $playerNames }}">
                                         <td>
-                                            <a href="{{ url('server', [urlencode($serverEntry->id), urlencode($serverEntry->name)]) }}">{{ $serverEntry->name }}</a>
+                                            <a href="{{ url('server', [urlencode($serverEntry->id), urlencode($serverEntry->name)]) }}"
+                                               class="server-name d-block" title="{{ $serverEntry->name }}">{{ $serverEntry->name }}</a>
+                                            <span class="server-connect small text-muted" role="button" tabindex="0"
+                                                  data-connect="{{ $connectAddress }}"
+                                                  aria-label="Copy {{ $connectAddress }} to clipboard"
+                                                  title="Copy {{ $connectAddress }} to clipboard">{{ $connectAddress }} <i class="fa fa-clipboard" aria-hidden="true"></i></span>
                                         </td>
                                         <td>
                                             @if ($flavorLabel)
@@ -97,21 +121,21 @@
                                                 <span class="badge bg-dark">0.{{ $protocol }}</span>
                                             @endforeach
                                         </td>
-                                        <td>
+                                        <td class="cell-truncate">
                                             @if ($mapName)
-                                                <a href="{{ url('map', urlencode($mapName)) }}">{{ $mapName }}</a>
+                                                <a href="{{ url('map', urlencode($mapName)) }}" title="{{ $mapName }}">{{ $mapName }}</a>
                                             @endif
                                         </td>
-                                        <td>
+                                        <td class="cell-truncate">
                                             @if ($modName)
-                                                <a href="{{ url('mod', urlencode($modName)) }}">{{ $modName }}</a>
+                                                <a href="{{ url('mod', urlencode($modName)) }}" title="{{ $modName }}">{{ $modName }}</a>
                                             @endif
                                         </td>
                                         <td class="players-cell">
                                             @if ($playerCount)
                                                 <span class="badge bg-primary server-player-count"
                                                       tabindex="0" role="button"
-                                                      aria-label="Players on this server">{{ $playerCount }}</span>
+                                                      aria-label="Players on this server">{{ $ratio }}</span>
                                                 <div class="server-players d-none">
                                                     @foreach ($players as $player)
                                                         @php $clan = $player->clan(); @endphp
@@ -121,7 +145,7 @@
                                                     @endforeach
                                                 </div>
                                             @else
-                                                <span class="badge bg-secondary">0</span>
+                                                <span class="badge bg-secondary" aria-label="Players on this server">{{ $ratio }}</span>
                                             @endif
                                         </td>
                                     </tr>
