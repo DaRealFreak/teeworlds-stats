@@ -16,13 +16,13 @@ class Teeworlds06SourceTest extends TestCase
             $payload .= "\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\xff\xff" . inet_pton($ip) . chr($port >> 8) . chr($port & 0xff);
         }
 
-        // wrap as a 0.6 lis2 response: "xe" + extra + command + payload
-        return "xe\x00\x00\x00\x00\xff\xff\xff\xfflis2" . $payload;
+        // wrap as a 0.6 lis2 response with the PLAIN 6x0xFF connless header the live masters send
+        return "\xff\xff\xff\xff\xff\xff\xff\xff\xff\xfflis2" . $payload;
     }
 
     private function inf3(array $fields): string
     {
-        return "xe\x00\x00\x00\x00\xff\xff\xff\xffinf3" . implode("\x00", $fields) . "\x00";
+        return "\xff\xff\xff\xff\xff\xff\xff\xff\xff\xffinf3" . implode("\x00", $fields) . "\x00";
     }
 
     public function test_discovers_servers_from_the_master_list_then_queries_them(): void
@@ -72,11 +72,11 @@ class Teeworlds06SourceTest extends TestCase
         $transport->queue('203.0.113.1', 8300, $this->lis2([['198.51.100.9', 8303]]));
         $transport->queueGap();
 
-        $iext = "xe\x00\x00\x00\x00\xff\xff\xff\xffiext" . implode("\x00", [
+        $iext = "\xff\xff\xff\xff\xff\xff\xff\xff\xff\xffiext" . implode("\x00", [
             '1', '0.6.4', 'Huge', 'map', '0', '0', 'mod', '0', '2', '64', '2', '64', '',
             'p1', '', '0', '0', '1', '',
         ]) . "\x00";
-        $iexPlus = "xe\x00\x00\x00\x00\xff\xff\xff\xffiex+" . implode("\x00", [
+        $iexPlus = "\xff\xff\xff\xff\xff\xff\xff\xff\xff\xffiex+" . implode("\x00", [
             '1', '1', '',
             'p2', '', '0', '0', '1', '',
         ]) . "\x00";

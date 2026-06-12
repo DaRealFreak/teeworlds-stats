@@ -99,6 +99,8 @@ final class Teeworlds06Source
 
         foreach (array_chunk($addresses, self::INFO_CHUNK) as $chunk) {
             foreach ($chunk as $address) {
+                // the same byte serves as both the connless extra token and the gie3 info token; its
+                // value is irrelevant since we never validate it — replies are keyed by source address
                 $this->transport->send($address['ip'], $address['port'], SixConnless::getInfo(self::INFO_TOKEN, self::INFO_TOKEN));
             }
 

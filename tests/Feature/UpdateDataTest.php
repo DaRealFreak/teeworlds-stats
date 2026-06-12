@@ -47,8 +47,8 @@ class UpdateDataTest extends TestCase
         $transport = new FakeUdpTransport();
 
         $entry = "\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\xff\xff" . inet_pton($serverIp) . "\x20\x6f"; // :8303
-        $list = "xe\x00\x00\x00\x00\xff\xff\xff\xfflis2" . $entry;
-        $info = "xe\x00\x00\x00\x00\xff\xff\xff\xffinf3" . implode("\x00", [
+        $list = "\xff\xff\xff\xff\xff\xff\xff\xff\xff\xfflis2" . $entry;
+        $info = "\xff\xff\xff\xff\xff\xff\xff\xff\xff\xffinf3" . implode("\x00", [
             '1', '0.6.4', $serverName, 'dm1', 'dm', '0', '1', '16', '1', '16',
             $playerName, '', '0', '3', '1',
         ]) . "\x00";

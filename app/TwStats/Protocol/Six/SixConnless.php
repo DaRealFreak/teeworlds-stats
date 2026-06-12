@@ -33,7 +33,8 @@ final class SixConnless
     }
 
     /**
-     * GETINFO request. $infoToken is the 1 byte a server echoes in its inf3/iext token field.
+     * GETINFO request. $infoToken is the 1 byte appended after gie3; the server folds it into the
+     * echoed token field of its inf3/iext reply, which we drop (replies are matched by source address).
      */
     public static function getInfo(string $token, string $infoToken): string
     {
