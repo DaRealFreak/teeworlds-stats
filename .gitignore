@@ -26,6 +26,9 @@ _ide_helper.php
 # Rocketeer PHP task runner and deployment package. https://github.com/rocketeers/rocketeer
 .rocketeer/
 
+# Playwright MCP verification artifacts (screenshots, snapshots, console logs)
+/.playwright-mcp
+
 # generated files from assets
 /public/build
 /public/css
