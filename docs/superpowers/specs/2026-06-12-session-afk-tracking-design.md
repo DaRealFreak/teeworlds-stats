@@ -96,8 +96,12 @@ $this->sessionRecorder->record($playerModel, $serverModel, $mapModel, $modModel,
 - **New KPI tile "Active time"**, placed among the session-derived tiles:
   - value: `humanize($player->activeMinutes())`
   - hint (shown when `$player->totalSessions() > 0`): `{{ $player->afkPercent() }}% afk`
-  - A player with sessions but no feed observations simply shows `0% afk` — we do not
-    distinguish "0% idle" from "not measured" (kept simple by design decision).
+  - The tile always shows the %; we do not add per-player "not measured" logic. Instead a
+    single **general hint** (below) explains the partial coverage once.
+- **General coverage hint** — a muted note in the Recent sessions block, e.g.: *"Idle status
+  is only reported by some server types, and most players hop between mods day to day, so AFK
+  time covers only the activity we could measure."* Static explanatory copy, shown whenever
+  the sessions block renders (not conditional on the player's data).
 - **Per-session annotation** in the Recent sessions list `session-item__meta`: append
   `· {{ $humanize($session->afk_minutes) }} afk` with a muted Font Awesome `fa-bed` marker
   shown only when `$session->afk_minutes > 0`. No emoji — matches the page's icon style.
@@ -110,14 +114,15 @@ $this->sessionRecorder->record($playerModel, $serverModel, $mapModel, $modModel,
   defaulted param.)
 - **Player aggregates** (`tests/Feature`): `totalAfkMinutes` / `activeMinutes` / `afkPercent`
   over seeded sessions, including the empty (no sessions → 0%) case.
-- **Player page** (`tests/Feature`): the "Active time" tile and a per-session AFK annotation
-  render for a player with an AFK-bearing session.
+- **Player page** (`tests/Feature`): the "Active time" tile, a per-session AFK annotation,
+  and the general coverage hint render for a player with an AFK-bearing session.
 - Migration applies against the dev DB.
 
 ## Risks / edge cases
 
 - **Coverage:** AFK accrues only on feed-observed `afk = true` intervals; FNG/0.7-vanilla
-  -exclusive players show ~0% AFK. This is an inherent data limit, surfaced honestly as 0%.
+  -exclusive players show ~0% AFK. This is an inherent data limit, explained to the reader by
+  the general coverage hint rather than per-player "not measured" logic.
 - **`afk_minutes` never exceeds `minutes`:** each scrape adds `interval` to `minutes` and at
   most `interval` to `afk_minutes`, so `activeMinutes()` is always ≥ 0.
 - **Signature change is additive:** the new `?bool $afk = null` parameter is optional, so no
