@@ -566,3 +566,42 @@ section.section-content {
     box-shadow: 0 0 0 2px #DB6574;
   }
 }
+
+/* Fixed layout so columns keep their width when filtering hides/shows rows (the
+   colgroup sets the proportions); long map/gametype/name values ellipsize instead. */
+#server_browser_table {
+  table-layout: fixed;
+  width: 100%;
+
+  td.cell-truncate {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .server-name {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+}
+
+/* the joinable address under each server name; click/Enter copies ip:port */
+.server-connect {
+  display: inline-block;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  cursor: pointer;
+  font-family: var(--bs-font-monospace, monospace);
+
+  &:hover {
+    text-decoration: underline;
+  }
+
+  .fa {
+    margin-left: 0.25rem;
+    opacity: 0.7;
+  }
+}

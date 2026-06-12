@@ -23,6 +23,30 @@ document.addEventListener('DOMContentLoaded', function () {
         });
     });
 
+    // ---- click/Enter on an address copies ip:port for the in-game connect field ----
+    table.querySelectorAll('.server-connect').forEach((el) => {
+        const label = el.innerHTML;
+        const copy = () => {
+            // navigator.clipboard is undefined outside secure (HTTPS) contexts; skip rather than throw
+            if (!navigator.clipboard) {
+                return;
+            }
+            navigator.clipboard.writeText(el.dataset.connect || '').then(() => {
+                el.textContent = 'Copied!';
+                window.setTimeout(() => { el.innerHTML = label; }, 1200);
+            }).catch(() => {
+                el.innerHTML = label;
+            });
+        };
+        el.addEventListener('click', copy);
+        el.addEventListener('keydown', (event) => {
+            if (event.key === 'Enter' || event.key === ' ') {
+                event.preventDefault();
+                copy();
+            }
+        });
+    });
+
     // ---- client-side filtering ----
     const nameInput = document.getElementById('filter_name');
     const modSelect = document.getElementById('filter_mod');
