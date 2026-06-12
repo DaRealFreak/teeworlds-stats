@@ -2,7 +2,10 @@
 
 namespace App\Models;
 
+use App\Models\Concerns\HasPlayStatistics;
+use App\Utility\ChartUtility;
 use Carbon\Carbon;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 
 /**
@@ -22,6 +25,8 @@ use Illuminate\Database\Eloquent\Model;
  */
 class Map extends Model
 {
+    use HasPlayStatistics;
+
     protected $guarded = ['id', 'created_at', 'updated_at'];
 
     /**
@@ -84,5 +89,44 @@ class Map extends Model
         }
 
         return $playerHistoryEntries;
+    }
+
+    /**
+     * a PlayerHistory query scoped to this map
+     */
+    protected function playerHistoryQuery(): Builder
+    {
+        return PlayerHistory::where('map_id', $this->getAttribute('id'));
+    }
+
+    /**
+     * a ServerHistory query scoped to this map
+     */
+    protected function serverHistoryQuery(): Builder
+    {
+        return ServerHistory::where('map_id', $this->getAttribute('id'));
+    }
+
+    /**
+     * most-played mods on this map, as a [mod name => minutes] map for the cross chart
+     *
+     * @return array<string, int>
+     */
+    public function chartPlayedMods($amount = 10, $displayOthers = true): array
+    {
+        $playedMods = $this->playerHistoryQuery()
+            ->selectRaw('`' . (new PlayerHistory)->getTable() . '`.*, SUM(`minutes`) as `sum_minutes`')
+            ->groupBy('mod_id')
+            ->orderByDesc('sum_minutes')
+            ->get();
+
+        $results = [];
+        /** @var PlayerHistory $playedMod */
+        foreach ($playedMods as $playedMod) {
+            $results[$playedMod->mod->getAttribute('name')] = (int) $playedMod->getAttribute('sum_minutes');
+        }
+        ChartUtility::applyLimits($results, $amount, $displayOthers);
+
+        return $results;
     }
 }

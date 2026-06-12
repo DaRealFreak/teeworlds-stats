@@ -2,7 +2,10 @@
 
 namespace App\Models;
 
+use App\Models\Concerns\HasPlayStatistics;
+use App\Utility\ChartUtility;
 use Carbon\Carbon;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 
 /**
@@ -22,6 +25,8 @@ use Illuminate\Database\Eloquent\Model;
  */
 class Mod extends Model
 {
+    use HasPlayStatistics;
+
     protected $guarded = ['id', 'created_at', 'updated_at'];
 
     /**
@@ -87,5 +92,53 @@ class Mod extends Model
         }
 
         return $playerHistoryEntries;
+    }
+
+    /**
+     * a PlayerHistory query scoped to this mod, counting variant records (mod_original_id).
+     * The OR is wrapped so trait-added AND-wheres don't leak past it.
+     */
+    protected function playerHistoryQuery(): Builder
+    {
+        $id = $this->getAttribute('id');
+
+        return PlayerHistory::where(function (Builder $query) use ($id) {
+            $query->where('mod_id', $id)->orWhere('mod_original_id', $id);
+        });
+    }
+
+    /**
+     * a ServerHistory query scoped to this mod, counting variant records (mod_original_id).
+     */
+    protected function serverHistoryQuery(): Builder
+    {
+        $id = $this->getAttribute('id');
+
+        return ServerHistory::where(function (Builder $query) use ($id) {
+            $query->where('mod_id', $id)->orWhere('mod_original_id', $id);
+        });
+    }
+
+    /**
+     * most-played maps on this mod, as a [map name => minutes] map for the cross chart
+     *
+     * @return array<string, int>
+     */
+    public function chartPlayedMaps($amount = 10, $displayOthers = true): array
+    {
+        $playedMaps = $this->playerHistoryQuery()
+            ->selectRaw('`' . (new PlayerHistory)->getTable() . '`.*, SUM(`minutes`) as `sum_minutes`')
+            ->groupBy('map_id')
+            ->orderByDesc('sum_minutes')
+            ->get();
+
+        $results = [];
+        /** @var PlayerHistory $playedMap */
+        foreach ($playedMaps as $playedMap) {
+            $results[$playedMap->map->getAttribute('name')] = (int) $playedMap->getAttribute('sum_minutes');
+        }
+        ChartUtility::applyLimits($results, $amount, $displayOthers);
+
+        return $results;
     }
 }
