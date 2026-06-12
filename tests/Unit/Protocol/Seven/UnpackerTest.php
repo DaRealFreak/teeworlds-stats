@@ -27,4 +27,18 @@ class UnpackerTest extends TestCase
         $unpacker->getString(); // no NUL terminator left
         $this->assertTrue($unpacker->error());
     }
+
+    public function test_get_int_on_an_exhausted_buffer_sets_error_and_returns_zero(): void
+    {
+        $unpacker = new Unpacker('');
+        $this->assertSame(0, $unpacker->getInt());
+        $this->assertTrue($unpacker->error());
+    }
+
+    public function test_get_raw_past_the_end_sets_the_error_flag(): void
+    {
+        $unpacker = new Unpacker("\x01\x02");
+        $unpacker->getRaw(5); // only 2 bytes available
+        $this->assertTrue($unpacker->error());
+    }
 }

@@ -3,6 +3,7 @@
 namespace Tests\Unit\Protocol\Seven;
 
 use App\TwStats\Protocol\Seven\VariableInt;
+use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 
 class VariableIntTest extends TestCase
@@ -18,16 +19,18 @@ class VariableIntTest extends TestCase
             'minus_64'   => [-64, "\x7f"],
             'needs_ext'  => [64, "\x80\x01"],
             'big'        => [8191, "\xbf\x7f"],
+            'int_max'    => [2147483647, "\xbf\xff\xff\xff\x0f"],
+            'int_min'    => [-2147483648, "\xff\xff\xff\xff\x0f"],
         ];
     }
 
-    /** @dataProvider vectors */
+    #[DataProvider('vectors')]
     public function test_pack_matches_reference(int $value, string $bytes): void
     {
         $this->assertSame(bin2hex($bytes), bin2hex(VariableInt::pack($value)));
     }
 
-    /** @dataProvider vectors */
+    #[DataProvider('vectors')]
     public function test_unpack_round_trips(int $value, string $bytes): void
     {
         [$decoded, $offset] = VariableInt::unpack($bytes, 0);

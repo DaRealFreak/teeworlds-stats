@@ -50,6 +50,11 @@ final class VariableInt
                 break;
             }
             $offset++;
+            // truncated: the extend bit is set but no continuation byte remains. Bail; the
+            // resulting offset (past the buffer end) flags the over-read to the Unpacker caller.
+            if ($offset >= strlen($buffer)) {
+                break;
+            }
             $byte = ord($buffer[$offset]);
             $value |= ($byte & $masks[$i]) << $shifts[$i];
         }
