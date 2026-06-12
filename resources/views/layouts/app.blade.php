@@ -31,17 +31,6 @@
 <div id="app">
     <header class="header">
         <nav class="navbar navbar-expand-lg">
-            <div class="search-panel">
-                <div class="search-inner d-flex align-items-center justify-content-center">
-                    <div class="close-btn">Close <i class="fa fa-close"></i></div>
-                    <form id="searchForm" action="#">
-                        <div class="mb-3">
-                            <input name="search" placeholder="What are you searching for..." type="search">
-                            <button type="submit" class="submit">Search</button>
-                        </div>
-                    </form>
-                </div>
-            </div>
             <div class="container-fluid d-flex align-items-center justify-content-between">
                 <div class="navbar-header">
                     <!-- Navbar Header-->
@@ -56,6 +45,14 @@
                     <!-- Sidebar Toggle Btn-->
                     <button class="sidebar-toggle"><i class="fa fa-long-arrow-left"></i></button>
                 </div>
+                <form class="global-search" role="search" autocomplete="off"
+                      onsubmit="return false;">
+                    <i class="fa fa-search global-search__icon" aria-hidden="true"></i>
+                    <input type="search" id="global_search_input" class="global-search__input"
+                           placeholder="Search players, clans, servers…" aria-label="Global search"
+                           data-global-search="{{ url('search/global') }}">
+                    <ul class="global-search__menu" id="global_search_menu" hidden></ul>
+                </form>
                 <div class="right-menu list-inline no-margin-bottom">
                     @guest
                         <div class="list-inline-item">
