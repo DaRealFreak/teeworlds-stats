@@ -6,6 +6,8 @@
 @if ($tee)
     <canvas {{ $attributes->class(['player-tee']) }} width="{{ $size }}" height="{{ $size }}" data-tee='@json($tee)'></canvas>
 @else
-    {{-- never observed any cosmetics (UDP-only sighting) — keep the generic icon --}}
-    <img src="{{ asset('images/user.png') }}" alt="{{ $player->name }}" {{ $attributes->class(['img-fluid']) }}>
+    {{-- never observed any cosmetics (UDP-only sighting) — keep the generic icon, sized to
+         match the canvas branch so it doesn't balloon to the placeholder's native size where
+         no fixed-size .profile/.avatar frame constrains it (e.g. the mod/map detail toplists) --}}
+    <img src="{{ asset('images/user.png') }}" alt="{{ $player->name }}" width="{{ $size }}" height="{{ $size }}" {{ $attributes->class(['img-fluid']) }}>
 @endif
