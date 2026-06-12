@@ -15,6 +15,7 @@ final class SevenConnless
     private const PACKETVERSION = 1;
     private const CTRLMSG_TOKEN = 5;
     private const TOKEN_NONE = 0xFFFFFFFF;
+    private const TOKENREQUEST_DATASIZE = 512;
 
     private const CONNLESS_HEADER = 9;
     private const PACKET_HEADER = 7;
@@ -29,7 +30,12 @@ final class SevenConnless
             . "\x00"  // num chunks
             . self::packToken(self::TOKEN_NONE);
 
-        return $header . chr(self::CTRLMSG_TOKEN) . self::packToken($myToken);
+        // pad the token buffer to NET_TOKENREQUEST_DATASIZE so the request is at least as large
+        // as the response: the anti-amplification measure a 0.7 server requires before it hands
+        // out its token (network.cpp SendControlMsgWithToken with Extended=true)
+        $tokenBuffer = self::packToken($myToken) . str_repeat("\x00", self::TOKENREQUEST_DATASIZE - 4);
+
+        return $header . chr(self::CTRLMSG_TOKEN) . $tokenBuffer;
     }
 
     /**

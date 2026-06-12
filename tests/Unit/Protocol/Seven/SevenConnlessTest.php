@@ -7,12 +7,16 @@ use PHPUnit\Framework\TestCase;
 
 class SevenConnlessTest extends TestCase
 {
-    public function test_builds_a_token_request_with_the_none_token_and_client_token(): void
+    public function test_builds_a_padded_token_request(): void
     {
         $request = SevenConnless::tokenRequest(0x11223344);
 
-        // 7-byte control header + control byte + 4-byte client token
-        $this->assertSame('0400'.'00'.'ffffffff'.'05'.'11223344', bin2hex($request));
+        // 7-byte control header + NET_CTRLMSG_TOKEN + the 4-byte client token, then zero padding
+        $this->assertSame('0400'.'00'.'ffffffff'.'05'.'11223344', bin2hex(substr($request, 0, 12)));
+        // header(7) + control byte(1) + NET_TOKENREQUEST_DATASIZE(512)
+        $this->assertSame(7 + 1 + 512, strlen($request));
+        // everything after the 4 token bytes is zero padding (512 - 4 = 508 bytes)
+        $this->assertSame(str_repeat("\x00", 508), substr($request, 12));
     }
 
     public function test_parses_a_token_response_payload(): void
