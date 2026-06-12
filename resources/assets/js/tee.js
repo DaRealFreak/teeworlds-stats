@@ -259,6 +259,7 @@ async function render07(canvas, d) {
 // --- bootstrap ------------------------------------------------------------------------------------
 
 export function renderTee(canvas) {
+    if (canvas.dataset.teeRendered) return; // idempotent — re-renders are no-ops
     let d;
     try {
         d = JSON.parse(canvas.getAttribute('data-tee'));
@@ -266,12 +267,19 @@ export function renderTee(canvas) {
         return;
     }
     if (!d || !d.mode) return;
+    canvas.dataset.teeRendered = '1';
     const render = d.mode === '07' ? render07 : render06;
     render(canvas, d).catch(() => { /* a missing/blocked skin image just leaves the canvas blank */ });
 }
 
-export function renderAllTees(root = document) {
-    root.querySelectorAll('canvas[data-tee]').forEach(renderTee);
+// Render every tee in root. By default only visible canvases are drawn, so the page-load pass skips
+// the server browser's thousands of hidden roster tees (those are rendered on demand when a popover
+// opens — pass {onlyVisible:false} for that). offsetParent is null for display:none elements.
+export function renderAllTees(root = document, { onlyVisible = true } = {}) {
+    root.querySelectorAll('canvas[data-tee]').forEach((canvas) => {
+        if (onlyVisible && canvas.offsetParent === null) return;
+        renderTee(canvas);
+    });
 }
 
 if (typeof document !== 'undefined') {

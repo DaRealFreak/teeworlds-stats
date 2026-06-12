@@ -1,6 +1,7 @@
 // Server browser page: client-side filtering + a hover popover listing the players
 // currently on each server. Vanilla JS (no jQuery), runs only on the browser page.
 import { Popover } from 'bootstrap';
+import { renderAllTees } from './tee';
 
 document.addEventListener('DOMContentLoaded', function () {
     const table = document.getElementById('server_browser_table');
@@ -8,7 +9,7 @@ document.addEventListener('DOMContentLoaded', function () {
         return; // not the server browser page
     }
 
-    // ---- player-count popovers: pull HTML from each row's hidden .server-players ----
+    // ---- player-count popovers: each row's hidden .server-players carries the roster + tee canvases ----
     table.querySelectorAll('.server-player-count').forEach((trigger) => {
         const roster = trigger.parentElement.querySelector('.server-players');
         if (!roster) {
@@ -17,9 +18,27 @@ document.addEventListener('DOMContentLoaded', function () {
         // eslint-disable-next-line no-new
         new Popover(trigger, {
             html: true,
+            // we own this markup (Blade-escaped); disable the sanitizer so the tee <canvas> elements
+            // and their data-tee attrs are not stripped
+            sanitize: false,
             trigger: 'hover focus',
             container: 'body',
-            content: () => roster.innerHTML,
+            // clone the live DOM nodes rather than innerHTML: a serialized <canvas> loses its pixels,
+            // so we pass the elements and render them once the tip is in the DOM (below). Drop the
+            // roster's d-none (it's hidden on the page) so the clone shows inside the popover.
+            content: () => {
+                const clone = roster.cloneNode(true);
+                clone.classList.remove('d-none');
+                return clone;
+            },
+        });
+        // draw the cloned roster's tees lazily — only the hovered server's ≤max-clients sprites,
+        // never the thousands of hidden ones on the page
+        trigger.addEventListener('inserted.bs.popover', () => {
+            const tip = document.querySelector('.popover');
+            if (tip) {
+                renderAllTees(tip, { onlyVisible: false });
+            }
         });
     });
 

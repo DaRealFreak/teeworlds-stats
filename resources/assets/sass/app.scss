@@ -579,6 +579,21 @@ section.section-content {
   }
 }
 
+/* roster rows inside the player popover: a small tee sprite next to each name */
+.server-player {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 1px 0;
+  text-decoration: none;
+}
+
+.server-tee {
+  flex: 0 0 24px;
+  width: 24px;
+  height: 24px;
+}
+
 /* Fixed layout so columns keep their width when filtering hides/shows rows (the colgroup
    sets the proportions). The server name and map can be long unbroken tokens (e.g. a map
    hash), so they wrap rather than overflow; the gametype stays single-line with an ellipsis. */

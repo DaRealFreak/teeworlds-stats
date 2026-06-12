@@ -146,9 +146,18 @@
                                                       aria-label="Players on this server">{{ $ratio }}</span>
                                                 <div class="server-players d-none">
                                                     @foreach ($players as $player)
-                                                        @php $clan = $player->clan(); @endphp
-                                                        <a href="{{ url('tee', urlencode($player->name)) }}" class="d-block">
-                                                            {{ $player->name }}@if ($clan) <small class="text-muted">{{ $clan->name }}</small>@endif
+                                                        @php
+                                                            $clan = $player->clan();
+                                                            // small roster tee; rendered lazily into the popover clone (serverbrowser.js)
+                                                            $playerTee = \App\Utility\TeeSkin::describe($player->skin, $player->color_body, $player->color_feet, $player->skin_parts);
+                                                        @endphp
+                                                        <a href="{{ url('tee', urlencode($player->name)) }}" class="server-player">
+                                                            @if ($playerTee)
+                                                                <canvas class="server-tee" width="24" height="24" data-tee='@json($playerTee)'></canvas>
+                                                            @else
+                                                                <span class="server-tee server-tee--empty" aria-hidden="true"></span>
+                                                            @endif
+                                                            <span class="server-player__name">{{ $player->name }}@if ($clan) <small class="text-muted">{{ $clan->name }}</small>@endif</span>
                                                         </a>
                                                     @endforeach
                                                 </div>
