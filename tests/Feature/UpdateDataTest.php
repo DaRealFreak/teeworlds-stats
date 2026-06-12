@@ -4,6 +4,7 @@ namespace Tests\Feature;
 
 use App\Models\Player;
 use App\Models\Server;
+use App\TwStats\Discovery\Teeworlds06Source;
 use App\TwStats\Discovery\Teeworlds07Source;
 use App\TwStats\Protocol\Seven\SevenConnless;
 use App\TwStats\Protocol\Seven\VariableInt;
@@ -31,6 +32,33 @@ class UpdateDataTest extends TestCase
     {
         // no masters + empty transport → the 0.7 source contributes nothing (no live UDP in tests)
         $this->app->instance(Teeworlds07Source::class, new Teeworlds07Source(new FakeUdpTransport(), masters: []));
+    }
+
+    private function bindEmptySixSource(): void
+    {
+        // no masters + empty transport → the 0.6 source contributes nothing (no live UDP in tests)
+        $this->app->instance(Teeworlds06Source::class, new Teeworlds06Source(new FakeUdpTransport(), masters: []));
+    }
+
+    private function bindSixSourceWithServer(string $serverName, string $playerName): void
+    {
+        $masterIp = '10.9.0.2';
+        $serverIp = '198.51.100.6';
+        $transport = new FakeUdpTransport();
+
+        $entry = "\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\xff\xff" . inet_pton($serverIp) . "\x20\x6f"; // :8303
+        $list = "xe\x00\x00\x00\x00\xff\xff\xff\xfflis2" . $entry;
+        $info = "xe\x00\x00\x00\x00\xff\xff\xff\xffinf3" . implode("\x00", [
+            '1', '0.6.4', $serverName, 'dm1', 'dm', '0', '1', '16', '1', '16',
+            $playerName, '', '0', '3', '1',
+        ]) . "\x00";
+
+        $transport->queue($masterIp, 8300, $list);
+        $transport->queueGap();
+        $transport->queue($serverIp, 8303, $info);
+        $transport->queueGap();
+
+        $this->app->instance(Teeworlds06Source::class, new Teeworlds06Source($transport, masters: [['ip' => $masterIp, 'port' => 8300]]));
     }
 
     private function bindSevenSourceWithPlayer(string $serverName, string $playerName): void
@@ -62,6 +90,7 @@ class UpdateDataTest extends TestCase
     public function test_it_ingests_the_ddnet_master_into_logical_servers_and_addresses(): void
     {
         $this->bindEmptySevenSource();
+        $this->bindEmptySixSource();
         $this->fakeMaster();
 
         $this->artisan('data:update')->assertSuccessful();
@@ -79,6 +108,7 @@ class UpdateDataTest extends TestCase
     public function test_it_persists_players_with_their_cosmetic_snapshot(): void
     {
         $this->bindEmptySevenSource();
+        $this->bindEmptySixSource();
         $this->fakeMaster();
 
         $this->artisan('data:update')->assertSuccessful();
@@ -100,6 +130,7 @@ class UpdateDataTest extends TestCase
     public function test_it_records_server_and_player_histories_and_opens_sessions(): void
     {
         $this->bindEmptySevenSource();
+        $this->bindEmptySixSource();
         $this->fakeMaster();
 
         $this->artisan('data:update')->assertSuccessful();
@@ -114,6 +145,7 @@ class UpdateDataTest extends TestCase
     public function test_it_ingests_a_vanilla_07_server_from_the_seven_source(): void
     {
         Http::fake(['master1.ddnet.org/*' => Http::response('{"servers":[]}', 200)]);
+        $this->bindEmptySixSource();
         $this->bindSevenSourceWithPlayer('Vanilla 0.7 DM', 'Sevenplayer');
 
         $this->artisan('data:update')->assertSuccessful();
@@ -126,6 +158,7 @@ class UpdateDataTest extends TestCase
     public function test_a_seven_source_observation_does_not_wipe_a_ddnet_cosmetic_snapshot(): void
     {
         $this->fakeMaster(); // DDNet fixture: server "DDNet GER10" with player vin (skin glow_cammo)
+        $this->bindEmptySixSource();
         $this->bindSevenSourceWithPlayer('Vanilla 0.7 DM', 'vin');
 
         $this->artisan('data:update')->assertSuccessful();
@@ -133,5 +166,18 @@ class UpdateDataTest extends TestCase
         $vin = Player::where('name', 'vin')->first();
         $this->assertSame('glow_cammo', $vin->skin);
         $this->assertFalse($vin->afk);
+    }
+
+    public function test_it_ingests_a_vanilla_06_server_from_the_six_source(): void
+    {
+        Http::fake(['master1.ddnet.org/*' => Http::response('{"servers":[]}', 200)]);
+        $this->bindEmptySevenSource();
+        $this->bindSixSourceWithServer('Vanilla 0.6 DM', 'Sixplayer');
+
+        $this->artisan('data:update')->assertSuccessful();
+
+        $this->assertDatabaseHas('servers', ['name' => 'Vanilla 0.6 DM', 'flavor' => 'vanilla_06']);
+        $this->assertDatabaseHas('players', ['name' => 'Sixplayer']);
+        $this->assertDatabaseHas('server_addresses', ['ip' => '198.51.100.6', 'port' => 8303, 'protocol' => 6]);
     }
 }

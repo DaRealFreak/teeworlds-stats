@@ -15,6 +15,7 @@ use App\Service\SessionRecorder;
 use App\TwStats\Discovery\DdnetHttpSource;
 use App\TwStats\Model\DiscoveredServer;
 use App\TwStats\Discovery\ServerMerger;
+use App\TwStats\Discovery\Teeworlds06Source;
 use App\TwStats\Discovery\Teeworlds07Source;
 use App\TwStats\Persistence\ServerPersister;
 use App\TwStats\Utility\Countries;
@@ -41,6 +42,7 @@ class UpdateData extends Command
         private readonly SessionRecorder $sessionRecorder,
         private readonly DdnetHttpSource $ddnetHttpSource = new DdnetHttpSource(),
         private readonly Teeworlds07Source $teeworldsSevenSource = new Teeworlds07Source(),
+        private readonly Teeworlds06Source $teeworldsSixSource = new Teeworlds06Source(),
         private readonly ServerMerger $serverMerger = new ServerMerger(),
         private readonly ServerPersister $serverPersister = new ServerPersister(),
     ) {
@@ -53,9 +55,14 @@ class UpdateData extends Command
     public function handle()
     {
         // DDNet first: its servers.json carries real limits, players and cosmetics, so it wins the
-        // merge over a 0.7 UDP sighting of the same sixup server. The 0.7 source adds the stock
-        // Teeworlds servers that register only to teeworlds.com's master.
-        $discovered = array_merge($this->ddnetHttpSource->fetch(), $this->teeworldsSevenSource->fetch());
+        // merge over a UDP sighting of the same server. The 0.7 and native 0.6 sources then add the
+        // stock Teeworlds servers that register only to teeworlds.com's master — the 0.6 source is
+        // the fallback that keeps the 0.6 population reachable if DDNet's HTTP master ever goes down.
+        $discovered = array_merge(
+            $this->ddnetHttpSource->fetch(),
+            $this->teeworldsSevenSource->fetch(),
+            $this->teeworldsSixSource->fetch(),
+        );
         $servers = $this->serverMerger->merge($discovered);
 
         foreach ($servers as $server) {
