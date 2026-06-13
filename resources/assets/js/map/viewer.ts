@@ -17,6 +17,16 @@ interface LayerBatch {
     /** 'entities' means: skip unless entities mode on, then draw with entitiesTex. */
     isPhysics: boolean;
     vertices: Float32Array;
+    /**
+     * Set when this tile-layer batch has a color envelope; vertices are rebuilt
+     * each animation frame rather than kept from the static precompute.
+     */
+    animatedTileLayer?: TileLayer;
+    /**
+     * Set when at least one quad in this quad-layer batch references an envelope;
+     * vertices are rebuilt each animation frame.
+     */
+    animatedQuadLayer?: QuadLayer;
 }
 
 /** Compute the world→clip transform for a group given the current camera. */
@@ -56,9 +66,13 @@ export class MapViewer {
     private gameW = 0;
     private gameH = 0;
 
-    // rAF management
+    // rAF management — static (request-driven) path
     private rafId: number | null = null;
     private renderScheduled = false;
+
+    // Continuous animation loop — only active when the map has envelopes
+    private readonly hasAnimation: boolean;
+    private animRafId: number | null = null;
 
     // Pointer drag state
     private pointerDown = false;
@@ -80,6 +94,7 @@ export class MapViewer {
         batches: LayerBatch[],
         gameW: number,
         gameH: number,
+        hasAnimation: boolean,
     ) {
         this.canvas = canvas;
         this.renderer = renderer;
@@ -89,6 +104,7 @@ export class MapViewer {
         this.batches = batches;
         this.gameW = gameW;
         this.gameH = gameH;
+        this.hasAnimation = hasAnimation;
 
         // --- input handlers ---
         canvas.style.cursor = 'grab';
@@ -127,6 +143,12 @@ export class MapViewer {
         canvas.addEventListener('pointermove', this.onPointerMove);
         canvas.addEventListener('pointerup', this.onPointerUp);
         canvas.addEventListener('wheel', this.onWheel, { passive: false });
+
+        // Start the continuous animation loop only for maps that have envelopes.
+        // Static maps (no envelopes) stay entirely request-driven.
+        if (this.hasAnimation) {
+            this.startAnimLoop();
+        }
     }
 
     // -------------------------------------------------------------------------
@@ -151,6 +173,10 @@ export class MapViewer {
             cancelAnimationFrame(this.rafId);
             this.rafId = null;
         }
+        if (this.animRafId !== null) {
+            cancelAnimationFrame(this.animRafId);
+            this.animRafId = null;
+        }
         this.renderer.dispose();
         this.canvas.removeEventListener('pointerdown', this.onPointerDown);
         this.canvas.removeEventListener('pointermove', this.onPointerMove);
@@ -168,11 +194,73 @@ export class MapViewer {
         this.rafId = requestAnimationFrame(() => {
             this.renderScheduled = false;
             this.rafId = null;
-            this.render();
+            this.render(performance.now());
         });
     }
 
-    private render(): void {
+    /**
+     * Continuous animation loop — only started when `hasAnimation` is true.
+     * Runs every frame so envelope-animated layers update smoothly.
+     */
+    private startAnimLoop(): void {
+        const tick = (timeMs: number) => {
+            this.render(timeMs);
+            this.animRafId = requestAnimationFrame(tick);
+        };
+        this.animRafId = requestAnimationFrame(tick);
+    }
+
+    /**
+     * Rebuild the vertex buffer for one animated batch using the current time.
+     * Only called for batches that actually reference an envelope; static
+     * batches are never touched here.
+     */
+    private buildAnimatedBatch(batch: LayerBatch, timeMs: number): void {
+        if (batch.animatedTileLayer) {
+            const tl = batch.animatedTileLayer;
+            let colorMul: [number, number, number, number] = [1, 1, 1, 1];
+            if (tl.colorEnv >= 0 && tl.colorEnv < this.scene.envelopes.length) {
+                const env = this.scene.envelopes[tl.colorEnv]!;
+                const vals = evalEnvelope(env.channels, env.points, timeMs + tl.colorEnvOffset);
+                colorMul = [vals[0] ?? 1, vals[1] ?? 1, vals[2] ?? 1, vals[3] ?? 1];
+            }
+            batch.vertices = new Float32Array(buildTileLayerVertices(tl, colorMul));
+            return;
+        }
+
+        if (batch.animatedQuadLayer) {
+            const ql = batch.animatedQuadLayer;
+            const combined: number[] = [];
+            for (const quad of ql.quads) {
+                // Position envelope: 3 channels — x, y, rotation (rotation ignored).
+                let posOffset: [number, number] = [0, 0];
+                if (quad.posEnv >= 0 && quad.posEnv < this.scene.envelopes.length) {
+                    const env = this.scene.envelopes[quad.posEnv]!;
+                    const vals = evalEnvelope(env.channels, env.points, timeMs + quad.posEnvOffset);
+                    posOffset = [vals[0] ?? 0, vals[1] ?? 0];
+                }
+                // Color envelope: 4 channels — r, g, b, a multipliers.
+                let colorMul: [number, number, number, number] = [1, 1, 1, 1];
+                if (quad.colorEnv >= 0 && quad.colorEnv < this.scene.envelopes.length) {
+                    const env = this.scene.envelopes[quad.colorEnv]!;
+                    const vals = evalEnvelope(env.channels, env.points, timeMs + quad.colorEnvOffset);
+                    colorMul = [vals[0] ?? 1, vals[1] ?? 1, vals[2] ?? 1, vals[3] ?? 1];
+                }
+                const verts = buildQuadVertices(quad, posOffset, colorMul);
+                for (const v of verts) combined.push(v);
+            }
+            batch.vertices = new Float32Array(combined);
+        }
+    }
+
+    private render(timeMs: number): void {
+        // Rebuild vertex buffers for animated batches before drawing.
+        for (const batch of this.batches) {
+            if (batch.animatedTileLayer || batch.animatedQuadLayer) {
+                this.buildAnimatedBatch(batch, timeMs);
+            }
+        }
+
         this.renderer.clear();
 
         for (let gi = 0; gi < this.scene.groups.length; gi++) {
@@ -250,25 +338,25 @@ export class MapViewer {
             const img = scene.images[i]!;
             if (img.external) {
                 const idx = i;
+                const src = `${opts.mapresBase}/${img.name}.png`;
                 const htmlImg = new Image();
-                htmlImg.onerror = () => {};
+                htmlImg.onerror = () => console.warn('map viewer: failed to load texture', src);
                 htmlImg.onload = () => {
                     textures.set(idx, renderer.createTexture(htmlImg));
                     viewerRef[0]?.requestRender();
                 };
-                htmlImg.src = `${opts.mapresBase}/${img.name}.png`;
+                htmlImg.src = src;
             }
         }
 
         // --- entities texture (async) ---
-        let entitiesTex: WebGLTexture | null = null;
         const entImg = new Image();
-        entImg.onerror = () => {};
+        entImg.onerror = () => console.warn('map viewer: failed to load texture', opts.entitiesUrl);
         entImg.onload = () => {
-            entitiesTex = renderer.createTexture(entImg);
+            const tex = renderer.createTexture(entImg);
             const v = viewerRef[0];
             if (v) {
-                v.entitiesTex = entitiesTex;
+                v.entitiesTex = tex;
                 v.requestRender();
             }
         };
@@ -290,8 +378,9 @@ export class MapViewer {
         const camera = new Camera(canvas.width, canvas.height);
         camera.fitBounds(0, 0, gameW, gameH);
 
-        // --- precompute static geometry ---
+        // --- precompute static geometry; tag animated batches ---
         const batches: LayerBatch[] = [];
+        let hasAnimation = false;
 
         for (let gi = 0; gi < scene.groups.length; gi++) {
             const group = scene.groups[gi]!;
@@ -301,17 +390,16 @@ export class MapViewer {
 
                 if (layer.type === 'tilemap') {
                     const tl = layer as TileLayer;
-                    // Evaluate color envelope at t=0 if set.
+                    // A tile layer is animated when it references a valid color envelope.
+                    const isAnimated = tl.colorEnv >= 0 && tl.colorEnv < scene.envelopes.length;
+                    if (isAnimated) hasAnimation = true;
+
+                    // Evaluate at t=0 for the initial static frame.
                     let colorMul: [number, number, number, number] = [1, 1, 1, 1];
-                    if (tl.colorEnv >= 0 && tl.colorEnv < scene.envelopes.length) {
+                    if (isAnimated) {
                         const env = scene.envelopes[tl.colorEnv]!;
                         const vals = evalEnvelope(env.channels, env.points, tl.colorEnvOffset);
-                        colorMul = [
-                            vals[0] ?? 1,
-                            vals[1] ?? 1,
-                            vals[2] ?? 1,
-                            vals[3] ?? 1,
-                        ];
+                        colorMul = [vals[0] ?? 1, vals[1] ?? 1, vals[2] ?? 1, vals[3] ?? 1];
                     }
                     const verts = buildTileLayerVertices(tl, colorMul);
                     const texture = textures.get(tl.image) ?? null;
@@ -320,9 +408,19 @@ export class MapViewer {
                         texture,
                         isPhysics,
                         vertices: new Float32Array(verts),
+                        // Tag animated batches so render() knows to rebuild them each frame.
+                        animatedTileLayer: isAnimated ? tl : undefined,
                     });
                 } else if (layer.type === 'quads') {
                     const ql = layer as QuadLayer;
+                    // A quad layer is animated if any quad references a valid envelope.
+                    const isAnimated = ql.quads.some(
+                        (q) =>
+                            (q.posEnv >= 0 && q.posEnv < scene.envelopes.length) ||
+                            (q.colorEnv >= 0 && q.colorEnv < scene.envelopes.length),
+                    );
+                    if (isAnimated) hasAnimation = true;
+
                     const combined: number[] = [];
                     for (const quad of ql.quads) {
                         const verts = buildQuadVertices(quad, [0, 0], [1, 1, 1, 1]);
@@ -334,16 +432,25 @@ export class MapViewer {
                         texture,
                         isPhysics: false,
                         vertices: new Float32Array(combined),
+                        animatedQuadLayer: isAnimated ? ql : undefined,
                     });
                 }
             }
         }
 
         // --- construct viewer ---
-        const viewer = new MapViewer(canvas, renderer, camera, scene, textures, batches, gameW, gameH);
+        const viewer = new MapViewer(
+            canvas,
+            renderer,
+            camera,
+            scene,
+            textures,
+            batches,
+            gameW,
+            gameH,
+            hasAnimation,
+        );
         viewerRef[0] = viewer;
-        // Wire the entities texture that may have already loaded synchronously.
-        if (entitiesTex) viewer.entitiesTex = entitiesTex;
 
         viewer.requestRender();
         return viewer;
