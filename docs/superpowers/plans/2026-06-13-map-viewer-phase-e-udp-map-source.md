@@ -37,9 +37,12 @@ primitives, PHPUnit with **recorded byte fixtures** + `FakeUdpTransport` (no liv
 - **Chunk header (per message in a packet):** flags (VITAL, RESEND) + size + (if vital) a 10-bit
   sequence number. Vital messages must be ack'd; the receiver tracks `ack`, the sender resends on
   loss/timeout.
-- **Huffman (0.7 only):** a fixed frequency table → a canonical code; payloads of non-connless
-  0.7 packets are Huffman-compressed. The table + decode loop are in `compression.cpp` and the
-  libtw2 `huffman` doc. 0.6 has no Huffman.
+- **Huffman (BOTH 0.6 and 0.7):** the same fixed-table Huffman compresses the payload of *any*
+  connected packet (0.6 or 0.7) when the `COMPRESSION` flag (1<<5) is set — `network.cpp`
+  Send/UnpackPacket call the shared `ms_Huffman` for both. (Only *connless* packets are never
+  compressed.) Table + algorithm: `ddnet/src/engine/shared/huffman.cpp` (Task 1 ported it). The
+  0.7 header additionally carries a 4-byte token (header 7 bytes vs 0.6's 3) and remaps the flag
+  bits (`PacketFlags_SevenToSix`).
 - **Connect handshake:** 0.6 — optional security token (`TKEN`, DDNet-0.6) then
   `CTRLMSG_CONNECT → CTRLMSG_CONNECTACCEPT → (NETMSG_INFO) → CTRLMSG_ACCEPT`; 0.7 — obtain token
   via `CTRLMSG_TOKEN` (already implemented in `SevenConnless::tokenRequest`), then
