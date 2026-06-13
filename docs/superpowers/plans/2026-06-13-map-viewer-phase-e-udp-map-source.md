@@ -186,3 +186,33 @@ primitives, PHPUnit with **recorded byte fixtures** + `FakeUdpTransport` (no liv
 - **Biggest risks:** 0.6-vs-0.7 packet-header + Huffman differences (Task 2/1), and the reliable
   resend/timeout edge cases (Task 4). Keep 0.6 and 0.7 paths clearly separated; lean on the
   recorded fixtures to lock the wire format.
+
+---
+
+## Task 8 — live smoke RESULTS (recorded; this is where the next effort resumes)
+
+Tasks 1–7 are implemented, unit-tested (256 suite green), and reviewed (4+ real wire bugs
+caught & fixed: 0.7 chunk Split=6, `connect07` 513-byte payload, 0.6 security-token suffix on
+data packets, peer-`RESEND` re-queue). The connection codecs are exact-byte-verified (Huffman
+compat vector). The branch is `feature/map-viewer-phase-e`, **unmerged**.
+
+**Live smoke (real servers from the DDNet master, 2026-06-13):**
+- ✅ **`Monster_Rain`** (43.139.181.32:8310, vanilla 0.6.2, 5855 B ≈ 6 chunks): connected ONLINE,
+  downloaded the full file, `magic='DATA' version=4`, crc valid. **This proves the entire stack
+  end-to-end against a real server** — handshake, packet/chunk codec, Huffman, reliable layer,
+  MAP_CHANGE→REQUEST→MAP_DATA reassembly all work for a single-window map.
+- ❌ **`fng`** (35.204.119.214:8338, vanilla 0.6.3, 106 KB): connects ONLINE, MAP_CHANGE parses,
+  but **no MAP_DATA ever arrives** after `REQUEST_MAP_DATA(0)` — instrumented loop shows
+  `recv=0 want=0` indefinitely (NOT a windowing/timeout issue; the windowed fix in `824abb2`
+  did not change it).
+- ❌ **`Icicle`** (45.141.57.45:8306, DDNet 0.6): handshake times out (DDNet-0.6 token path).
+
+**Diagnosis / where to resume (next focused effort):** the `fng` case (MAP_DATA never delivered
+despite a clean handshake + MAP_CHANGE) needs **raw-datagram packet capture** to determine
+whether the server's MAP_DATA is arriving-but-dropped by our reliable layer (sequence/ack) vs
+never-sent. Prime suspects, in order: (1) `NETMSG_INFO` `GAME_NETVERSION` string mismatch causing
+the server to withhold map data (try the exact per-server version, or the legacy vanilla string);
+(2) a required intermediate step the server expects before sending map data; (3) a reliable-layer
+ack nuance specific to this server. The `Icicle`/DDNet-0.6 handshake is lower priority (DDNet maps
+are HTTP-downloadable via Phase A anyway). **Do not merge Phase E until at least the `fng`-class
+0.6 case downloads** — the core is proven, but multi-server robustness is unfinished.
