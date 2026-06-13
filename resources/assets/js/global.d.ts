@@ -13,6 +13,8 @@ declare global {
         ChartHelper: typeof import('./charthelper').ChartHelper;
         // identity passthrough so Blade {{ }} interpolation can sit inside valid JS: blade({{ $json }}).
         blade: <T>(value: T) => T;
+        // Interactive map viewer — instantiated by map detail pages via window.MapViewer.init().
+        MapViewer: typeof import('./map/viewer').MapViewer;
     }
 }
 

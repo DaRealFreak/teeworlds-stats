@@ -39,6 +39,12 @@ describe('parseMap (gravity.map)', () => {
         expect(tileLayers.some((l) => l.kind === 'tele')).toBe(true);
         expect(tileLayers.some((l) => l.kind === 'tune')).toBe(true);
     });
+    it('attaches decoded pixels to embedded images', () => {
+        const embedded = scene.images.find((i) => !i.external);
+        expect(embedded?.pixels).toBeDefined();
+        expect(embedded!.pixels!.width).toBe(1024);
+        expect(embedded!.pixels!.height).toBe(1024);
+    });
     it('parses quad layers (one has 13 quads with normalised texcoords)', () => {
         const quadLayers = scene.groups.flatMap((g) => g.layers).filter((l): l is QuadLayer => l.type === 'quads');
         expect(quadLayers).toHaveLength(3);

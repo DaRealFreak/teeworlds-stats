@@ -82,7 +82,17 @@ async function parseImage(df: DataFile, item: DataFileItem): Promise<MapImage> {
 
     const name = nameRef >= 0 ? decodeCString(await df.getData(nameRef)) : '';
 
-    return { width, height, external, name, data: dataRef };
+    // Import PixelData only for the type; avoid pulling in DOM types at runtime.
+    let pixels: import('./types').PixelData | undefined;
+    if (!external && dataRef >= 0) {
+        const bytes = await df.getData(dataRef);
+        // Defensive guard: the block must be exactly width*height*4 RGBA bytes.
+        if (bytes.length === width * height * 4) {
+            pixels = { width, height, data: new Uint8ClampedArray(bytes) };
+        }
+    }
+
+    return { width, height, external, name, data: dataRef, pixels };
 }
 
 // ---------------------------------------------------------------------------

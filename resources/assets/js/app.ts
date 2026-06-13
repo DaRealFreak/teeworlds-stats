@@ -44,3 +44,5 @@ import './globalsearch';
 import './front';
 import './serverbrowser';
 import './tee';
+import { MapViewer } from './map/viewer';
+window.MapViewer = MapViewer;

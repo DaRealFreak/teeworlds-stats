@@ -72,12 +72,24 @@ export interface Group {
     layers: Layer[];
 }
 
+/**
+ * Decoded RGBA pixel data for an embedded map image.
+ * Mirrors the ImageData interface so it can be passed directly to
+ * WebGL's texImage2D / GlRenderer.createTexture in the browser.
+ */
+export interface PixelData {
+    readonly width: number;
+    readonly height: number;
+    readonly data: Uint8ClampedArray;
+}
+
 export interface MapImage {
     width: number;
     height: number;
     external: boolean;
     name: string;
     data: number;
+    pixels?: PixelData;
 }
 
 export interface EnvPoint {
