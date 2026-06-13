@@ -97,12 +97,23 @@ final class MapDownloadSession
     // -----------------------------------------------------------------------
 
     /**
+     * Stall window: if no new chunk is accepted within this many milliseconds
+     * the download is considered hung and a MapDownloadFailed is thrown.  This
+     * lets large maps download as long as the server keeps sending progress,
+     * while still failing fast when the peer goes silent.
+     */
+    private const STALL_WINDOW_MS = 8000;
+
+    /**
      * Execute the in-game map download and return the raw map bytes.
      *
      * @param string|null $expectedSha256  Hex SHA-256 to verify against (optional).
      * @param int|null    $expectedCrc     CRC32 to verify against (optional, in addition
      *                                     to the server-announced CRC).
-     * @param int         $timeoutMs       Overall deadline in milliseconds.
+     * @param int         $timeoutMs       Overall hard-cap deadline in milliseconds.
+     *                                     A stall window (STALL_WINDOW_MS) also applies:
+     *                                     the download fails if no chunk is accepted for
+     *                                     that duration even before the overall cap.
      *
      * @return string  Raw map file bytes.
      * @throws MapDownloadFailed  On timeout, malformed messages, or integrity failure.
@@ -110,7 +121,7 @@ final class MapDownloadSession
     public function download(
         ?string $expectedSha256 = null,
         ?int $expectedCrc = null,
-        int $timeoutMs = 15000,
+        int $timeoutMs = 120000,
     ): string {
         $deadline = hrtime(true) / 1_000_000 + $timeoutMs;
 
@@ -261,19 +272,40 @@ final class MapDownloadSession
     /**
      * Request and collect MAP_DATA chunks until last==1 or size is reached.
      *
-     * @throws MapDownloadFailed on timeout or unexpected chunk order.
+     * The 0.6 protocol is WINDOWED: the server sends SvMapWindow (default 15)
+     * chunks per client request, then waits.  The client must send a fresh
+     * REQUEST_MAP_DATA(expectedChunk) after EVERY accepted chunk to keep the
+     * server's send window advancing (mirroring ddnet client.cpp:1822-1825).
+     *
+     * Out-of-order or duplicate MAP_DATA chunks (chunk != expectedChunk) are
+     * silently ignored — they are overlap from the previous window and must not
+     * be appended or counted.
+     *
+     * Timeout policy: a stall deadline (STALL_WINDOW_MS) is reset on each
+     * accepted chunk so large maps can progress without hitting the overall cap.
+     * The download fails when EITHER the overall deadline OR the stall deadline
+     * expires with no progress.
+     *
+     * @throws MapDownloadFailed on timeout/stall or unexpected chunk order.
      */
     private function receiveChunks(int $mapCrc, int $mapSize, float $deadline): string
     {
-        $payload      = '';
-        $chunkIndex   = 0;
+        $payload       = '';
+        $expectedChunk = 0;
+        $now           = hrtime(true) / 1_000_000;
+        $stallDeadline = $now + self::STALL_WINDOW_MS;
 
-        // Send the first request.
-        $this->sendRequestMapData($chunkIndex);
+        // Send the first request for chunk 0.
+        $this->sendRequestMapData($expectedChunk);
 
         while (true) {
-            $remaining = (int) ($deadline - hrtime(true) / 1_000_000);
+            $now       = hrtime(true) / 1_000_000;
+            $remaining = (int) min($deadline - $now, $stallDeadline - $now);
+
             if ($remaining <= 0) {
+                if ($stallDeadline - $now <= 0) {
+                    throw new MapDownloadFailed('Timeout during map data transfer (no progress)');
+                }
                 throw new MapDownloadFailed('Timeout during map data transfer');
             }
 
@@ -288,22 +320,27 @@ final class MapDownloadSession
 
                 ['last' => $last, 'crc' => $crc, 'chunk' => $idx, 'data' => $data] = $chunk;
 
-                // The server MUST echo the correct CRC and chunk index.
-                if ($crc !== $mapCrc || $idx !== $chunkIndex) {
-                    // Stale/duplicate chunk — ignore and keep waiting.
+                // Ignore chunks that don't match the expected sequence position.
+                // These are either duplicates or overlap from the server's previous
+                // send window (server.cpp:1751 sends SvMapWindow chunks ahead).
+                if ($idx !== $expectedChunk) {
                     continue;
                 }
 
                 $payload .= $data;
                 $received  = strlen($payload);
 
+                // Reset stall clock — we just made progress.
+                $stallDeadline = hrtime(true) / 1_000_000 + self::STALL_WINDOW_MS;
+
                 if ($last === 1 || $received >= $mapSize) {
                     return $payload;
                 }
 
-                // Request next chunk.
-                $chunkIndex++;
-                $this->sendRequestMapData($chunkIndex);
+                // Advance expected chunk and send a fresh request (per-chunk
+                // re-request is what drives the server's window forward in 0.6).
+                $expectedChunk++;
+                $this->sendRequestMapData($expectedChunk);
             }
         }
     }

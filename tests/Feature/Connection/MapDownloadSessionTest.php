@@ -11,8 +11,9 @@ use App\TwStats\Protocol\Seven\VariableInt;
 use PHPUnit\Framework\TestCase;
 
 /**
- * Tests for MapDownloadSession — driven entirely by a FakeConnection whose
- * receive() returns pre-scripted message byte-strings; no real UDP socket.
+ * Tests for MapDownloadSession — driven entirely by fake connections whose
+ * receive() returns pre-scripted (or request-driven) message byte-strings;
+ * no real UDP socket.
  *
  * Message framing (confirmed from ddnet/src/engine/shared/protocol.h):
  *   packed_int = VariableInt::pack((msgId << 1) | 1)   (system flag = bit 0)
@@ -212,7 +213,7 @@ class MapDownloadSessionTest extends TestCase
     }
 
     // -----------------------------------------------------------------------
-    // Test 4 — Truncated / timeout: last never arrives → MapDownloadFailed
+    // Test 4 — Truncated / stall: no progress → MapDownloadFailed
     // -----------------------------------------------------------------------
 
     public function testTruncatedDownloadThrows(): void
@@ -226,13 +227,13 @@ class MapDownloadSessionTest extends TestCase
         $conn->enqueue([$this->buildMapChange('dm1', $crc, $size)]);
         $conn->enqueue([$this->buildMapData(0, $crc, 0, substr($payload, 0, 10))]);
         // After consuming the scripted messages, receive() will return [] indefinitely
-        // (empty inbox), so the session must time out.
+        // (empty inbox), so the session must hit the overall deadline and throw.
 
         $session = new MapDownloadSession($conn);
 
         $this->expectException(MapDownloadFailed::class);
         $this->expectExceptionMessageMatches('/timeout/i');
-        $session->download(timeoutMs: 1); // 1 ms → immediate timeout
+        $session->download(timeoutMs: 1); // 1 ms → immediate overall deadline
     }
 
     // -----------------------------------------------------------------------
@@ -300,6 +301,109 @@ class MapDownloadSessionTest extends TestCase
     }
 
     // -----------------------------------------------------------------------
+    // Test 8 — 40-chunk windowed download (regression: maps > 15 chunks)
+    //
+    // The 0.6 server sends SvMapWindow (default 15) chunks per REQUEST_MAP_DATA
+    // and waits for the next request before sending more.  A 40-chunk map
+    // requires ≥ 3 windows.  This test uses WindowedFakeConnection which models
+    // the server-side window behaviour: on each REQUEST_MAP_DATA(n) it enqueues
+    // a window of up to SvMapWindow chunks starting at n.
+    //
+    // Under the OLD single-request behaviour the session would drain the first
+    // 15-chunk window and then stall (the inbox would be empty because no fresh
+    // REQUEST_MAP_DATA was sent to trigger the next window).  The test would
+    // time out — which is exactly the live symptom on 106 KB maps.
+    // -----------------------------------------------------------------------
+
+    public function testFortyChunkWindowedDownload(): void
+    {
+        $chunkSize  = 1024;           // 1 KB per chunk
+        $numChunks  = 40;
+        $totalSize  = $chunkSize * $numChunks;
+        $payload    = $this->makePayload($totalSize);
+        $crc        = crc32($payload);
+
+        // Build chunk data array: 40 × 1 KB slices.
+        $chunks = [];
+        for ($i = 0; $i < $numChunks; $i++) {
+            $chunks[$i] = substr($payload, $i * $chunkSize, $chunkSize);
+        }
+
+        $mapChange = $this->buildMapChange('bigmap', $crc, $totalSize);
+
+        // WindowedFakeConnection drives the server side: REQUEST_MAP_DATA(n)
+        // → enqueue up to SvMapWindow MAP_DATA chunks starting at n.
+        $conn = new WindowedFakeConnection(
+            mapChange: $mapChange,
+            chunks: $chunks,
+            crc: $crc,
+            windowSize: 15,
+            buildMapData: fn (int $last, int $crc2, int $idx, string $data) => $this->buildMapData($last, $crc2, $idx, $data),
+        );
+
+        $session = new MapDownloadSession($conn);
+        $result  = $session->download(timeoutMs: 5000);
+
+        self::assertSame($payload, $result, '40-chunk windowed download must reassemble to the original payload');
+        self::assertTrue($conn->disconnected, 'disconnect() must be called after success');
+
+        // The session must have sent REQUEST_MAP_DATA for every chunk (0..39).
+        // INFO is sent[0]; REQUEST_MAP_DATA(0) is sent[1]; REQUEST_MAP_DATA(n) follows each accepted chunk.
+        $sent = $conn->sent;
+        // sent[0] = INFO, sent[1..40] = REQUEST_MAP_DATA(0..39)
+        self::assertCount(41, $sent, 'Must send INFO + 40 REQUEST_MAP_DATA messages (one per accepted chunk)');
+        $this->assertSentMsgId($sent[0], 1, 'sent[0] must be NETMSG_INFO');
+        for ($i = 0; $i < $numChunks; $i++) {
+            $this->assertSentMsgId($sent[$i + 1], 19, "sent[{$i}+1] must be REQUEST_MAP_DATA");
+        }
+    }
+
+    // -----------------------------------------------------------------------
+    // Test 9 — Out-of-order / duplicate MAP_DATA chunks are ignored
+    //
+    // The server's send window means the client may receive chunk n+1 before
+    // it has requested it (overlap from the previous window).  The session must
+    // ignore any chunk whose index != expectedChunk and must not append it to
+    // the payload.  The correct chunk arriving afterwards must be accepted and
+    // the payload must reassemble correctly.
+    // -----------------------------------------------------------------------
+
+    public function testOutOfOrderChunksAreIgnored(): void
+    {
+        // 3-chunk map: chunks 0, 1, 2 (each 8 bytes).
+        $chunkSize = 8;
+        $payload   = $this->makePayload($chunkSize * 3);
+        $crc       = crc32($payload);
+        $c0        = substr($payload, 0, $chunkSize);
+        $c1        = substr($payload, $chunkSize, $chunkSize);
+        $c2        = substr($payload, $chunkSize * 2);
+
+        $conn = new FakeConnection();
+        $conn->enqueue([$this->buildMapChange('dm1', $crc, strlen($payload))]);
+        // Session requests chunk 0 → server sends chunk 0 (correct) but also
+        // erroneously sends chunk 2 (ahead of the window — must be ignored).
+        $conn->enqueue([
+            $this->buildMapData(0, $crc, 0, $c0),   // accepted: expectedChunk=0 → advance to 1
+            $this->buildMapData(0, $crc, 2, $c2),   // ignored:  chunk 2 != expectedChunk 1
+        ]);
+        // Session re-requests chunk 1 → server sends chunk 1 (correct) and
+        // then sends chunk 1 again as a duplicate (must also be ignored).
+        $conn->enqueue([
+            $this->buildMapData(0, $crc, 1, $c1),   // accepted: expectedChunk=1 → advance to 2
+            $this->buildMapData(0, $crc, 1, $c1),   // ignored:  duplicate of chunk 1
+        ]);
+        // Session re-requests chunk 2 → server sends it correctly.
+        $conn->enqueue([
+            $this->buildMapData(1, $crc, 2, $c2),   // accepted: last=1 → done
+        ]);
+
+        $session = new MapDownloadSession($conn);
+        $result  = $session->download(timeoutMs: 5000);
+
+        self::assertSame($payload, $result, 'Out-of-order chunks must not corrupt the payload');
+    }
+
+    // -----------------------------------------------------------------------
     // Helper: assert the msgId packed in the first VariableInt of a sent message
     // -----------------------------------------------------------------------
 
@@ -359,6 +463,120 @@ final class FakeConnection implements ConnectionInterface
      */
     public function receive(int $timeoutMs): array
     {
+        if ($this->inbox === []) {
+            return [];
+        }
+
+        return array_shift($this->inbox);
+    }
+
+    public function disconnect(): void
+    {
+        $this->disconnected = true;
+    }
+
+    public function isOnline(): bool
+    {
+        return !$this->disconnected;
+    }
+}
+
+// -----------------------------------------------------------------------
+// WindowedFakeConnection — models the 0.6 server-side map window behaviour
+// -----------------------------------------------------------------------
+
+/**
+ * Models the 0.6 server windowed MAP_DATA delivery.
+ *
+ * When the session sends REQUEST_MAP_DATA(n), this fake enqueues a window of
+ * up to $windowSize MAP_DATA chunks starting at chunk n.  The first call to
+ * receive() after sendVital() drains that window.  A second call when the
+ * window is empty (but more chunks remain) returns [] — forcing the session
+ * to send a fresh REQUEST_MAP_DATA before it can make progress.
+ *
+ * This directly exercises the stall bug: a session that sends only one initial
+ * request would never advance past the first window and would time out.
+ */
+final class WindowedFakeConnection implements ConnectionInterface
+{
+    /** @var string[] Raw vital payloads sent by the session. */
+    public array $sent = [];
+
+    public bool $disconnected = false;
+
+    /** @var string[][] Queued receive batches, populated by sendVital(). */
+    private array $inbox = [];
+
+    /**
+     * Whether the MAP_CHANGE has been returned yet (first receive() call).
+     * The connection delivers MAP_CHANGE immediately on the first receive()
+     * before any REQUEST_MAP_DATA is sent.
+     */
+    private bool $mapChangeSent = false;
+
+    /** @param string[] $chunks Pre-split chunk byte-strings (index = chunk number). */
+    public function __construct(
+        private readonly string $mapChange,
+        private readonly array $chunks,
+        private readonly int $crc,
+        private readonly int $windowSize,
+        /** @var callable(int,int,int,string):string */
+        private readonly mixed $buildMapData,
+    ) {
+    }
+
+    public function sendVital(string $message): void
+    {
+        $this->sent[] = $message;
+
+        // Detect REQUEST_MAP_DATA (msgId=19, packed = (19<<1)|1 = 39).
+        // VariableInt::pack(39) = chr(39) for values < 64.
+        if (strlen($message) < 1) {
+            return;
+        }
+
+        [$typeInt] = VariableInt::unpack($message, 0);
+        $msgId = $typeInt >> 1;
+
+        if ($msgId !== 19) {
+            return;
+        }
+
+        // Extract the requested chunk index from the VariableInt after the header.
+        $headerLen  = strlen(VariableInt::pack($typeInt));
+        [$startChunk] = VariableInt::unpack($message, $headerLen);
+
+        $total     = count($this->chunks);
+        $window    = [];
+        $end       = min($startChunk + $this->windowSize, $total);
+
+        for ($i = $startChunk; $i < $end; $i++) {
+            $isLast   = ($i === $total - 1) ? 1 : 0;
+            $window[] = ($this->buildMapData)($isLast, $this->crc, $i, $this->chunks[$i]);
+        }
+
+        if ($window !== []) {
+            $this->inbox[] = $window;
+        }
+    }
+
+    public function flush(): void
+    {
+        // No-op.
+    }
+
+    /** @return string[] */
+    public function receive(int $timeoutMs): array
+    {
+        // Deliver MAP_CHANGE on the very first receive() call (before any
+        // REQUEST_MAP_DATA is sent — mirrors real server ordering where the
+        // server sends MAP_CHANGE unsolicited after INFO).
+        if (!$this->mapChangeSent) {
+            $this->mapChangeSent = true;
+
+            return [$this->mapChange];
+        }
+
         if ($this->inbox === []) {
             return [];
         }
