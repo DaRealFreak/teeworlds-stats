@@ -54,7 +54,7 @@ use App\TwStats\Net\UdpTransport;
  *   (token not yet known; C++ uses NET_SECURITY_TOKEN_UNKNOWN = -1).
  *   ** FLAGGED FOR LIVE SMOKE (Task 8): ** confirm with a real 0.6 DDNet server.
  */
-final class GameConnection
+final class GameConnection implements ConnectionInterface
 {
     // -----------------------------------------------------------------------
     // Connection states

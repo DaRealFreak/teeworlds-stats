@@ -1,0 +1,436 @@
+<?php
+
+declare(strict_types=1);
+
+namespace App\TwStats\Connection;
+
+use App\TwStats\Protocol\Seven\Unpacker;
+use App\TwStats\Protocol\Seven\VariableInt;
+
+/**
+ * Drives a Teeworlds 0.6 in-game map download over an established connection.
+ *
+ * Protocol flow (mirroring ddnet/src/engine/client/client.cpp):
+ *
+ *  1. Client → NETMSG_INFO  (version string + password)
+ *  2. Server → NETMSG_MAP_CHANGE  (name, [sha256,] crc, size)
+ *  3. Client → NETMSG_REQUEST_MAP_DATA(0)
+ *  4. Server → NETMSG_MAP_DATA (last, crc, chunk, size, data…)
+ *     … repeat 3–4 until last == 1 or total bytes == announced size
+ *
+ * Message framing: every NETMSG payload begins with a VariableInt whose value
+ * encodes both the message ID and the system flag:
+ *
+ *   packed_int = (msgId << 1) | system_flag   (system_flag = 1 for system msgs)
+ *
+ * Confirmed NETMSG numbers from ddnet/src/engine/shared/protocol.h:
+ *   NETMSG_EX              = 0
+ *   NETMSG_INFO            = 1  (client → server)
+ *   NETMSG_MAP_CHANGE      = 2  (server → client)
+ *   NETMSG_MAP_DATA        = 3  (server → client)
+ *   NETMSG_CON_READY       = 4  (server → client)
+ *   NETMSG_REQUEST_MAP_DATA = 19 (client → server)
+ *
+ * NETMSG_MAP_CHANGE fields (0.6 vanilla, client.cpp ~1680):
+ *   string mapName, int crc, int size
+ *   (extended variant with sha256 is detected via MapDetails on the DDNet
+ *   client side; in our scraper context the server sends the vanilla form,
+ *   but we accept a 32-byte sha256 raw field between mapName and crc when
+ *   the remaining bytes are long enough — matching the DDNet server_data path)
+ *
+ * NETMSG_MAP_DATA fields (client.cpp ~1783–1786):
+ *   int last, int crc, int chunk, int size, raw data[size]
+ *
+ * NETMSG_INFO fields (client.cpp ~255–258):
+ *   string version ("0.6 626fce9a778df4d4"), string password ("")
+ *
+ * CRC: Teeworlds servers use standard CRC32. PHP's crc32() returns a signed
+ * 32-bit integer; the server packs an int (also signed). Comparison is done
+ * after normalising both sides to signed 32-bit.
+ *
+ * ** FLAGGED FOR LIVE SMOKE **
+ *   - Extended MAP_CHANGE sha256 field detection: we sniff remaining() after
+ *     name to decide vanilla vs extended. Verify with a real DDNet server.
+ *   - 0.7 (sixup) servers stream MAP_DATA without waiting for per-chunk
+ *     requests. This class implements the 0.6 request-per-chunk loop; a 0.7
+ *     session would need a different flow.
+ */
+final class MapDownloadSession
+{
+    // -----------------------------------------------------------------------
+    // Protocol constants confirmed from protocol.h
+    // -----------------------------------------------------------------------
+
+    /** NETMSG_INFO = 1 */
+    private const NETMSG_INFO = 1;
+
+    /** NETMSG_MAP_CHANGE = 2 */
+    private const NETMSG_MAP_CHANGE = 2;
+
+    /** NETMSG_MAP_DATA = 3 */
+    private const NETMSG_MAP_DATA = 3;
+
+    /** NETMSG_REQUEST_MAP_DATA = 19 */
+    private const NETMSG_REQUEST_MAP_DATA = 19;
+
+    /**
+     * 0.6 GAME_NETVERSION from ddnet/src/game/version.h.
+     * Confirmed: "0.6 626fce9a778df4d4" (not the string in the task spec).
+     */
+    private const GAME_NETVERSION = '0.6 626fce9a778df4d4';
+
+    /**
+     * SHA-256 raw bytes length (32 bytes) used in the extended MAP_CHANGE.
+     */
+    private const SHA256_BYTES = 32;
+
+    // -----------------------------------------------------------------------
+    // Constructor
+    // -----------------------------------------------------------------------
+
+    public function __construct(private readonly ConnectionInterface $conn)
+    {
+    }
+
+    // -----------------------------------------------------------------------
+    // Public API
+    // -----------------------------------------------------------------------
+
+    /**
+     * Execute the in-game map download and return the raw map bytes.
+     *
+     * @param string|null $expectedSha256  Hex SHA-256 to verify against (optional).
+     * @param int|null    $expectedCrc     CRC32 to verify against (optional, in addition
+     *                                     to the server-announced CRC).
+     * @param int         $timeoutMs       Overall deadline in milliseconds.
+     *
+     * @return string  Raw map file bytes.
+     * @throws MapDownloadFailed  On timeout, malformed messages, or integrity failure.
+     */
+    public function download(
+        ?string $expectedSha256 = null,
+        ?int $expectedCrc = null,
+        int $timeoutMs = 15000,
+    ): string {
+        $deadline = hrtime(true) / 1_000_000 + $timeoutMs;
+
+        // Step 1 — Send NETMSG_INFO.
+        $this->conn->sendVital($this->buildInfo());
+        $this->conn->flush();
+
+        // Step 2 — Wait for NETMSG_MAP_CHANGE.
+        [$mapName, $mapCrc, $mapSize, $mapSha256] = $this->waitForMapChange($deadline);
+
+        // Step 3–4 — Request chunks and collect MAP_DATA until done.
+        $payload = $this->receiveChunks($mapCrc, $mapSize, $deadline);
+
+        // Step 5 — Integrity checks.
+        $this->verifyIntegrity($payload, $mapSize, $mapCrc, $mapSha256, $expectedSha256, $expectedCrc);
+
+        $this->conn->disconnect();
+
+        return $payload;
+    }
+
+    // -----------------------------------------------------------------------
+    // Build outgoing messages
+    // -----------------------------------------------------------------------
+
+    /**
+     * Build a NETMSG_INFO payload: (NETMSG_INFO<<1)|1, version\0, password\0.
+     */
+    private function buildInfo(): string
+    {
+        $header  = VariableInt::pack((self::NETMSG_INFO << 1) | 1);
+        $version = self::GAME_NETVERSION . "\x00";
+        $password = "\x00"; // empty string NUL-terminated
+
+        return $header . $version . $password;
+    }
+
+    /**
+     * Build a NETMSG_REQUEST_MAP_DATA payload: (19<<1)|1, chunkIndex.
+     */
+    private function buildRequestMapData(int $chunk): string
+    {
+        $header = VariableInt::pack((self::NETMSG_REQUEST_MAP_DATA << 1) | 1);
+        $chunkV = VariableInt::pack($chunk);
+
+        return $header . $chunkV;
+    }
+
+    // -----------------------------------------------------------------------
+    // Receive MAP_CHANGE
+    // -----------------------------------------------------------------------
+
+    /**
+     * Poll receive() until a NETMSG_MAP_CHANGE arrives.
+     *
+     * @return array{string, int, int, string|null}  [name, crc, size, sha256hex|null]
+     * @throws MapDownloadFailed on timeout or malformed message.
+     */
+    private function waitForMapChange(float $deadline): array
+    {
+        while (true) {
+            $remaining = (int) ($deadline - hrtime(true) / 1_000_000);
+            if ($remaining <= 0) {
+                throw new MapDownloadFailed('Timeout waiting for NETMSG_MAP_CHANGE');
+            }
+
+            $messages = $this->conn->receive((int) min($remaining, 200));
+
+            foreach ($messages as $msg) {
+                $parsed = $this->parseMapChange($msg);
+                if ($parsed !== null) {
+                    return $parsed;
+                }
+                // Other messages (e.g. CON_READY arriving before MAP_CHANGE is
+                // unlikely, but any non-MAP_CHANGE message is silently skipped).
+            }
+        }
+    }
+
+    /**
+     * Try to parse msg as NETMSG_MAP_CHANGE.
+     * Returns null if the message is not MAP_CHANGE or is malformed.
+     *
+     * Field order (vanilla 0.6):
+     *   packed_int (msgId/system), string name, int crc, int size
+     *
+     * Extended (DDNet MAP_CHANGE):
+     *   packed_int, string name, raw sha256[32], int crc, int size
+     *
+     * Detection heuristic: after reading the name we check remaining bytes.
+     * A vanilla MAP_CHANGE has exactly two ints left; an extended one has
+     * 32 raw sha256 bytes + two ints. We use remaining() > (estimated vanilla
+     * size) as the signal. In practice we try to read the sha256 when there
+     * are at least 32 + 2 bytes remaining after the name.
+     *
+     * @return array{string, int, int, string|null}|null
+     */
+    private function parseMapChange(string $msg): ?array
+    {
+        $u = new Unpacker($msg);
+
+        $typeInt = $u->getInt();
+        if ($u->error()) {
+            return null;
+        }
+
+        $msgId  = $typeInt >> 1;
+        $system = $typeInt & 1;
+
+        if ($msgId !== self::NETMSG_MAP_CHANGE || $system !== 1) {
+            return null;
+        }
+
+        $name = $u->getString();
+        if ($u->error()) {
+            return null;
+        }
+
+        // Detect extended MAP_CHANGE: if there are at least 32+2 bytes remaining
+        // (sha256 + two minimal VariableInts) we try to read a sha256.
+        // The minimum remaining for vanilla is 2 bytes (two single-byte VarInts).
+        $sha256Hex = null;
+        if ($u->remaining() >= self::SHA256_BYTES + 2) {
+            $sha256Raw = $u->getRaw(self::SHA256_BYTES);
+            if (!$u->error()) {
+                $sha256Hex = bin2hex($sha256Raw);
+            }
+        }
+
+        $crc  = $u->getInt();
+        $size = $u->getInt();
+
+        if ($u->error()) {
+            return null;
+        }
+
+        if ($size < 0) {
+            return null;
+        }
+
+        return [$name, $crc, $size, $sha256Hex];
+    }
+
+    // -----------------------------------------------------------------------
+    // Receive MAP_DATA chunks
+    // -----------------------------------------------------------------------
+
+    /**
+     * Request and collect MAP_DATA chunks until last==1 or size is reached.
+     *
+     * @throws MapDownloadFailed on timeout or unexpected chunk order.
+     */
+    private function receiveChunks(int $mapCrc, int $mapSize, float $deadline): string
+    {
+        $payload      = '';
+        $chunkIndex   = 0;
+
+        // Send the first request.
+        $this->sendRequestMapData($chunkIndex);
+
+        while (true) {
+            $remaining = (int) ($deadline - hrtime(true) / 1_000_000);
+            if ($remaining <= 0) {
+                throw new MapDownloadFailed('Timeout during map data transfer');
+            }
+
+            $messages = $this->conn->receive((int) min($remaining, 200));
+
+            foreach ($messages as $msg) {
+                $chunk = $this->parseMapData($msg);
+                if ($chunk === null) {
+                    // Not a MAP_DATA message — skip silently.
+                    continue;
+                }
+
+                ['last' => $last, 'crc' => $crc, 'chunk' => $idx, 'data' => $data] = $chunk;
+
+                // The server MUST echo the correct CRC and chunk index.
+                if ($crc !== $mapCrc || $idx !== $chunkIndex) {
+                    // Stale/duplicate chunk — ignore and keep waiting.
+                    continue;
+                }
+
+                $payload .= $data;
+                $received  = strlen($payload);
+
+                if ($last === 1 || $received >= $mapSize) {
+                    return $payload;
+                }
+
+                // Request next chunk.
+                $chunkIndex++;
+                $this->sendRequestMapData($chunkIndex);
+            }
+        }
+    }
+
+    private function sendRequestMapData(int $chunk): void
+    {
+        $this->conn->sendVital($this->buildRequestMapData($chunk));
+        $this->conn->flush();
+    }
+
+    /**
+     * Try to parse msg as NETMSG_MAP_DATA.
+     * Returns null if not MAP_DATA or malformed.
+     *
+     * Field order (0.6, client.cpp ~1783–1786):
+     *   packed_int, int last, int crc, int chunk, int size, raw data[size]
+     *
+     * @return array{last:int, crc:int, chunk:int, data:string}|null
+     */
+    private function parseMapData(string $msg): ?array
+    {
+        $u = new Unpacker($msg);
+
+        $typeInt = $u->getInt();
+        if ($u->error()) {
+            return null;
+        }
+
+        $msgId  = $typeInt >> 1;
+        $system = $typeInt & 1;
+
+        if ($msgId !== self::NETMSG_MAP_DATA || $system !== 1) {
+            return null;
+        }
+
+        $last  = $u->getInt();
+        $crc   = $u->getInt();
+        $chunk = $u->getInt();
+        $size  = $u->getInt();
+
+        if ($u->error() || $size <= 0) {
+            return null;
+        }
+
+        $data = $u->getRaw($size);
+        if ($u->error()) {
+            return null;
+        }
+
+        return ['last' => $last, 'crc' => $crc, 'chunk' => $chunk, 'data' => $data];
+    }
+
+    // -----------------------------------------------------------------------
+    // Integrity checks
+    // -----------------------------------------------------------------------
+
+    /**
+     * Verify total size, CRC32, and optional SHA-256.
+     *
+     * CRC note: PHP's crc32() returns a signed 32-bit int. Teeworlds packs the
+     * CRC as a signed int too (via VariableInt). Normalise both to signed int32
+     * before comparing so positive server CRCs and negative PHP CRCs agree.
+     *
+     * @throws MapDownloadFailed on any mismatch.
+     */
+    private function verifyIntegrity(
+        string $payload,
+        int $announcedSize,
+        int $announcedCrc,
+        ?string $serverSha256Hex,
+        ?string $expectedSha256,
+        ?int $expectedCrc,
+    ): void {
+        $actual = strlen($payload);
+        if ($actual !== $announcedSize) {
+            throw new MapDownloadFailed(
+                "Map size mismatch: announced {$announcedSize}, received {$actual}",
+            );
+        }
+
+        $phpCrc = $this->toInt32(crc32($payload));
+        $srvCrc = $this->toInt32($announcedCrc);
+
+        if ($phpCrc !== $srvCrc) {
+            throw new MapDownloadFailed(
+                sprintf('CRC32 mismatch: server 0x%08x, computed 0x%08x', $srvCrc & 0xFFFFFFFF, $phpCrc & 0xFFFFFFFF),
+            );
+        }
+
+        if ($expectedCrc !== null) {
+            $expCrc = $this->toInt32($expectedCrc);
+            if ($phpCrc !== $expCrc) {
+                throw new MapDownloadFailed(
+                    sprintf('CRC32 mismatch with caller expectation: expected 0x%08x, computed 0x%08x', $expCrc & 0xFFFFFFFF, $phpCrc & 0xFFFFFFFF),
+                );
+            }
+        }
+
+        if ($expectedSha256 !== null) {
+            $actual256 = hash('sha256', $payload);
+            if (!hash_equals($expectedSha256, $actual256)) {
+                throw new MapDownloadFailed(
+                    "SHA-256 mismatch: expected {$expectedSha256}, got {$actual256}",
+                );
+            }
+        }
+
+        if ($serverSha256Hex !== null && $expectedSha256 !== null) {
+            if (!hash_equals($serverSha256Hex, $expectedSha256)) {
+                throw new MapDownloadFailed(
+                    "Server-announced SHA-256 {$serverSha256Hex} does not match caller expectation {$expectedSha256}",
+                );
+            }
+        }
+    }
+
+    /**
+     * Normalise an arbitrary int to signed 32-bit two's complement, matching
+     * both PHP's crc32() range and Teeworlds' VariableInt int32 representation.
+     */
+    private function toInt32(int $v): int
+    {
+        $v &= 0xFFFFFFFF;
+        if ($v & 0x80000000) {
+            $v -= 0x100000000;
+        }
+
+        return $v;
+    }
+}
