@@ -17,9 +17,9 @@ void main() {
 
 const FRAGMENT_GLSL = `
 precision mediump float;
-uniform sampler2D uTex; varying vec2 vUV; varying vec4 vColor;
+uniform sampler2D uTex; uniform vec4 uColorMul; varying vec2 vUV; varying vec4 vColor;
 void main() {
-    vec4 c = texture2D(uTex, vUV) * vColor;
+    vec4 c = texture2D(uTex, vUV) * vColor * uColorMul;
     if (c.a < 0.01) discard;
     gl_FragColor = c;
 }
@@ -58,6 +58,7 @@ export class GlRenderer {
     // uniform locations
     private readonly uTransform: WebGLUniformLocation;
     private readonly uTex: WebGLUniformLocation;
+    private readonly uColorMul: WebGLUniformLocation;
 
     constructor(private readonly gl: WebGLRenderingContext) {
         // --- compile shaders & link program ---
@@ -94,6 +95,10 @@ export class GlRenderer {
         const uTex = gl.getUniformLocation(program, 'uTex');
         if (!uTex) throw new Error('GlRenderer: uTex uniform not found');
         this.uTex = uTex;
+
+        const uColorMul = gl.getUniformLocation(program, 'uColorMul');
+        if (!uColorMul) throw new Error('GlRenderer: uColorMul uniform not found');
+        this.uColorMul = uColorMul;
 
         // --- shared vertex buffer ---
         const buffer = gl.createBuffer();
@@ -153,11 +158,14 @@ export class GlRenderer {
      * @param texture  WebGLTexture to bind, or null to use the 1×1 white fallback.
      * @param vertices Interleaved x,y,u,v,r,g,b,a float data.
      * @param transform [scaleX, scaleY, offX, offY] world→clip mapping.
+     * @param colorMul  RGBA multiplied over every fragment (default opaque white).
+     *                  Used to fade layers in/out for the entities overlay.
      */
     draw(
         texture: WebGLTexture | null,
         vertices: Float32Array,
         transform: [number, number, number, number],
+        colorMul: [number, number, number, number] = [1, 1, 1, 1],
     ): void {
         if (vertices.length === 0) return;
 
@@ -188,6 +196,9 @@ export class GlRenderer {
 
         // world→clip transform
         gl.uniform4f(this.uTransform, transform[0], transform[1], transform[2], transform[3]);
+
+        // per-draw color multiplier (entities overlay fade)
+        gl.uniform4f(this.uColorMul, colorMul[0], colorMul[1], colorMul[2], colorMul[3]);
 
         const vertexCount = (vertices.length / FLOATS_PER_VERTEX) | 0;
         gl.drawArrays(gl.TRIANGLES, 0, vertexCount);

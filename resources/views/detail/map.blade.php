@@ -16,7 +16,9 @@
                     <canvas id="mapCanvas" class="map-viewer__canvas" width="960" height="540"></canvas>
                     <div class="map-viewer__controls">
                         <button type="button" id="mapFit" class="btn btn-sm btn-secondary">Fit</button>
-                        <label class="map-viewer__toggle"><input type="checkbox" id="mapEntities"> Entities</label>
+                        <label class="map-viewer__slider" for="mapEntities">Entities
+                            <input type="range" id="mapEntities" min="0" max="100" value="0" step="1">
+                        </label>
                     </div>
                 </div>
             @endif
@@ -50,7 +52,9 @@
                 var fit = document.getElementById('mapFit');
                 var ent = document.getElementById('mapEntities');
                 if (fit) fit.addEventListener('click', function () { viewer.fit(); });
-                if (ent) ent.addEventListener('change', function () { viewer.toggleEntities(); });
+                if (ent) ent.addEventListener('input', function () {
+                    viewer.setEntitiesOpacity(Number(ent.value) / 100);
+                });
             });
         });
     </script>

@@ -60,7 +60,10 @@ export class MapViewer {
 
     private textures: Map<number, WebGLTexture>;
     private entitiesTex: WebGLTexture | null = null;
-    private entities = false;
+    // Entities-overlay strength, 0..1 (DDNet's cl_overlay_entities / 100). As it rises the
+    // entities tileset fades in while the design/background layers fade out; at 1 only
+    // entities remain.
+    private entitiesOpacity = 0;
 
     // Game-layer dimensions for fit()
     private gameW = 0;
@@ -161,9 +164,12 @@ export class MapViewer {
         this.requestRender();
     }
 
-    /** Toggle physics / entities layer overlay and re-render. */
-    toggleEntities(): void {
-        this.entities = !this.entities;
+    /**
+     * Set the entities-overlay strength (0 = design only, 1 = entities only).
+     * Values in between blend the entities tileset over a dimmed background.
+     */
+    setEntitiesOpacity(opacity: number): void {
+        this.entitiesOpacity = Math.max(0, Math.min(1, opacity));
         this.requestRender();
     }
 
@@ -272,12 +278,19 @@ export class MapViewer {
                 if (batch.vertices.length === 0) continue;
 
                 if (batch.isPhysics) {
-                    // Physics (entities) layers are only drawn when entities mode is on.
-                    if (!this.entities) continue;
-                    const tex = this.entitiesTex;
-                    this.renderer.draw(tex, batch.vertices, transform);
+                    // Entities overlay: fade in with the slider; skip when fully hidden.
+                    if (this.entitiesOpacity <= 0) continue;
+                    this.renderer.draw(this.entitiesTex, batch.vertices, transform, [
+                        1,
+                        1,
+                        1,
+                        this.entitiesOpacity,
+                    ]);
                 } else {
-                    this.renderer.draw(batch.texture, batch.vertices, transform);
+                    // Design/background: fade out as the overlay fades in.
+                    const bgAlpha = 1 - this.entitiesOpacity;
+                    if (bgAlpha <= 0) continue;
+                    this.renderer.draw(batch.texture, batch.vertices, transform, [1, 1, 1, bgAlpha]);
                 }
             }
         }
@@ -387,6 +400,14 @@ export class MapViewer {
 
             for (const layer of group.layers) {
                 const isPhysics = layer.type === 'tilemap' && layer.kind !== 'tiles';
+
+                // The entities overlay only renders game + front layers: both are plain CTile
+                // arrays that index the entities tileset directly. tele/speedup/switch/tune use
+                // their own per-tile structs (CTeleTile/CSpeedupTile/…) that mapParser does not
+                // decode yet, so we skip them rather than draw garbage.
+                if (isPhysics && layer.type === 'tilemap' && layer.kind !== 'game' && layer.kind !== 'front') {
+                    continue;
+                }
 
                 if (layer.type === 'tilemap') {
                     const tl = layer as TileLayer;
