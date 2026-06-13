@@ -35,6 +35,28 @@ class Map extends Model
 
     protected $guarded = ['id', 'created_at', 'updated_at'];
 
+    protected function casts(): array
+    {
+        return [
+            'last_archive_attempt_at' => 'datetime',
+        ];
+    }
+
+    /**
+     * Maps that have a content key (sha256 or crc) but may still need a .map file fetched, ordered so
+     * never-attempted maps come first and the rest by oldest attempt. The cooldown threshold excludes
+     * maps attempted too recently (a failed download is parked for the cooldown window). This is a
+     * SQL-only filter — it cannot see the filesystem, so callers skip already-cached maps separately.
+     */
+    public function scopeNeedsArchiving(Builder $query, Carbon $cooldownThreshold): Builder
+    {
+        return $query
+            ->where(fn (Builder $q) => $q->whereNotNull('sha256')->orWhereNotNull('crc'))
+            ->where(fn (Builder $q) => $q->whereNull('last_archive_attempt_at')
+                ->orWhere('last_archive_attempt_at', '<', $cooldownThreshold))
+            ->orderByRaw('last_archive_attempt_at IS NOT NULL, last_archive_attempt_at');
+    }
+
     /**
      * Whether a downloadable .map file can potentially be acquired for this map. A map with
      * a sha256 is served via DDNet HTTP; a map with only a crc is reachable via the UDP
