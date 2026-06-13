@@ -1,21 +1,73 @@
 import type { TileLayer, Quad } from './types';
 
-export interface UVRect {
-    u0: number;
-    v0: number;
-    u1: number;
-    v1: number;
-}
+/** Per-corner tile UVs in render-corner order [TL, TR, BL, BR] (matches the positions built below). */
+export type TileUV = [[number, number], [number, number], [number, number], [number, number]];
 
-/** UV cell for a tile id within a 16x16 tileset. */
-export function tileUV(id: number, flags: number): UVRect {
+// Tile flags. Despite the legacy "VFLIP"/"HFLIP" names, bit 1 mirrors the U (horizontal)
+// axis and bit 2 mirrors the V (vertical) axis — see DDNet src/game/mapitems.h.
+const TILEFLAG_XFLIP = 1;
+const TILEFLAG_YFLIP = 2;
+const TILEFLAG_ROTATE = 8;
+
+/**
+ * UVs for tile `id` within a 16x16 tileset, with flip/rotate applied.
+ *
+ * The flip/rotate sequence transcribes CRenderMap::RenderTilemap (DDNet
+ * src/game/map/render_map.cpp) line-for-line: a rect cannot express a 90°
+ * rotation, so we carry four explicit corners and mutate them exactly as the
+ * client does. This is what makes flipped/rotated tiles match in-game.
+ */
+export function tileUV(id: number, flags: number): TileUV {
     const col = id % 16;
     const row = (id / 16) | 0;
     const s = 1 / 16;
-    let r: UVRect = { u0: col * s, v0: row * s, u1: (col + 1) * s, v1: (row + 1) * s };
-    if (flags & 1) r = { ...r, v0: r.v1, v1: r.v0 }; // vflip
-    if (flags & 2) r = { ...r, u0: r.u1, u1: r.u0 }; // hflip
-    return r;
+    const uL = col * s;
+    const uR = (col + 1) * s;
+    const vT = row * s;
+    const vB = (row + 1) * s;
+
+    // DDNet corner order: (x0,y0)=TL (x1,y1)=TR (x2,y2)=BR (x3,y3)=BL.
+    let x0 = uL,
+        y0 = vT;
+    let x1 = uR,
+        y1 = vT;
+    let x2 = uR,
+        y2 = vB;
+    let x3 = uL,
+        y3 = vB;
+
+    if (flags & TILEFLAG_XFLIP) {
+        x0 = x2;
+        x1 = x3;
+        x2 = x3;
+        x3 = x0;
+    }
+    if (flags & TILEFLAG_YFLIP) {
+        y0 = y3;
+        y2 = y1;
+        y3 = y1;
+        y1 = y0;
+    }
+    if (flags & TILEFLAG_ROTATE) {
+        let tmp = x0;
+        x0 = x3;
+        x3 = x2;
+        x2 = x1;
+        x1 = tmp;
+        tmp = y0;
+        y0 = y3;
+        y3 = y2;
+        y2 = y1;
+        y1 = tmp;
+    }
+
+    // Re-order DDNet's [TL, TR, BR, BL] to the [TL, TR, BL, BR] order used below.
+    return [
+        [x0, y0], // TL
+        [x1, y1], // TR
+        [x3, y3], // BL
+        [x2, y2], // BR
+    ];
 }
 
 function pushQuad(
@@ -44,18 +96,12 @@ export function buildTileLayerVertices(layer: TileLayer, colorMul: [number, numb
         for (let x = 0; x < layer.width; x++) {
             const tile = layer.tiles[y * layer.width + x];
             if (!tile || tile.id === 0) continue; // air
-            const uvr = tileUV(tile.id, tile.flags);
+            const uv = tileUV(tile.id, tile.flags); // [TL, TR, BL, BR] — corner order matches p
             const p: [number, number][] = [
                 [x, y],
                 [x + 1, y],
                 [x, y + 1],
                 [x + 1, y + 1],
-            ];
-            const uv: [number, number][] = [
-                [uvr.u0, uvr.v0],
-                [uvr.u1, uvr.v0],
-                [uvr.u0, uvr.v1],
-                [uvr.u1, uvr.v1],
             ];
             pushQuad(out, p, uv, color);
         }
