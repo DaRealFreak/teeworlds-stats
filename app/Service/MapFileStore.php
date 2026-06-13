@@ -17,7 +17,7 @@ final class MapFileStore
      * @param MapSource[] $sources tried in order; first non-null wins
      */
     public function __construct(
-        private readonly array $sources = [new DdnetHttpMapSource()],
+        private readonly array $sources = [new DdnetHttpMapSource(), new GameServerMapSource()],
         public readonly string $disk = 'local',
     ) {
     }
@@ -30,6 +30,13 @@ final class MapFileStore
     {
         $key = $map->getAttribute('sha256') ?? $map->getAttribute('crc');
         if ($key === null) {
+            throw new MapFileUnavailable();
+        }
+
+        // Guard against path-traversal: the key must be a pure hex string. Both sha256
+        // (64 chars) and crc (8 chars) are hex; anything else is a data integrity issue
+        // and must not be used to build a filesystem path.
+        if (!ctype_xdigit($key)) {
             throw new MapFileUnavailable();
         }
 

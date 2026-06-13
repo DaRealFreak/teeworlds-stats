@@ -36,13 +36,13 @@ class Map extends Model
     protected $guarded = ['id', 'created_at', 'updated_at'];
 
     /**
-     * Whether a downloadable .map file can be acquired for this map. Phase A: only DDNet maps
-     * (which advertise a sha256) are HTTP-retrievable; Phase E broadens this to any map with a
-     * known online host.
+     * Whether a downloadable .map file can potentially be acquired for this map. A map with
+     * a sha256 is served via DDNet HTTP; a map with only a crc is reachable via the UDP
+     * GameServerMapSource when a live server hosting it is recorded in server_histories.
      */
     public function hasDownloadableFile(): bool
     {
-        return $this->getAttribute('sha256') !== null;
+        return $this->getAttribute('sha256') !== null || $this->getAttribute('crc') !== null;
     }
 
     /**
