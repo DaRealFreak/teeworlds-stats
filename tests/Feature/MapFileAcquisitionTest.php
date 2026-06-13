@@ -162,4 +162,13 @@ class MapFileAcquisitionTest extends TestCase
             ->assertDontSee('Download .map')
             ->assertSee('Map file not available');
     }
+
+    public function test_map_page_shows_the_viewer_canvas_only_when_downloadable(): void
+    {
+        \App\Models\Map::create(['name' => 'Kobra 4', 'sha256' => str_repeat('a', 64), 'size' => 10]);
+        \App\Models\Map::create(['name' => 'no-hash']);
+
+        $this->get('/map/' . rawurlencode('Kobra 4') . '/')->assertOk()->assertSee('id="mapCanvas"', false);
+        $this->get('/map/no-hash/')->assertOk()->assertDontSee('id="mapCanvas"', false);
+    }
 }

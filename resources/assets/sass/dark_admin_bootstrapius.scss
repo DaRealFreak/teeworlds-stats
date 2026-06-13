@@ -3276,3 +3276,26 @@ pre code {
   background: #2d3035;
   border-color: #34373d;
 }
+
+// Map viewer (WebGL canvas on the map detail page)
+.map-viewer {
+    &__canvas {
+        width: 100%;
+        height: auto;
+        display: block;
+        background: #121217;
+        image-rendering: pixelated;
+        cursor: grab;
+        border-radius: 4px;
+    }
+    &__controls {
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+        margin-top: 0.5rem;
+    }
+    &__toggle {
+        margin: 0;
+        user-select: none;
+    }
+}
