@@ -267,7 +267,12 @@ export class MapViewer {
             }
         }
 
-        this.renderer.clear();
+        // Match the client's transition: as the entities overlay fades in, fade the backdrop
+        // from the dark viewer background toward the grey "entities background"
+        // (DDNet cl_background_entities_color, default ~0.5 grey) instead of dimming to black.
+        const t = this.entitiesOpacity;
+        const lerp = (a: number, b: number): number => a + (b - a) * t;
+        this.renderer.clear([lerp(0.07, 0.5), lerp(0.07, 0.5), lerp(0.09, 0.5)]);
 
         for (let gi = 0; gi < this.scene.groups.length; gi++) {
             const group = this.scene.groups[gi]!;

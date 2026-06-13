@@ -146,9 +146,9 @@ export class GlRenderer {
         this.gl.viewport(0, 0, width, height);
     }
 
-    /** Clear to a dark background. */
-    clear(): void {
-        this.gl.clearColor(0.07, 0.07, 0.09, 1.0);
+    /** Clear the framebuffer to `color` (default: the dark viewer background). */
+    clear(color: [number, number, number] = [0.07, 0.07, 0.09]): void {
+        this.gl.clearColor(color[0], color[1], color[2], 1.0);
         this.gl.clear(this.gl.COLOR_BUFFER_BIT);
     }
 
