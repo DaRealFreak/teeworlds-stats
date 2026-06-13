@@ -114,7 +114,20 @@ final class MapDownloadSession
     private const STALL_WINDOW_MS = 8000;
 
     /**
-     * Execute the in-game map download and return the raw map bytes.
+     * Download and return only the raw map bytes. Thin wrapper over downloadWithIdentity() for
+     * callers that do not need the observed identity (preserves the original return contract).
+     */
+    public function download(
+        ?string $expectedSha256 = null,
+        ?int $expectedCrc = null,
+        int $timeoutMs = 120000,
+    ): string {
+        return $this->downloadWithIdentity($expectedSha256, $expectedCrc, $timeoutMs)->bytes;
+    }
+
+    /**
+     * Execute the in-game map download and return the raw map bytes together with the
+     * identity the server announced in MAP_CHANGE.
      *
      * @param string|null $expectedSha256  Hex SHA-256 to verify against (optional).
      * @param int|null    $expectedCrc     CRC32 to verify against (optional, in addition
@@ -124,14 +137,14 @@ final class MapDownloadSession
      *                                     the download fails if no chunk is accepted for
      *                                     that duration even before the overall cap.
      *
-     * @return string  Raw map file bytes.
+     * @return MapDownloadResult  Verified bytes plus the server-announced identity.
      * @throws MapDownloadFailed  On timeout, malformed messages, or integrity failure.
      */
-    public function download(
+    public function downloadWithIdentity(
         ?string $expectedSha256 = null,
         ?int $expectedCrc = null,
         int $timeoutMs = 120000,
-    ): string {
+    ): MapDownloadResult {
         $now      = hrtime(true) / 1_000_000;
         $deadline = $now + $timeoutMs;
 
@@ -153,6 +166,7 @@ final class MapDownloadSession
         $mapCrc        = 0;
         $mapSize       = 0;
         $mapSha256     = null;
+        $mapName       = '';
         $payload       = '';
         $expectedChunk = 0;
         $stallDeadline = $now + self::STALL_WINDOW_MS;
@@ -184,7 +198,7 @@ final class MapDownloadSession
                         continue;
                     }
 
-                    [, $mapCrc, $mapSize, $mapSha256] = $parsed;
+                    [$mapName, $mapCrc, $mapSize, $mapSha256] = $parsed;
                     $haveMapChange = true;
                     $payload       = '';
                     $expectedChunk = 0;
@@ -222,7 +236,7 @@ final class MapDownloadSession
                     $this->verifyIntegrity($payload, $mapSize, $mapCrc, $mapSha256, $expectedSha256, $expectedCrc);
                     $this->conn->disconnect();
 
-                    return $payload;
+                    return new MapDownloadResult($payload, $mapName, $mapCrc, $mapSize, $mapSha256);
                 }
 
                 // Advance the window: request the next chunk (drives both the
