@@ -673,6 +673,18 @@ section.section-content {
   }
 }
 
+/* Bootstrap's default muted/secondary grey (var(--bs-secondary-color)) is too dim to read on
+   this dark theme — it renders grey-on-grey in pagination summaries ("Showing X to Y of Z"),
+   the map-viewer hint and anywhere else .text-muted is used. Lift it to the legible secondary
+   grey the theme already uses, and update the CSS var so components reading it directly follow. */
+:root {
+  --bs-secondary-color: #a7adb5;
+}
+.text-muted,
+.text-body-secondary {
+  color: #a7adb5 !important;
+}
+
 /*
 * ==========================================================
 *     GLOBAL SEARCH (navbar box + grouped results dropdown)
