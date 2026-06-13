@@ -13,13 +13,18 @@
         <div class="container-fluid">
             @if($map->hasDownloadableFile())
                 <div class="block map-viewer">
-                    <canvas id="mapCanvas" class="map-viewer__canvas" width="960" height="540"></canvas>
+                    <div class="map-viewer__stage">
+                        <canvas id="mapCanvas" class="map-viewer__canvas" width="960" height="540"></canvas>
+                        <canvas id="mapOverlay" class="map-viewer__overlay" width="960" height="540"></canvas>
+                    </div>
                     <div class="map-viewer__controls">
                         <button type="button" id="mapFit" class="btn btn-sm btn-secondary">Fit</button>
                         <label class="map-viewer__slider" for="mapEntities">Entities
                             <input type="range" id="mapEntities" min="0" max="100" value="0" step="1">
                         </label>
+                        <div class="map-viewer__legend" id="mapLegend"></div>
                     </div>
+                    <p class="map-viewer__hint text-muted">Drag to pan, scroll to zoom. With Entities up, click a teleport to jump to its destination.</p>
                 </div>
             @endif
             <div class="block">
@@ -42,11 +47,13 @@
     <script>
         document.addEventListener('DOMContentLoaded', function () {
             var canvas = document.getElementById('mapCanvas');
-            if (!canvas || !window.MapViewer) return;
+            var overlay = document.getElementById('mapOverlay');
+            if (!canvas || !overlay || !window.MapViewer) return;
             window.MapViewer.init(canvas, {
                 mapUrl: {!! json_encode(route('mapFile', ['map_name' => $map->name])) !!},
                 mapresBase: {!! json_encode(asset('mapres')) !!},
-                entitiesUrl: {!! json_encode(asset('entities/DDNet.png')) !!}
+                entitiesUrl: {!! json_encode(asset('entities/DDNet.png')) !!},
+                overlayCanvas: overlay
             }).then(function (viewer) {
                 if (!viewer) return;
                 var fit = document.getElementById('mapFit');
@@ -55,6 +62,28 @@
                 if (ent) ent.addEventListener('input', function () {
                     viewer.setEntitiesOpacity(Number(ent.value) / 100);
                 });
+
+                // Build the highlight legend from the viewer's categories.
+                var legend = document.getElementById('mapLegend');
+                if (legend && window.MapViewer.highlightCategories) {
+                    window.MapViewer.highlightCategories().forEach(function (cat) {
+                        var item = document.createElement('label');
+                        item.className = 'map-viewer__legend-item';
+                        var cb = document.createElement('input');
+                        cb.type = 'checkbox';
+                        cb.addEventListener('change', function () { viewer.setHighlight(cat.key, cb.checked); });
+                        var swatch = document.createElement('span');
+                        swatch.className = 'map-viewer__swatch';
+                        swatch.style.background = 'rgb(' +
+                            Math.round(cat.color[0] * 255) + ',' +
+                            Math.round(cat.color[1] * 255) + ',' +
+                            Math.round(cat.color[2] * 255) + ')';
+                        item.appendChild(cb);
+                        item.appendChild(swatch);
+                        item.appendChild(document.createTextNode(' ' + cat.label));
+                        legend.appendChild(item);
+                    });
+                }
             });
         });
     </script>
