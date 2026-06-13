@@ -275,7 +275,7 @@ class MapFileAcquisitionTest extends TestCase
         $bytes = $source->fetch($map);
         $this->assertSame($payload, $bytes);
 
-        // Also verify the store caches it under maps/<crc>.map.
+        // Also verify the store caches it under maps/<name>_<crc>.map.
         $store = new MapFileStore([$source]);
         // File was fetched once already; we need a fresh map model and a new conn for the store path.
         $conn2 = new FakeGameConnection();
