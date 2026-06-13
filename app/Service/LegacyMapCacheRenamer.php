@@ -36,7 +36,7 @@ final class LegacyMapCacheRenamer
             $key = $m[1];
 
             /** @var Map|null $map */
-            $map = Map::where('sha256', $key)->orWhere('crc', $key)->first();
+            $map = Map::where(fn ($q) => $q->where('sha256', $key)->orWhere('crc', $key))->first();
             if ($map === null) {
                 continue; // orphan: no record to derive a name from
             }
