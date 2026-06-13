@@ -11,6 +11,7 @@ use App\Models\PlayerClanHistory;
 use App\Models\PlayerSession;
 use App\Models\Server;
 use App\Models\PlayerHistory;
+use App\Service\MapArchiver;
 use App\Utility\ChartUtility;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
@@ -143,10 +144,14 @@ class MainController extends Controller
     /**
      * @return \Illuminate\Contracts\View\Factory|\Illuminate\View\View
      */
-    public function maps()
+    public function maps(MapArchiver $archiver)
     {
-        return view('list.maps')
-            ->with('maps', Map::orderBy('name')->paginate(50));
+        $maps = Map::orderBy('name')->paginate(50);
+        $statuses = $maps->getCollection()->mapWithKeys(
+            fn (Map $map) => [$map->id => $archiver->statusFor($map)]
+        );
+
+        return view('list.maps', compact('maps', 'statuses'));
     }
 
     /**

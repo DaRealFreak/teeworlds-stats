@@ -22,6 +22,7 @@
                                     <th>Played by players</th>
                                     <th>Played on servers</th>
                                     <th>Total time played(players)</th>
+                                    <th>Archive</th>
                                 </tr>
                                 </thead>
                                 <tbody>
@@ -40,6 +41,10 @@
                                             @if($hourEntry = $mapEntry->totalHoursOnline()->first())
                                                 {{ \App\Utility\ChartUtility::humanizeDuration($hourEntry->sum_minutes) }}
                                             @endif
+                                        </td>
+                                        <td>
+                                            @php($status = $statuses[$mapEntry->id])
+                                            <span class="badge {{ $status->badgeClass() }}">{{ $status->label() }}</span>
                                         </td>
                                     </tr>
                                 @endforeach
