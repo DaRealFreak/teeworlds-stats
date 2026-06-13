@@ -428,6 +428,47 @@ class MapFileAcquisitionTest extends TestCase
 
         $this->assertNull($source->fetch($map));
     }
+
+    public function test_store_backfills_identity_and_caches_a_keyless_map(): void
+    {
+        Storage::fake('local');
+
+        $body = "DATA" . str_repeat('Z', 40);
+        $sha  = hash('sha256', $body);
+        $map  = Map::create(['name' => 'keyless map']); // no sha256, no crc
+
+        $source = new class($body) implements \App\Service\MapSource {
+            public function __construct(private string $body) {}
+            public function fetch(\App\Models\Map $map): ?string { return $this->body; }
+        };
+
+        $rel = (new MapFileStore([$source]))->ensure($map);
+
+        $this->assertSame('maps/keyless_map_' . $sha . '.map', $rel);
+        Storage::disk('local')->assertExists($rel);
+
+        $fresh = $map->fresh();
+        $this->assertSame($sha, $fresh->sha256);
+        $this->assertSame(sprintf('%08x', crc32($body) & 0xFFFFFFFF), $fresh->crc);
+        $this->assertSame(strlen($body), $fresh->size);
+    }
+
+    public function test_store_backfill_does_not_clobber_an_existing_size(): void
+    {
+        Storage::fake('local');
+
+        $body = "DATA" . str_repeat('Q', 40);
+        $map  = Map::create(['name' => 'sized', 'size' => 99999]); // size preset, still keyless
+
+        $source = new class($body) implements \App\Service\MapSource {
+            public function __construct(private string $body) {}
+            public function fetch(\App\Models\Map $map): ?string { return $this->body; }
+        };
+
+        (new MapFileStore([$source]))->ensure($map);
+
+        $this->assertSame(99999, $map->fresh()->size, 'a preset size must not be overwritten');
+    }
 }
 
 // ---------------------------------------------------------------------------
