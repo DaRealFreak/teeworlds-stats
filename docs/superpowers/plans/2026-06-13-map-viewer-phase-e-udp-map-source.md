@@ -216,3 +216,35 @@ the server to withhold map data (try the exact per-server version, or the legacy
 ack nuance specific to this server. The `Icicle`/DDNet-0.6 handshake is lower priority (DDNet maps
 are HTTP-downloadable via Phase A anyway). **Do not merge Phase E until at least the `fng`-class
 0.6 case downloads** — the core is proven, but multi-server robustness is unfinished.
+
+### Task 8 — RESOLVED (2026-06-13, follow-up session): two bugs, both fixed + live-verified
+
+A raw-datagram packet-capture probe (`tmp/map_probe.php`, since removed) against ~10 live fng
+servers from the DDNet master pinned down the `fng`-class failure — it was **two** distinct bugs,
+neither of which was the version string suspected above:
+
+1. **Bundled MAP_DATA was discarded.** Real DDNet/fng 0.6 servers send `MAP_CHANGE` + the first
+   `MAP_DATA` chunk(s) + `CON_READY` in a *single datagram* (fast-download servers push a whole
+   window at once). The old `MapDownloadSession::waitForMapChange()` returned the instant it saw
+   `MAP_CHANGE` and threw away the rest of that batch — including the bundled `MAP_DATA`. We then
+   requested chunk 0, but the server had already pushed everything and moved on → `recv=0` forever.
+   The reliable layer had *accepted* the chunk (ack advanced); only the session layer dropped it.
+   **Fix:** `download()` now runs one uniform receive loop that processes `MAP_CHANGE` and
+   `MAP_DATA` from the same batch (and any unsolicited push). Regression tests:
+   `testMapDataBundledWithMapChange`, `testMultiChunkWindowBundledWithMapChange`.
+
+2. **DDNet flavor was routed to 0.7 (sixup).** `GameConnection::isSixup()` treated `FLAVOR_DDNET`
+   as sixup, but DDNet/fng 0.6 servers speak **classic 0.6** and actively reject 0.7
+   ("0.7 connections are not accepted at this time"). Since most fng servers report DDNet-style
+   versions (`"0.6.4, 19.8"`) → `FLAVOR_DDNET`, the production `GameServerMapSource` path would
+   have failed at the handshake for nearly all of them. **Fix:** `isSixup()` returns true only for
+   `FLAVOR_VANILLA_07`; DDNet uses 0.6 classic. Regression test:
+   `test_ddnet_flavor_uses_06_handshake`.
+
+**Live verification (2026-06-13):** multiple real fng servers download cleanly via the production
+`flavor='ddnet'` path (`46.225.67.88:8301`, `88.198.96.203:8306`, plus the vanilla `35.204.119.214`
+/ `51.89.23.241`) — valid `.map` files, `magic='DATA'`, correct crc. Combined with the earlier
+`Monster_Rain` multi-chunk success and the 40-chunk windowed unit test, all three download shapes
+(per-chunk, windowed, bundled/pushed) are covered. Remaining non-downloadable servers are
+**environmental, not protocol bugs**: datacenter-IP anti-bot CONNECT filtering, and
+password-protected servers. Full PHP suite **259 green**. Phase E is ready to merge.

@@ -700,12 +700,17 @@ final class GameConnection implements ConnectionInterface
 
     /**
      * Derive whether to use the 0.7 (sixup) protocol from the flavor string.
-     * DDNet and vanilla_07 both use sixup; vanilla_06 uses the classic 0.6 wire.
+     *
+     * Only vanilla 0.7 servers speak sixup.  DDNet is a 0.6-based game: DDNet
+     * (and DDNet-derived fng) servers serve maps over the classic 0.6 wire and
+     * actively reject 0.7 connections ("0.7 connections are not accepted at this
+     * time").  Routing FLAVOR_DDNET through sixup made every DDNet/fng map
+     * download fail at the handshake, so DDNet uses the 0.6 classic protocol here
+     * (the security-token suffix is negotiated from CONNECTACCEPT either way).
      */
     private function isSixup(): bool
     {
-        return $this->flavor === FlavorClassifier::FLAVOR_VANILLA_07
-            || $this->flavor === FlavorClassifier::FLAVOR_DDNET;
+        return $this->flavor === FlavorClassifier::FLAVOR_VANILLA_07;
     }
 
     /**

@@ -404,6 +404,68 @@ class MapDownloadSessionTest extends TestCase
     }
 
     // -----------------------------------------------------------------------
+    // Test 10 — MAP_DATA bundled in the SAME batch as MAP_CHANGE
+    //
+    // Regression for the live fng-class bug: real DDNet/fng servers send
+    // MAP_CHANGE and the first MAP_DATA chunk(s) in a SINGLE datagram (and
+    // CON_READY + snapshots right behind them). The old waitForMapChange()
+    // returned the instant it saw MAP_CHANGE and discarded every other message
+    // in that same batch — including the MAP_DATA chunk — so the download then
+    // stalled with zero bytes received. The session must instead process the
+    // bundled MAP_DATA from the same batch.
+    // -----------------------------------------------------------------------
+
+    public function testMapDataBundledWithMapChange(): void
+    {
+        $payload = $this->makePayload(48);
+        $crc     = crc32($payload);
+
+        $conn = new FakeConnection();
+        // One datagram carrying MAP_CHANGE, the whole map (chunk 0, last=1),
+        // and trailing CON_READY noise — exactly the live server burst.
+        $conReady = VariableInt::pack((4 << 1) | 1);
+        $conn->enqueue([
+            $this->buildMapChange('dummy', $crc, strlen($payload)),
+            $this->buildMapData(1, $crc, 0, $payload),
+            $conReady,
+        ]);
+
+        $session = new MapDownloadSession($conn);
+        $result  = $session->download(timeoutMs: 5000);
+
+        self::assertSame($payload, $result, 'Bundled MAP_DATA must be reassembled, not discarded');
+        self::assertTrue($conn->disconnected, 'disconnect() must be called after success');
+    }
+
+    // -----------------------------------------------------------------------
+    // Test 11 — Multi-chunk window bundled right after MAP_CHANGE
+    //
+    // Fast-download servers push a whole window of chunks immediately after
+    // MAP_CHANGE in the same burst. All chunks in the bundling batch must be
+    // consumed in order.
+    // -----------------------------------------------------------------------
+
+    public function testMultiChunkWindowBundledWithMapChange(): void
+    {
+        $chunkSize = 16;
+        $payload   = $this->makePayload($chunkSize * 4);
+        $crc       = crc32($payload);
+
+        $conn  = new FakeConnection();
+        $batch = [$this->buildMapChange('dummy', $crc, strlen($payload))];
+        for ($i = 0; $i < 4; $i++) {
+            $last    = ($i === 3) ? 1 : 0;
+            $batch[] = $this->buildMapData($last, $crc, $i, substr($payload, $i * $chunkSize, $chunkSize));
+        }
+        $conn->enqueue($batch);
+
+        $session = new MapDownloadSession($conn);
+        $result  = $session->download(timeoutMs: 5000);
+
+        self::assertSame($payload, $result, 'All bundled window chunks must be reassembled in order');
+    }
+
+    // -----------------------------------------------------------------------
     // Helper: assert the msgId packed in the first VariableInt of a sent message
     // -----------------------------------------------------------------------
 

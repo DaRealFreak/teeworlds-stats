@@ -18,6 +18,14 @@ use App\TwStats\Protocol\Seven\VariableInt;
  *  4. Server → NETMSG_MAP_DATA (last, crc, chunk, size, data…)
  *     … repeat 3–4 until last == 1 or total bytes == announced size
  *
+ * Important real-server behaviour (verified live against vanilla/DDNet/fng 0.6
+ * servers): the server frequently bundles MAP_CHANGE and the first MAP_DATA
+ * chunk(s) — and even CON_READY — into a SINGLE datagram, and fast-download
+ * servers push a whole window of chunks right behind MAP_CHANGE.  download()
+ * therefore processes every message of every receive() batch uniformly; it must
+ * not return the instant MAP_CHANGE is seen (that discards the bundled chunks
+ * and stalls the download — the historical fng-class symptom).
+ *
  * Message framing: every NETMSG payload begins with a VariableInt whose value
  * encodes both the message ID and the system flag:
  *
@@ -48,12 +56,13 @@ use App\TwStats\Protocol\Seven\VariableInt;
  * 32-bit integer; the server packs an int (also signed). Comparison is done
  * after normalising both sides to signed 32-bit.
  *
- * ** FLAGGED FOR LIVE SMOKE **
- *   - Extended MAP_CHANGE sha256 field detection: we sniff remaining() after
- *     name to decide vanilla vs extended. Verify with a real DDNet server.
- *   - 0.7 (sixup) servers stream MAP_DATA without waiting for per-chunk
- *     requests. This class implements the 0.6 request-per-chunk loop; a 0.7
- *     session would need a different flow.
+ * Live-verified notes:
+ *   - Extended MAP_CHANGE sha256 field detection (sniff remaining() after the
+ *     name to decide vanilla vs extended) holds against real DDNet/fng servers.
+ *   - DDNet/fng 0.6 servers serve maps over the classic 0.6 wire (they reject
+ *     0.7 connections); GameConnection routes FLAVOR_DDNET through 0.6 for this
+ *     reason.  A pure 0.7 (sixup) server streams MAP_DATA without per-chunk
+ *     requests and would still need a separate session variant.
  */
 final class MapDownloadSession
 {
@@ -123,24 +132,104 @@ final class MapDownloadSession
         ?int $expectedCrc = null,
         int $timeoutMs = 120000,
     ): string {
-        $deadline = hrtime(true) / 1_000_000 + $timeoutMs;
+        $now      = hrtime(true) / 1_000_000;
+        $deadline = $now + $timeoutMs;
 
         // Step 1 — Send NETMSG_INFO.
         $this->conn->sendVital($this->buildInfo());
         $this->conn->flush();
 
-        // Step 2 — Wait for NETMSG_MAP_CHANGE.
-        [$mapName, $mapCrc, $mapSize, $mapSha256] = $this->waitForMapChange($deadline);
+        // Step 2–4 — One uniform receive loop over the whole message stream.
+        //
+        // MAP_CHANGE and the first MAP_DATA chunk(s) routinely arrive in the SAME
+        // datagram: DDNet/fng servers bundle MAP_CHANGE + the map + CON_READY in
+        // one burst, and fast-download servers push a whole window of chunks right
+        // behind MAP_CHANGE.  Returning the instant MAP_CHANGE is seen would
+        // discard every later message in that batch — including the bundled
+        // MAP_DATA — leaving the download stalled at zero bytes (the live
+        // fng-class symptom).  We therefore process every message of every batch
+        // in order, handling MAP_CHANGE and MAP_DATA as they come.
+        $haveMapChange = false;
+        $mapCrc        = 0;
+        $mapSize       = 0;
+        $mapSha256     = null;
+        $payload       = '';
+        $expectedChunk = 0;
+        $stallDeadline = $now + self::STALL_WINDOW_MS;
 
-        // Step 3–4 — Request chunks and collect MAP_DATA until done.
-        $payload = $this->receiveChunks($mapCrc, $mapSize, $deadline);
+        while (true) {
+            $now       = hrtime(true) / 1_000_000;
+            $remaining = (int) min($deadline - $now, $stallDeadline - $now);
 
-        // Step 5 — Integrity checks.
-        $this->verifyIntegrity($payload, $mapSize, $mapCrc, $mapSha256, $expectedSha256, $expectedCrc);
+            if ($remaining <= 0) {
+                if (!$haveMapChange) {
+                    throw new MapDownloadFailed('Timeout waiting for NETMSG_MAP_CHANGE');
+                }
+                if ($stallDeadline - $now <= 0) {
+                    throw new MapDownloadFailed('Timeout during map data transfer (no progress)');
+                }
+                throw new MapDownloadFailed('Timeout during map data transfer');
+            }
 
-        $this->conn->disconnect();
+            $messages = $this->conn->receive((int) min($remaining, 200));
 
-        return $payload;
+            foreach ($messages as $msg) {
+                if (!$haveMapChange) {
+                    $parsed = $this->parseMapChange($msg);
+                    if ($parsed === null) {
+                        // Before MAP_CHANGE, ignore everything else.  We cannot
+                        // validate a MAP_DATA chunk without the announced crc/size,
+                        // and the reliable layer guarantees MAP_CHANGE is delivered
+                        // before its data chunks.
+                        continue;
+                    }
+
+                    [, $mapCrc, $mapSize, $mapSha256] = $parsed;
+                    $haveMapChange = true;
+                    $payload       = '';
+                    $expectedChunk = 0;
+                    $stallDeadline = hrtime(true) / 1_000_000 + self::STALL_WINDOW_MS;
+
+                    // Drive the transfer by requesting chunk 0, mirroring the DDNet
+                    // client which sends REQUEST_MAP_DATA(0) immediately on
+                    // MAP_CHANGE.  Servers that already pushed chunk 0 in this same
+                    // burst simply ignore the duplicate request; servers that wait
+                    // for a request need it.
+                    $this->sendRequestMapData(0);
+
+                    continue;
+                }
+
+                $chunk = $this->parseMapData($msg);
+                if ($chunk === null) {
+                    continue;
+                }
+
+                ['last' => $last, 'chunk' => $idx, 'data' => $data] = $chunk;
+
+                // Ignore chunks outside the expected sequence position (duplicates
+                // or overlap from the server's previous send window).
+                if ($idx !== $expectedChunk) {
+                    continue;
+                }
+
+                $payload      .= $data;
+                $expectedChunk++;
+                $stallDeadline = hrtime(true) / 1_000_000 + self::STALL_WINDOW_MS;
+
+                if ($last === 1 || strlen($payload) >= $mapSize) {
+                    // Step 5 — Integrity checks, then close.
+                    $this->verifyIntegrity($payload, $mapSize, $mapCrc, $mapSha256, $expectedSha256, $expectedCrc);
+                    $this->conn->disconnect();
+
+                    return $payload;
+                }
+
+                // Advance the window: request the next chunk (drives both the
+                // vanilla per-chunk flow and DDNet fast-download windowing).
+                $this->sendRequestMapData($expectedChunk);
+            }
+        }
     }
 
     // -----------------------------------------------------------------------
@@ -171,35 +260,8 @@ final class MapDownloadSession
     }
 
     // -----------------------------------------------------------------------
-    // Receive MAP_CHANGE
+    // Parse MAP_CHANGE
     // -----------------------------------------------------------------------
-
-    /**
-     * Poll receive() until a NETMSG_MAP_CHANGE arrives.
-     *
-     * @return array{string, int, int, string|null}  [name, crc, size, sha256hex|null]
-     * @throws MapDownloadFailed on timeout or malformed message.
-     */
-    private function waitForMapChange(float $deadline): array
-    {
-        while (true) {
-            $remaining = (int) ($deadline - hrtime(true) / 1_000_000);
-            if ($remaining <= 0) {
-                throw new MapDownloadFailed('Timeout waiting for NETMSG_MAP_CHANGE');
-            }
-
-            $messages = $this->conn->receive((int) min($remaining, 200));
-
-            foreach ($messages as $msg) {
-                $parsed = $this->parseMapChange($msg);
-                if ($parsed !== null) {
-                    return $parsed;
-                }
-                // Other messages (e.g. CON_READY arriving before MAP_CHANGE is
-                // unlikely, but any non-MAP_CHANGE message is silently skipped).
-            }
-        }
-    }
 
     /**
      * Try to parse msg as NETMSG_MAP_CHANGE.
@@ -266,84 +328,8 @@ final class MapDownloadSession
     }
 
     // -----------------------------------------------------------------------
-    // Receive MAP_DATA chunks
+    // Request MAP_DATA
     // -----------------------------------------------------------------------
-
-    /**
-     * Request and collect MAP_DATA chunks until last==1 or size is reached.
-     *
-     * The 0.6 protocol is WINDOWED: the server sends SvMapWindow (default 15)
-     * chunks per client request, then waits.  The client must send a fresh
-     * REQUEST_MAP_DATA(expectedChunk) after EVERY accepted chunk to keep the
-     * server's send window advancing (mirroring ddnet client.cpp:1822-1825).
-     *
-     * Out-of-order or duplicate MAP_DATA chunks (chunk != expectedChunk) are
-     * silently ignored — they are overlap from the previous window and must not
-     * be appended or counted.
-     *
-     * Timeout policy: a stall deadline (STALL_WINDOW_MS) is reset on each
-     * accepted chunk so large maps can progress without hitting the overall cap.
-     * The download fails when EITHER the overall deadline OR the stall deadline
-     * expires with no progress.
-     *
-     * @throws MapDownloadFailed on timeout/stall or unexpected chunk order.
-     */
-    private function receiveChunks(int $mapCrc, int $mapSize, float $deadline): string
-    {
-        $payload       = '';
-        $expectedChunk = 0;
-        $now           = hrtime(true) / 1_000_000;
-        $stallDeadline = $now + self::STALL_WINDOW_MS;
-
-        // Send the first request for chunk 0.
-        $this->sendRequestMapData($expectedChunk);
-
-        while (true) {
-            $now       = hrtime(true) / 1_000_000;
-            $remaining = (int) min($deadline - $now, $stallDeadline - $now);
-
-            if ($remaining <= 0) {
-                if ($stallDeadline - $now <= 0) {
-                    throw new MapDownloadFailed('Timeout during map data transfer (no progress)');
-                }
-                throw new MapDownloadFailed('Timeout during map data transfer');
-            }
-
-            $messages = $this->conn->receive((int) min($remaining, 200));
-
-            foreach ($messages as $msg) {
-                $chunk = $this->parseMapData($msg);
-                if ($chunk === null) {
-                    // Not a MAP_DATA message — skip silently.
-                    continue;
-                }
-
-                ['last' => $last, 'crc' => $crc, 'chunk' => $idx, 'data' => $data] = $chunk;
-
-                // Ignore chunks that don't match the expected sequence position.
-                // These are either duplicates or overlap from the server's previous
-                // send window (server.cpp:1751 sends SvMapWindow chunks ahead).
-                if ($idx !== $expectedChunk) {
-                    continue;
-                }
-
-                $payload .= $data;
-                $received  = strlen($payload);
-
-                // Reset stall clock — we just made progress.
-                $stallDeadline = hrtime(true) / 1_000_000 + self::STALL_WINDOW_MS;
-
-                if ($last === 1 || $received >= $mapSize) {
-                    return $payload;
-                }
-
-                // Advance expected chunk and send a fresh request (per-chunk
-                // re-request is what drives the server's window forward in 0.6).
-                $expectedChunk++;
-                $this->sendRequestMapData($expectedChunk);
-            }
-        }
-    }
 
     private function sendRequestMapData(int $chunk): void
     {

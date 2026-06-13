@@ -190,6 +190,43 @@ class GameConnectionTest extends TestCase
     }
 
     // -----------------------------------------------------------------------
+    // Test 1b — DDNet flavor uses the 0.6 classic handshake (regression)
+    //
+    // DDNet (and DDNet-derived fng) servers are 0.6-based and reject 0.7
+    // connections.  A DDNet-flavored connection must therefore drive the classic
+    // 0.6 CONNECT/CONNECTACCEPT/ACCEPT handshake — not the 0.7 token request.
+    // The old isSixup() treated FLAVOR_DDNET as sixup, which made every DDNet/fng
+    // map download fail with "0.7 connections are not accepted at this time".
+    // -----------------------------------------------------------------------
+
+    public function test_ddnet_flavor_uses_06_handshake(): void
+    {
+        $transport = new FakeUdpTransport();
+        $securityToken = 0x0A0B0C0D;
+        $serverIp = '127.0.0.1';
+        $serverPort = 8303;
+
+        // A 0.6 CONNECTACCEPT must be enough to reach ONLINE — proving the
+        // connection spoke 0.6, not 0.7 (a sixup connection would have sent a
+        // token request and ignored this 0.6 packet).
+        $transport->queue($serverIp, $serverPort, $this->make06ConnectAcceptPacket($securityToken));
+
+        $conn = new GameConnection($transport, $serverIp, $serverPort, 'ddnet');
+        $conn->connect(2000);
+
+        $this->assertTrue($conn->isOnline(), 'DDNet connection must reach ONLINE via the 0.6 handshake');
+
+        // First sent datagram must be a 0.6 CONNECT (CONTROL + TKEN magic),
+        // NOT a 0.7 token request.
+        $connectPkt = $this->codec->unpack($transport->sent[0]['data'], false);
+        $this->assertSame(PacketCodec::FLAG_CONTROL, $connectPkt['flags'] & PacketCodec::FLAG_CONTROL);
+        $ctrl = ControlMessages::parse($connectPkt['control']);
+        $this->assertSame(ControlMessages::CONNECT, $ctrl['ctrlMsg'], 'DDNet must send a 0.6 CONNECT');
+        $this->assertStringStartsWith(ControlMessages::SECURITY_TOKEN_MAGIC, $ctrl['extra'],
+            'DDNet 0.6 CONNECT must carry TKEN magic');
+    }
+
+    // -----------------------------------------------------------------------
     // Test 2 — 0.7 handshake
     // -----------------------------------------------------------------------
 
