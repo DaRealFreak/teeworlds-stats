@@ -258,7 +258,7 @@ class MapFileAcquisitionTest extends TestCase
     {
         Storage::fake('local');
 
-        $payload = 'FAKEMAPBYTES';
+        $payload = "DATA" . str_repeat('M', 40); // valid datafile: 'DATA' magic + ≥36 bytes
         $crc     = crc32($payload);
         $crcHex  = sprintf('%08x', $crc & 0xFFFFFFFF);
 
@@ -366,6 +366,67 @@ class MapFileAcquisitionTest extends TestCase
 
         // Verify no file was written.
         Storage::disk('local')->assertMissing('maps/../etc.map');
+    }
+
+    public function test_udp_downloads_a_keyless_map_when_name_matches(): void
+    {
+        $payload = "DATA" . str_repeat('K', 40);
+        $crc     = crc32($payload);
+
+        // Seeded inline rather than via seedHostedMap(), which sets a crc and would make the map
+        // no longer keyless — the whole point of this test is a map with neither sha256 nor crc.
+        $map    = Map::create(['name' => 'kobra']);
+        $mod    = Mod::create(['name' => 'dm']);
+        $server = Server::factory()->create(['version' => '0.6.4', 'flavor' => 'vanilla_06']);
+        ServerAddress::factory()->create([
+            'server_id' => $server->id, 'ip' => '1.2.3.4', 'port' => 8303,
+            'protocol' => 6, 'is_canonical' => true,
+        ]);
+        ServerHistory::create([
+            'weekday' => 1, 'hour' => 12, 'continuous' => true,
+            'server_id' => $server->id, 'map_id' => $map->id, 'mod_id' => $mod->id, 'minutes' => 10,
+        ]);
+
+        $conn = new FakeGameConnection();
+        $conn->enqueue([$this->buildMapChange('kobra', $crc, strlen($payload))]);
+        $conn->enqueue([$this->buildMapData(1, $crc, 0, $payload)]);
+
+        $source = new GameServerMapSource(connectionFactory: static fn () => $conn);
+
+        $this->assertSame($payload, $source->fetch($map));
+    }
+
+    public function test_udp_rejects_when_server_reports_a_different_map(): void
+    {
+        $payload = "DATA" . str_repeat('X', 40);
+        $crc     = crc32($payload);
+
+        [$map] = $this->seedHostedMap('dm1', sprintf('%08x', $crc & 0xFFFFFFFF));
+
+        // host has since swapped to 'ctf7' — name must not match 'dm1'
+        $conn = new FakeGameConnection();
+        $conn->enqueue([$this->buildMapChange('ctf7', $crc, strlen($payload))]);
+        $conn->enqueue([$this->buildMapData(1, $crc, 0, $payload)]);
+
+        $source = new GameServerMapSource(connectionFactory: static fn () => $conn);
+
+        $this->assertNull($source->fetch($map));
+    }
+
+    public function test_udp_rejects_non_datafile_bytes(): void
+    {
+        $payload = 'NOTADATAFILE-juststuff-0123456789012345'; // ≥36 bytes but no DATA/ATAD magic
+        $crc     = crc32($payload);
+
+        [$map] = $this->seedHostedMap('dm1', sprintf('%08x', $crc & 0xFFFFFFFF));
+
+        $conn = new FakeGameConnection();
+        $conn->enqueue([$this->buildMapChange('dm1', $crc, strlen($payload))]);
+        $conn->enqueue([$this->buildMapData(1, $crc, 0, $payload)]);
+
+        $source = new GameServerMapSource(connectionFactory: static fn () => $conn);
+
+        $this->assertNull($source->fetch($map));
     }
 }
 

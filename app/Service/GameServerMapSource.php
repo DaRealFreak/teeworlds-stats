@@ -54,11 +54,6 @@ final class GameServerMapSource implements MapSource
         $crcHex = $map->getAttribute('crc');
         $sha256 = $map->getAttribute('sha256');
 
-        // Nothing to verify against — skip.
-        if ($crcHex === null && $sha256 === null) {
-            return null;
-        }
-
         // Find the most recently seen server that was hosting this map.
         $history = ServerHistory::where('map_id', $map->getAttribute('id'))
             ->orderByDesc('updated_at')
@@ -105,11 +100,43 @@ final class GameServerMapSource implements MapSource
         $factory = $this->connectionFactory ?? $this->defaultFactory();
         $conn    = ($factory)($ip, $port, $flavor);
 
-        return (new MapDownloadSession($conn))->download(
+        $result = (new MapDownloadSession($conn))->downloadWithIdentity(
             expectedSha256: $sha256,
             expectedCrc: $expectedCrc,
             timeoutMs: $this->timeoutMs,
         );
+
+        // Name-match gate: the source picked a host from server_histories; if that host has since
+        // switched maps it answers with a different name, and archiving its bytes as this map would
+        // mislabel them. Reject the mismatch (the map is retried after the cooldown). Both sides are
+        // trimmed because the stored name may have been recorded from the DDNet HTTP feed while this
+        // name comes off the UDP MAP_CHANGE — tolerate that cross-source whitespace, not a real diff.
+        if (trim($result->name) !== trim((string) $map->getAttribute('name'))) {
+            return null;
+        }
+
+        // Datafile sanity: reject placeholder/troll content that is not a real Teeworlds map
+        // (mirrors resources/assets/js/map/datafile.ts: 'DATA'/'ATAD' magic, ≥36 bytes).
+        if (!$this->looksLikeMapDatafile($result->bytes)) {
+            return null;
+        }
+
+        return $result->bytes;
+    }
+
+    /**
+     * Whether the bytes are a Teeworlds map datafile: a 4-byte 'DATA'/'ATAD' magic and at least the
+     * 36-byte header (4 magic + 7×4 header ints). Guards against archiving placeholder maps a swapped
+     * host might still answer with.
+     */
+    private function looksLikeMapDatafile(string $bytes): bool
+    {
+        if (strlen($bytes) < 36) {
+            return false;
+        }
+        $magic = substr($bytes, 0, 4);
+
+        return $magic === 'DATA' || $magic === 'ATAD';
     }
 
     /**
