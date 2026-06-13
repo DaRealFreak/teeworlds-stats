@@ -48,9 +48,16 @@ final class SixInfoCodec
         $version = array_shift($fields);
         $name = array_shift($fields);
         $map = array_shift($fields);
+        $mapCrc = null;
         if ($extended) {
-            array_shift($fields); // mapCrc
-            array_shift($fields); // mapSize
+            $rawCrc = array_shift($fields); // mapCrc: decimal string (ADD_INT format)
+            array_shift($fields);           // mapSize: not needed here (MAP_CHANGE provides it)
+            // Normalize decimal → lower-case 8-hex. The & 0xFFFFFFFF mask treats the 32-bit value
+            // as unsigned, so signed representations from C int32 (e.g. -559038737 = 0xDEADBEEF)
+            // round-trip correctly. Non-numeric or blank fields produce null.
+            if ($rawCrc !== null && $rawCrc !== '' && is_numeric($rawCrc)) {
+                $mapCrc = sprintf('%08x', ((int) $rawCrc) & 0xFFFFFFFF);
+            }
         }
         $gametype = array_shift($fields);
         array_shift($fields);               // flags
@@ -72,6 +79,7 @@ final class SixInfoCodec
             maxPlayers: $maxPlayers,
             maxClients: $maxClients,
             clients: $this->parseClients($fields, $extended),
+            mapCrc: $mapCrc,
         );
     }
 

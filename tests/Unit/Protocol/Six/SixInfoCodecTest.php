@@ -82,6 +82,127 @@ class SixInfoCodecTest extends TestCase
         $this->assertCount(1, $packet->clients);
         $this->assertSame('carol', $packet->clients[0]->name);
         $this->assertTrue($packet->clients[0]->isPlayer);
+        // mapCrc '999' decimal → 8-hex '000003e7'
+        $this->assertSame('000003e7', $packet->mapCrc);
+    }
+
+    public function test_iext_map_crc_is_normalized_to_8hex(): void
+    {
+        // 0xDEADBEEF = 3735928559 decimal — tests that the full 32-bit unsigned range works
+        $payload = $this->payload([
+            '1',                    // token
+            '0.6.4',                // version
+            'Test',                 // name
+            'test_map',             // map
+            '3735928559',           // mapCrc (0xDEADBEEF as unsigned decimal)
+            '1024',                 // mapSize
+            'dm',                   // gametype
+            '0',                    // flags
+            '0',                    // numPlayers
+            '16',                   // maxPlayers
+            '0',                    // numClients
+            '16',                   // maxClients
+            '',                     // reserved
+        ]);
+
+        $packet = (new SixInfoCodec())->parse($payload, SixConnless::INFO_EXTENDED);
+
+        $this->assertNotNull($packet);
+        $this->assertSame('deadbeef', $packet->mapCrc);
+    }
+
+    public function test_iext_negative_decimal_crc_is_normalized_as_unsigned_32bit(): void
+    {
+        // -559038737 signed = 0xDEADBEEF unsigned (how a C int32 can arrive on the wire)
+        $payload = $this->payload([
+            '1',                    // token
+            '0.6.4',                // version
+            'Test',                 // name
+            'test_map',             // map
+            '-559038737',           // mapCrc (0xDEADBEEF as signed int32 decimal)
+            '1024',                 // mapSize
+            'dm',                   // gametype
+            '0',                    // flags
+            '0',                    // numPlayers
+            '16',                   // maxPlayers
+            '0',                    // numClients
+            '16',                   // maxClients
+            '',                     // reserved
+        ]);
+
+        $packet = (new SixInfoCodec())->parse($payload, SixConnless::INFO_EXTENDED);
+
+        $this->assertNotNull($packet);
+        $this->assertSame('deadbeef', $packet->mapCrc);
+    }
+
+    public function test_iext_blank_crc_field_yields_null_map_crc(): void
+    {
+        $payload = $this->payload([
+            '1',                    // token
+            '0.6.4',                // version
+            'Test',                 // name
+            'test_map',             // map
+            '',                     // mapCrc (blank)
+            '1024',                 // mapSize
+            'dm',                   // gametype
+            '0',                    // flags
+            '0',                    // numPlayers
+            '16',                   // maxPlayers
+            '0',                    // numClients
+            '16',                   // maxClients
+            '',                     // reserved
+        ]);
+
+        $packet = (new SixInfoCodec())->parse($payload, SixConnless::INFO_EXTENDED);
+
+        $this->assertNotNull($packet);
+        $this->assertNull($packet->mapCrc);
+    }
+
+    public function test_iext_garbage_crc_field_yields_null_map_crc(): void
+    {
+        $payload = $this->payload([
+            '1',                    // token
+            '0.6.4',                // version
+            'Test',                 // name
+            'test_map',             // map
+            'notanumber',           // mapCrc (garbage non-numeric)
+            '1024',                 // mapSize
+            'dm',                   // gametype
+            '0',                    // flags
+            '0',                    // numPlayers
+            '16',                   // maxPlayers
+            '0',                    // numClients
+            '16',                   // maxClients
+            '',                     // reserved
+        ]);
+
+        $packet = (new SixInfoCodec())->parse($payload, SixConnless::INFO_EXTENDED);
+
+        $this->assertNotNull($packet);
+        $this->assertNull($packet->mapCrc);
+    }
+
+    public function test_inf3_non_extended_packet_has_null_map_crc(): void
+    {
+        $payload = $this->payload([
+            '7777',                 // token
+            '0.6.4',                // version
+            'My Server',            // name
+            'dm1',                  // map
+            'dm',                   // gametype
+            '0',                    // flags
+            '0',                    // numPlayers
+            '16',                   // maxPlayers
+            '0',                    // numClients
+            '16',                   // maxClients
+        ]);
+
+        $packet = (new SixInfoCodec())->parse($payload, SixConnless::INFO);
+
+        $this->assertNotNull($packet);
+        $this->assertNull($packet->mapCrc);
     }
 
     public function test_parses_an_iex_plus_continuation_as_clients_only(): void

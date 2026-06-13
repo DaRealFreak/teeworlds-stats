@@ -141,6 +141,7 @@ final class Teeworlds06Source
                     clients: $entry['clients'],
                     location: null,
                     flavor: FlavorClassifier::classify($header->version),
+                    mapCrc: $header->mapCrc,
                 );
             }
         }

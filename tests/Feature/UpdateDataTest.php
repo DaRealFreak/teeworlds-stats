@@ -63,6 +63,44 @@ class UpdateDataTest extends TestCase
         $this->app->instance(Teeworlds06Source::class, new Teeworlds06Source($transport, masters: [['ip' => $masterIp, 'port' => 8300]]));
     }
 
+    /**
+     * Like bindSixSourceWithServer but uses an iext extended-info packet carrying a known mapCrc.
+     * @param int $crcDecimal the crc value the server broadcasts as a decimal string (ADD_INT format)
+     */
+    private function bindSixSourceWithServerAndCrc(string $serverName, string $playerName, int $crcDecimal): void
+    {
+        $masterIp = '10.9.0.2';
+        $serverIp = '198.51.100.6';
+        $transport = new FakeUdpTransport();
+
+        $entry = "\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\xff\xff" . inet_pton($serverIp) . "\x20\x6f"; // :8303
+        $list = "\xff\xff\xff\xff\xff\xff\xff\xff\xff\xfflis2" . $entry;
+        // iext (INFO_EXTENDED) packet with mapCrc in position
+        $info = "\xff\xff\xff\xff\xff\xff\xff\xff\xff\xffiext" . implode("\x00", [
+            '1',                // token
+            '0.6.4',            // version
+            $serverName,        // name
+            'dm1',              // map
+            (string) $crcDecimal, // mapCrc (decimal, as sent by ADD_INT)
+            '512',              // mapSize
+            'dm',               // gametype
+            '0',                // flags
+            '1',                // numPlayers
+            '16',               // maxPlayers
+            '1',                // numClients
+            '16',               // maxClients
+            '',                 // reserved
+            $playerName, '', '0', '3', '1', '',  // client + reserved
+        ]) . "\x00";
+
+        $transport->queue($masterIp, 8300, $list);
+        $transport->queueGap();
+        $transport->queue($serverIp, 8303, $info);
+        $transport->queueGap();
+
+        $this->app->instance(Teeworlds06Source::class, new Teeworlds06Source($transport, masters: [['ip' => $masterIp, 'port' => 8300]]));
+    }
+
     private function bindSevenSourceWithPlayer(string $serverName, string $playerName): void
     {
         $masterIp = '10.9.0.1';
@@ -250,5 +288,34 @@ class UpdateDataTest extends TestCase
         $this->artisan('data:update')->assertSuccessful();
 
         $this->assertDatabaseHas('maps', ['name' => 'dm1', 'sha256' => str_repeat('b', 64), 'size' => 999]);
+    }
+
+    public function test_a_06_iext_sighting_populates_maps_crc(): void
+    {
+        // 0xDEADBEEF = 3735928559 decimal; normalized hex = 'deadbeef'
+        Http::fake(['master1.ddnet.org/*' => Http::response('{"servers":[]}', 200)]);
+        $this->bindEmptySevenSource();
+        $this->bindSixSourceWithServerAndCrc('Vanilla 0.6 DM', 'Sixplayer', 3735928559);
+
+        $this->artisan('data:update')->assertSuccessful();
+
+        $this->assertDatabaseHas('maps', ['name' => 'dm1', 'crc' => 'deadbeef']);
+    }
+
+    public function test_a_06_iext_sighting_does_not_clobber_existing_ddnet_sha256(): void
+    {
+        // 'dm1' already carries a DDNet sha256; the iext crc must coexist, not clear sha256
+        Map::create(['name' => 'dm1', 'sha256' => str_repeat('c', 64), 'size' => 999]);
+
+        Http::fake(['master1.ddnet.org/*' => Http::response('{"servers":[]}', 200)]);
+        $this->bindEmptySevenSource();
+        $this->bindSixSourceWithServerAndCrc('Vanilla 0.6 DM', 'Sixplayer', 999);
+
+        $this->artisan('data:update')->assertSuccessful();
+
+        // crc is written
+        $this->assertDatabaseHas('maps', ['name' => 'dm1', 'crc' => '000003e7']);
+        // sha256 is NOT cleared
+        $this->assertDatabaseHas('maps', ['name' => 'dm1', 'sha256' => str_repeat('c', 64)]);
     }
 }

@@ -13,6 +13,8 @@ final class SixInfoPacket
 {
     /**
      * @param DiscoveredClient[] $clients
+     * @param ?string $mapCrc normalized 8-hex string (e.g. 'deadbeef'), or null when the iext crc
+     *                        field is absent (inf3 / iex+ continuations) or non-numeric
      */
     public function __construct(
         public readonly bool $hasHeader,
@@ -23,6 +25,7 @@ final class SixInfoPacket
         public readonly ?int $maxPlayers,
         public readonly ?int $maxClients,
         public readonly array $clients,
+        public readonly ?string $mapCrc = null,
     ) {
     }
 }
