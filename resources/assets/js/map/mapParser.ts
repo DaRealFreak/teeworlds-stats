@@ -1,7 +1,7 @@
 import { DataFile } from './datafile';
 import type { DataFileItem } from './datafile';
 import { decodeCString, decodeI32String } from './encoding';
-import { expandTiles } from './tiles';
+import { expandTiles, decodePhysicsTiles } from './tiles';
 import type {
     MapInfo,
     MapImage,
@@ -257,19 +257,28 @@ async function parseTilemapLayer(df: DataFile, item: DataFileItem): Promise<Tile
 
     const kind = tileKindFromFlags(flags);
     const dataRef = tileDataIndex(d, kind);
+    // tele/speedup/switch/tune store kind-specific structs (not 4-byte CTile, no skip-RLE).
+    const isSpecial = kind === 'tele' || kind === 'speedup' || kind === 'switch' || kind === 'tune';
 
-    let tiles;
+    let tiles: ReturnType<typeof expandTiles>;
+    let physics: import('./types').PhysicsMeta | undefined;
     if (dataRef >= 0) {
         const bytes = await df.getData(dataRef);
-        // Skip-RLE is used when tilemap version >= 4
-        tiles = expandTiles(bytes, width, height, version >= 4);
+        if (isSpecial) {
+            ({ tiles, physics } = decodePhysicsTiles(bytes, width, height, kind));
+        } else {
+            // Skip-RLE is used when tilemap version >= 4
+            tiles = expandTiles(bytes, width, height, version >= 4);
+        }
+    } else if (isSpecial) {
+        ({ tiles, physics } = decodePhysicsTiles(new Uint8Array(0), width, height, kind));
     } else {
-        // Physics-layer item too short to carry its kind-specific pointer (truncated map),
-        // or genuinely no data — produce an all-air layer without fetching any data block.
+        // Design/game item too short to carry its data pointer (truncated map), or genuinely
+        // no data — produce an all-air layer without fetching any data block.
         tiles = expandTiles(new Uint8Array(0), width, height, false);
     }
 
-    return { type: 'tilemap', kind, width, height, color, colorEnv, colorEnvOffset, image, name, tiles };
+    return { type: 'tilemap', kind, width, height, color, colorEnv, colorEnvOffset, image, name, tiles, physics };
 }
 
 // ---------------------------------------------------------------------------

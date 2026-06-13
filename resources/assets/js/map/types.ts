@@ -3,25 +3,19 @@ export interface Tile {
     flags: number;
     skip: number;
 }
-export interface TeleTile {
-    number: number;
-    id: number;
-}
-export interface SpeedupTile {
-    force: number;
-    maxSpeed: number;
-    id: number;
-    angle: number;
-}
-export interface SwitchTile {
-    number: number;
-    id: number;
-    flags: number;
-    delay: number;
-}
-export interface TuneTile {
-    number: number;
-    id: number;
+
+/**
+ * Per-cell metadata for the special physics layers (tele/speedup/switch/tune), parallel to
+ * `TileLayer.tiles`. Only the fields meaningful to a layer's kind are populated:
+ *   tele/tune → number; switch → number, delay; speedup → force, maxSpeed, angle.
+ * The base graphic for every kind is carried in `tiles[i].id` (the struct's m_Type).
+ */
+export interface PhysicsMeta {
+    number?: Uint8Array;
+    delay?: Uint8Array;
+    force?: Uint8Array;
+    maxSpeed?: Uint8Array;
+    angle?: Int16Array;
 }
 
 export type LayerKind = 'tiles' | 'game' | 'tele' | 'speedup' | 'front' | 'switch' | 'tune';
@@ -37,6 +31,7 @@ export interface TileLayer {
     image: number; // index into MapScene.images, -1 if none
     name: string;
     tiles: Tile[]; // always present (game/design/physics all decode their kind's data here)
+    physics?: PhysicsMeta; // present for tele/speedup/switch/tune layers; parallel to `tiles`
 }
 
 export interface Quad {
