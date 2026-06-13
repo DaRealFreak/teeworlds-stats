@@ -6,6 +6,7 @@ use App\Models\Map;
 use App\Service\MapArchiveStatus;
 use App\Service\MapArchiver;
 use App\Service\MapFileStore;
+use App\Service\MapFileUnavailable;
 use App\Service\MapSource;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Storage;
@@ -85,5 +86,38 @@ class MapArchiverTest extends TestCase
         $fresh = $map->fresh();
         $this->assertNotNull($fresh->last_archive_attempt_at);
         $this->assertSame($past->toDateTimeString(), $fresh->updated_at->toDateTimeString());
+    }
+
+    public function test_status_for_returns_queued_once_cooldown_has_elapsed(): void
+    {
+        Storage::fake('local');
+        $archiver = new MapArchiver();
+
+        // attempted well beyond the default 24h cooldown -> eligible again
+        $elapsed = Map::create([
+            'name' => 'elapsed',
+            'sha256' => str_repeat('a', 64),
+            'last_archive_attempt_at' => now()->subHours(25),
+        ]);
+
+        $this->assertSame(MapArchiveStatus::Queued, $archiver->statusFor($elapsed));
+    }
+
+    public function test_download_stamps_attempt_even_when_no_source_can_serve(): void
+    {
+        Storage::fake('local');
+        $map = Map::create(['name' => 'ghost', 'sha256' => str_repeat('a', 64)]);
+        $store = new MapFileStore([]); // no sources can serve it
+        $archiver = new MapArchiver($store);
+
+        try {
+            $archiver->download($map);
+            $this->fail('expected MapFileUnavailable');
+        } catch (MapFileUnavailable) {
+            // expected — the stamp must survive the failure so the map is parked for the cooldown
+        }
+
+        $this->assertNotNull($map->fresh()->last_archive_attempt_at);
+        $this->assertFalse($store->isCached($map->fresh()));
     }
 }

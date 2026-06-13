@@ -42,7 +42,8 @@ final class MapArchiver
     /**
      * Stamp the attempt, then download. Throws MapFileUnavailable when no source can serve the map,
      * which lets the queue job retry and ultimately fail — the stamp keeps the map parked for the
-     * cooldown window either way.
+     * cooldown window either way. The passed $map instance is not refreshed; callers re-inspecting
+     * status afterwards should reload it (e.g. $map->fresh()).
      */
     public function download(Map $map): void
     {
