@@ -78,7 +78,7 @@ class MapFileAcquisitionTest extends TestCase
         $store = new MapFileStore();
 
         $rel = $store->ensure($map);
-        $this->assertSame('maps/' . $sha . '.map', $rel);
+        $this->assertSame('maps/Kobra_4_' . $sha . '.map', $rel);
         Storage::disk('local')->assertExists($rel);
         $this->assertSame($body, Storage::disk('local')->get($rel));
 
@@ -117,12 +117,12 @@ class MapFileAcquisitionTest extends TestCase
         Storage::fake('local');
         $sha = str_repeat('c', 64);
         $map = Map::create(['name' => 'cached-map', 'sha256' => $sha]);
-        Storage::disk('local')->put('maps/' . $sha . '.map', 'PRELOADED');
+        Storage::disk('local')->put('maps/cached-map_' . $sha . '.map', 'PRELOADED');
 
         // empty sources array — if the cache-exists branch did not short-circuit, this would throw
         $rel = (new MapFileStore([]))->ensure($map);
 
-        $this->assertSame('maps/' . $sha . '.map', $rel);
+        $this->assertSame('maps/cached-map_' . $sha . '.map', $rel);
         $this->assertSame('PRELOADED', Storage::disk('local')->get($rel));
     }
 
@@ -287,7 +287,7 @@ class MapFileAcquisitionTest extends TestCase
         );
         $store2  = new MapFileStore([$source2]);
         $rel     = $store2->ensure($map);
-        $this->assertSame('maps/' . $crcHex . '.map', $rel);
+        $this->assertSame('maps/dm1_' . $crcHex . '.map', $rel);
         Storage::disk('local')->assertExists($rel);
         $this->assertSame($payload, Storage::disk('local')->get($rel));
     }
