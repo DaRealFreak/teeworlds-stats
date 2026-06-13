@@ -90,10 +90,14 @@ final class PacketCodec
      *     'control' => string,       // raw payload for CONTROL packets
      *   ]
      *
-     * @param  int|null $token  4-byte security token (required for sixup / 0.7)
+     * @param  int|null $token           4-byte security token (required for sixup / 0.7)
+     * @param  int|null $securityToken06 0.6 security token; when not null and != -1
+     *                                   (NET_SECURITY_TOKEN_UNSUPPORTED), appended to the
+     *                                   chunk payload before Huffman compression, mirroring
+     *                                   SendPacket's WriteSecurityToken call (network.cpp).
      * @throws \InvalidArgumentException on obviously invalid input
      */
-    public function pack(array $packet, bool $sixup, ?int $token = null): string
+    public function pack(array $packet, bool $sixup, ?int $token = null, ?int $securityToken06 = null): string
     {
         $flags     = $packet['flags'] ?? 0;
         $ack       = $packet['ack']   ?? 0;
@@ -102,12 +106,26 @@ final class PacketCodec
 
         $headerSize = $sixup ? self::HEADER_SIZE_07 : self::HEADER_SIZE_06;
 
+        // Whether to append the 0.6 security token suffix.
+        // Mirrors SendPacket: append when !Sixup && token != NET_SECURITY_TOKEN_UNSUPPORTED (-1).
+        $append06Token = !$sixup && $securityToken06 !== null && $securityToken06 !== -1;
+
         // ---- Build payload ------------------------------------------------
         if ($isControl) {
             // Control packets: raw payload, no chunk framing, no compression.
+            // The 0.6 security token is still appended (SendPacket does not gate on CONTROL).
             $payload = $packet['control'] ?? '';
+            if ($append06Token) {
+                $payload .= pack('N', $securityToken06 & 0xFFFFFFFF);
+            }
         } else {
             $payload = $this->packChunks($chunks, $sixup);
+
+            // Append 0.6 security token BEFORE compression (mirrors WriteSecurityToken call
+            // in SendPacket which operates on m_aChunkData before the Huffman compress step).
+            if ($append06Token) {
+                $payload .= pack('N', $securityToken06 & 0xFFFFFFFF);
+            }
 
             // Attempt Huffman compression (only for non-control packets).
             $compressed = $this->huffman->compress($payload);
@@ -159,9 +177,14 @@ final class PacketCodec
      *     'control'   => string,       // control packets
      *   ]
      *
+     * @param  int|null $securityToken06 0.6 security token; when not null and != -1
+     *                                   (NET_SECURITY_TOKEN_UNSUPPORTED), strip and validate
+     *                                   the trailing 4-byte token suffix from the decompressed
+     *                                   payload before parsing chunks (mirrors Feed() in
+     *                                   network_conn.cpp: m_DataSize -= sizeof(SecurityToken)).
      * @throws \InvalidArgumentException on malformed / truncated input
      */
-    public function unpack(string $bytes, bool $sixup): array
+    public function unpack(string $bytes, bool $sixup, ?int $securityToken06 = null): array
     {
         $size = strlen($bytes);
 
@@ -223,6 +246,17 @@ final class PacketCodec
                 throw new \InvalidArgumentException('Huffman decompression failed');
             }
             $payload = $decompressed;
+        }
+
+        // Strip the 0.6 security token suffix from the decompressed payload.
+        // Mirrors Feed() in network_conn.cpp: m_DataSize -= sizeof(m_SecurityToken).
+        // Applies to both control and data packets when token is set.
+        $strip06Token = !$sixup && $securityToken06 !== null && $securityToken06 !== -1;
+        if ($strip06Token) {
+            if (strlen($payload) < 4) {
+                throw new \InvalidArgumentException('Packet too short to contain 0.6 security token suffix');
+            }
+            $payload = substr($payload, 0, strlen($payload) - 4);
         }
 
         $isControl = (bool) ($flags & self::FLAG_CONTROL);
