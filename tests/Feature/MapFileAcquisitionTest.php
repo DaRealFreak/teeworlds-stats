@@ -252,7 +252,7 @@ class MapFileAcquisitionTest extends TestCase
     /**
      * UDP download success via fake factory.
      * Seeds a crc-only map with a server_history → fake connection scripts MAP_CHANGE + MAP_DATA
-     * → fetch() returns the bytes; MapFileStore caches at maps/<crc>.map.
+     * → fetch() returns the bytes; MapFileStore caches at maps/<name>_<crc>.map.
      */
     public function test_udp_download_success_via_fake_factory(): void
     {
