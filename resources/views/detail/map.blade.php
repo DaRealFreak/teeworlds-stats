@@ -19,6 +19,7 @@
                     </div>
                     <div class="map-viewer__controls">
                         <button type="button" id="mapFit" class="btn btn-sm btn-secondary">Fit</button>
+                        <button type="button" id="mapActual" class="btn btn-sm btn-secondary" title="Original size (1:1)">1:1</button>
                         <label class="map-viewer__slider" for="mapEntities">Entities
                             <input type="range" id="mapEntities" min="0" max="100" value="0" step="1">
                         </label>
@@ -57,8 +58,10 @@
             }).then(function (viewer) {
                 if (!viewer) return;
                 var fit = document.getElementById('mapFit');
+                var actual = document.getElementById('mapActual');
                 var ent = document.getElementById('mapEntities');
                 if (fit) fit.addEventListener('click', function () { viewer.fit(); });
+                if (actual) actual.addEventListener('click', function () { viewer.actualSize(); });
                 if (ent) ent.addEventListener('input', function () {
                     viewer.setEntitiesOpacity(Number(ent.value) / 100);
                 });

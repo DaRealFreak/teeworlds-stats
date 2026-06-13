@@ -192,6 +192,12 @@ export class MapViewer {
         this.requestRender();
     }
 
+    /** Reset to the tileset's native scale — 1 tile = its authored pixel size (1024/16) — in place. */
+    actualSize(): void {
+        this.camera.zoom = 64;
+        this.requestRender();
+    }
+
     /** Set the entities-overlay strength (0 = design only, 1 = entities only). */
     setEntitiesOpacity(opacity: number): void {
         this.entitiesOpacity = Math.max(0, Math.min(1, opacity));
