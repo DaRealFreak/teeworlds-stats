@@ -13,10 +13,12 @@ nobody opens are never archived. We want to archive **as many maps as possible**
 only maps we do not already have, **without** coupling that work to the stats scrape, and we want
 to see each map's archive state directly on the website.
 
-`MapFileStore::ensure(Map)` is already idempotent: it keys files by content identity
-(`maps/<sha256|crc>.map` on the `local` disk), checks existence first, and only downloads on a
-miss. So "only download what we don't have" is already the store's behaviour — the work is
-driving it over the right set of maps, off the scrape thread, and surfacing the state.
+`MapFileStore::ensure(Map)` is already idempotent: it keys files by content identity (the
+`sha256`, or `crc` for UDP maps), checks existence first, and only downloads on a miss. So "only
+download what we don't have" is already the store's behaviour — the work is driving it over the
+right set of maps, off the scrape thread, and surfacing the state. We also make the cached
+**filename human-readable** (`maps/<name>_<hash>.map`) so the archive can be browsed on disk
+without a database lookup (see *Filename scheme*).
 
 ## Goals
 
@@ -54,6 +56,8 @@ Settled during brainstorming:
    per-map `last_archive_attempt_at` **cooldown** that gates re-enqueue so persistent failures
    don't churn.
 6. **Status badge:** four states — Downloaded / Queued / Retrying / Unavailable.
+7. **Filename scheme:** cache files as `maps/<sanitized-name>_<sha256|crc>.map` (the hash stays the
+   authoritative key); a one-off migration renames existing `<hash>.map` files.
 
 ## Architecture
 
@@ -99,24 +103,57 @@ No success/`archived_at` column — successful archival is proven by the file ex
 
 ## Components
 
-### `MapFileStore::isCached(Map): bool`
+### Filename scheme — `maps/<name>_<hash>.map`
 
-Expose the store's existing key→path existence check so the archiver, the job and the badge ask in
-one place (and don't duplicate the path-traversal/hex-key guard):
+Cache files are named `maps/<sanitized-name>_<sha256|crc>.map`, mirroring DDNet's own
+`name_sha256.map` convention (`DdnetHttpMapSource` already builds the *URL* that way). The
+**hash remains the authoritative key** — it carries uniqueness, content-addressing (identical
+content → one file), version coexistence, and the path-traversal guard. The name is a best-effort,
+filesystem-safe, human-readable prefix only; lookup never parses the filename back — it is always
+reconstructed from the `Map` row, so any lossiness in the slug is harmless.
+
+The single source of truth for the path becomes a **public** `relativePathFor(Map): ?string`
+(promoted from the old inline logic), reused by `ensure()`, `isCached()` and the rename migration:
 
 ```php
-public function isCached(Map $map): bool
+public function relativePathFor(Map $map): ?string
 {
     $key = $map->getAttribute('sha256') ?? $map->getAttribute('crc');
-    if ($key === null || !ctype_xdigit($key)) {
-        return false;
+    if ($key === null || !ctype_xdigit($key)) {   // hex-only key: the traversal guard
+        return null;
     }
-    return Storage::disk($this->disk)->exists('maps/' . $key . '.map');
+    $slug = $this->nameSlug((string) $map->getAttribute('name'));
+    $prefix = $slug === '' ? '' : $slug . '_';     // all-unsafe name -> hash-only filename
+    return 'maps/' . $prefix . $key . '.map';
+}
+
+private function nameSlug(string $name): string
+{
+    // Whitelist keeps out '/', '.' and '..', so the slug can never escape maps/. The dash is
+    // last in the class so 0-9-_ is not read as a range. Lossy by design; the hash disambiguates.
+    $slug = preg_replace('/[^A-Za-z0-9_-]+/', '_', $name);
+    return rtrim(substr(trim($slug, '_'), 0, 64), '_');
+}
+
+public function isCached(Map $map): bool
+{
+    $relative = $this->relativePathFor($map);
+    return $relative !== null && Storage::disk($this->disk)->exists($relative);
 }
 ```
 
-`ensure()` is refactored to reuse the same key/guard logic (extract a private
-`cachedRelativePath(Map): ?string`) so there is exactly one definition of the path and its guard.
+`ensure()` is refactored to call `relativePathFor()` (replacing its inline
+`$key`/`ctype_xdigit`/`'maps/' . $key . '.map'` block), so there is exactly one definition of the
+path and its guard.
+
+### Migration — rename existing cache files
+
+A one-off migration renames legacy `maps/<hash>.map` files to the new scheme (5 such files exist
+today; each environment renames its own). It lists files in `maps/` matching the legacy hash-only
+pattern, finds the `Map` whose `sha256` or `crc` equals that key, and moves the file to
+`relativePathFor($map)` (reusing the store's path builder — no duplicated slug logic). It is
+idempotent (skips files already in the new format or whose target exists) and leaves orphan files
+(no matching `Map`) untouched. `down()` is a no-op — the cache is regenerable.
 
 ### `Map::scopeNeedsArchiving`
 
@@ -362,7 +399,7 @@ Worker burst params (`--max-time`, cadence) live in the schedule definition.
    up to the enqueue limit.
 3. The scheduled `queue:work` burst (every 5 min) drains the `maps` queue: each job calls
    `MapArchiver::download` = stamp `last_archive_attempt_at` (no `updated_at` bump) + `ensure`
-   (HTTP then UDP), writing `maps/<key>.map` on success; on failure it retries per `backoff`, then
+   (HTTP then UDP), writing `maps/<name>_<key>.map` on success; on failure it retries per `backoff`, then
    lands in `failed_jobs`.
 4. `GET /maps` renders each row's badge from `MapArchiver::statusFor`, reading on-disk existence +
    `last_archive_attempt_at` + cooldown.
@@ -380,6 +417,11 @@ Worker burst params (`--max-time`, cadence) live in the schedule definition.
 - **Unavailable map (no identity):** excluded by `needsArchiving`; shown as `Unavailable`.
 - **File deleted off disk after success:** the existence check drives both the badge and (after
   cooldown) re-enqueue — the filesystem stays the source of truth, so it self-heals.
+- **Hostile / unprintable map name:** the slug whitelist (`[^A-Za-z0-9_-]`) strips `/`, `.`, spaces
+  and control/unicode chars, so the path can't escape `maps/`. A name that sanitizes to empty falls
+  back to a hash-only `maps/<hash>.map` filename — correct, just not human-readable for that map.
+- **Legacy `<hash>.map` files:** renamed in place by the one-off migration; `ensure`/`isCached`
+  only ever look at the new path, so no dual-read logic lingers in the store.
 - **Burst overrun:** `--max-time=240` + `withoutOverlapping()` keep a burst inside its 5-min window;
   unfinished work resumes next burst.
 - **Kill switch off:** `maps:archive-enqueue` returns early (no dispatch); the badge still renders
@@ -398,6 +440,12 @@ Worker burst params (`--max-time`, cadence) live in the schedule definition.
   not for cooldown / already-cached / unavailable maps, and honours `MAP_ARCHIVE_ENQUEUE_LIMIT`.
   (Job uniqueness itself is framework behaviour; selection logic is what we assert.)
 - **Feature — `GET /maps`:** renders the correct badge for one map of each of the four states.
+- **Unit — `MapFileStore::relativePathFor` / filename slug:** a normal name yields
+  `maps/<slug>_<key>.map`; a name with `/`, spaces, dots and unicode is sanitized (no traversal,
+  no `..`); an all-unsafe name falls back to `maps/<key>.map`; a non-hex/absent key returns null.
+- **Feature — rename migration (`Storage::fake('local')`):** a seeded legacy `maps/<key>.map` is
+  moved to `maps/<slug>_<key>.map`; an orphan file (no matching `Map`) is left untouched; re-running
+  is a no-op.
 
 No test performs real HTTP or UDP — sources are faked and the disk is `Storage::fake('local')`.
 `phpunit.xml` already keeps `QUEUE_CONNECTION` at its test default; `Queue::fake()` / direct
@@ -413,13 +461,17 @@ No test performs real HTTP or UDP — sources are faked and the disk is `Storage
 - `database/migrations/XXXX_create_jobs_table.php`
 - `database/migrations/XXXX_create_failed_jobs_table.php`
 - `database/migrations/XXXX_add_last_archive_attempt_at_to_maps_table.php`
+- `database/migrations/XXXX_rename_cached_map_files_with_name_prefix.php`
 - `tests/Unit/Service/MapArchiveStatusTest.php`
+- `tests/Unit/Service/MapFileStorePathTest.php`
 - `tests/Feature/ArchiveMapJobTest.php`
 - `tests/Feature/EnqueueMapArchiveJobsTest.php`
 - `tests/Feature/MapListBadgeTest.php`
+- `tests/Feature/RenameCachedMapFilesTest.php`
 
 **Edited**
-- `app/Service/MapFileStore.php` — add `isCached`, extract shared key/path helper
+- `app/Service/MapFileStore.php` — public `relativePathFor` (name-prefixed scheme) + `nameSlug`,
+  `isCached`; `ensure` reuses `relativePathFor`
 - `app/Models/Map.php` — `scopeNeedsArchiving`
 - `app/Http/Controllers/MainController.php` — `maps()` builds `$statuses`
 - `resources/views/list/maps.blade.php` — Archive column + badge
