@@ -35,4 +35,11 @@ describe('Camera', () => {
         expect(cam.zoom).toBeLessThanOrEqual(800 / 50);
         expect(cam.zoom).toBeCloseTo(15.2, 5);
     });
+    it('fitZoomFor matches the zoom fitBounds applies (and clamps to [1,256])', () => {
+        const cam = new Camera(800, 600);
+        expect(cam.fitZoomFor(50, 30)).toBeCloseTo(15.2, 5);
+        // a huge box clamps to the minimum zoom, a tiny one to the maximum
+        expect(cam.fitZoomFor(100000, 100000)).toBe(1);
+        expect(cam.fitZoomFor(0.001, 0.001)).toBe(256);
+    });
 });

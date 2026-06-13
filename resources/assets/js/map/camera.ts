@@ -33,11 +33,16 @@ export class Camera {
         this.center = [this.center[0] - dx / this.zoom, this.center[1] - dy / this.zoom];
     }
 
+    /** The zoom (px/tile) at which a w×h world box fills the view, with a small margin. */
+    fitZoomFor(w: number, h: number): number {
+        const ww = Math.max(1e-6, w);
+        const hh = Math.max(1e-6, h);
+        return Math.max(1, Math.min(256, Math.min(this.viewW / ww, this.viewH / hh) * 0.95));
+    }
+
     /** Center on a world box and zoom to contain it (with a small margin). */
     fitBounds(x0: number, y0: number, x1: number, y1: number): void {
-        const w = Math.max(1e-6, x1 - x0);
-        const h = Math.max(1e-6, y1 - y0);
         this.center = [(x0 + x1) / 2, (y0 + y1) / 2];
-        this.zoom = Math.max(1, Math.min(256, Math.min(this.viewW / w, this.viewH / h) * 0.95));
+        this.zoom = this.fitZoomFor(x1 - x0, y1 - y0);
     }
 }

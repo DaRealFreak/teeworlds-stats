@@ -25,6 +25,9 @@ const TELE_OUT_TYPES = new Set([27, 30]); // TELEOUT, TELECHECKOUT
 const CLICK_MAX_MOVE_PX = 5;
 const CLICK_MAX_MS = 400;
 
+/** Native tileset scale: a 1024px tileset has 64px cells, so 1 tile = 64 CSS px ("actual size"). */
+const NATIVE_ZOOM = 64;
+
 /** Identifies a drawable layer batch. */
 interface LayerBatch {
     groupIndex: number;
@@ -90,6 +93,7 @@ export class MapViewer {
     private teleLayer: TileLayer | null = null;
     private readonly highlightBatches = new Map<string, Float32Array>();
     private pulse: PulseTarget | null = null;
+    private zoomListener: ((fraction: number) => void) | null = null;
 
     private gameW = 0;
     private gameH = 0;
@@ -167,6 +171,7 @@ export class MapViewer {
             const factor = e.deltaY < 0 ? 1.1 : 1 / 1.1;
             this.camera.zoomAt(e.offsetX, e.offsetY, factor);
             this.requestRender();
+            this.notifyZoom();
         };
 
         canvas.addEventListener('pointerdown', this.onPointerDown);
@@ -190,12 +195,42 @@ export class MapViewer {
     fit(): void {
         this.camera.fitBounds(0, 0, this.gameW, this.gameH);
         this.requestRender();
+        this.notifyZoom();
     }
 
-    /** Reset to the tileset's native scale — 1 tile = its authored pixel size (1024/16) — in place. */
-    actualSize(): void {
-        this.camera.zoom = 64;
+    /**
+     * Set zoom from a 0..1 slider position spanning fit-the-whole-map (0) to the tileset's
+     * native scale (1, 1 tile = its authored 64px). Log-interpolated so the steps feel even.
+     */
+    setZoomFraction(fraction: number): void {
+        const { lo, hi } = this.zoomBounds();
+        const f = Math.max(0, Math.min(1, fraction));
+        this.camera.zoom = hi > lo ? lo * Math.pow(hi / lo, f) : lo;
         this.requestRender();
+        this.notifyZoom();
+    }
+
+    /** The current zoom as a 0..1 fraction over the fit↔native range (clamped). */
+    getZoomFraction(): number {
+        const { lo, hi } = this.zoomBounds();
+        if (hi <= lo) return 0;
+        return Math.max(0, Math.min(1, Math.log(this.camera.zoom / lo) / Math.log(hi / lo)));
+    }
+
+    /** Register a listener notified (immediately, then on every zoom change) with the 0..1 fraction. */
+    setZoomChangeListener(cb: (fraction: number) => void): void {
+        this.zoomListener = cb;
+        cb(this.getZoomFraction());
+    }
+
+    /** Slider bounds: fit-the-game-layer zoom and the native 64px/tile, low→high. */
+    private zoomBounds(): { lo: number; hi: number } {
+        const fit = this.camera.fitZoomFor(this.gameW || 1, this.gameH || 1);
+        return { lo: Math.min(fit, NATIVE_ZOOM), hi: Math.max(fit, NATIVE_ZOOM) };
+    }
+
+    private notifyZoom(): void {
+        this.zoomListener?.(this.getZoomFraction());
     }
 
     /** Set the entities-overlay strength (0 = design only, 1 = entities only). */
@@ -253,6 +288,7 @@ export class MapViewer {
             this.camera.fitBounds(0, 0, this.gameW, this.gameH);
         }
         this.requestRender();
+        this.notifyZoom(); // fit bounds depend on view size, so the fraction can shift on resize
     }
 
     // -------------------------------------------------------------------------

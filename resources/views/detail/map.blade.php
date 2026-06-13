@@ -19,7 +19,10 @@
                     </div>
                     <div class="map-viewer__controls">
                         <button type="button" id="mapFit" class="btn btn-sm btn-secondary">Fit</button>
-                        <button type="button" id="mapActual" class="btn btn-sm btn-secondary" title="Original size (1:1)">1:1</button>
+                        <label class="map-viewer__slider" for="mapZoom">Zoom
+                            <input type="range" id="mapZoom" min="0" max="100" value="0" step="1"
+                                   title="Fit ↔ 1:1 (actual size)">
+                        </label>
                         <label class="map-viewer__slider" for="mapEntities">Entities
                             <input type="range" id="mapEntities" min="0" max="100" value="0" step="1">
                         </label>
@@ -58,10 +61,18 @@
             }).then(function (viewer) {
                 if (!viewer) return;
                 var fit = document.getElementById('mapFit');
-                var actual = document.getElementById('mapActual');
+                var zoom = document.getElementById('mapZoom');
                 var ent = document.getElementById('mapEntities');
                 if (fit) fit.addEventListener('click', function () { viewer.fit(); });
-                if (actual) actual.addEventListener('click', function () { viewer.actualSize(); });
+                if (zoom) {
+                    zoom.addEventListener('input', function () {
+                        viewer.setZoomFraction(Number(zoom.value) / 100);
+                    });
+                    // Keep the slider in sync with wheel-zoom / Fit / resize.
+                    viewer.setZoomChangeListener(function (frac) {
+                        zoom.value = String(Math.round(frac * 100));
+                    });
+                }
                 if (ent) ent.addEventListener('input', function () {
                     viewer.setEntitiesOpacity(Number(ent.value) / 100);
                 });
