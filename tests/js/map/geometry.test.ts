@@ -4,10 +4,13 @@ import type { TileLayer } from '../../../resources/assets/js/map/types';
 
 describe('geometry', () => {
     it('maps tile id 0 to the top-left cell, id 17 to col1/row1', () => {
-        // tileUV returns four corners [TL, TR, BL, BR]; TL/BR span the cell.
+        // tileUV returns four corners [TL, TR, BL, BR]; TL/BR span the cell (UVs are inset by
+        // half a texel to prevent edge bleed, hence toBeCloseTo rather than exact equality).
         const a = tileUV(0, 0);
-        expect(a[0]).toEqual([0, 0]); // TL
-        expect(a[3]).toEqual([1 / 16, 1 / 16]); // BR
+        expect(a[0][0]).toBeCloseTo(0); // TL.u
+        expect(a[0][1]).toBeCloseTo(0); // TL.v
+        expect(a[3][0]).toBeCloseTo(1 / 16); // BR.u
+        expect(a[3][1]).toBeCloseTo(1 / 16); // BR.v
         const uv = tileUV(17, 0);
         expect(uv[0][0]).toBeCloseTo(1 / 16); // TL.u
         expect(uv[0][1]).toBeCloseTo(1 / 16); // TL.v

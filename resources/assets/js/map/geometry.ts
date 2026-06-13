@@ -21,10 +21,14 @@ export function tileUV(id: number, flags: number): TileUV {
     const col = id % 16;
     const row = (id / 16) | 0;
     const s = 1 / 16;
-    const uL = col * s;
-    const uR = (col + 1) * s;
-    const vT = row * s;
-    const vB = (row + 1) * s;
+    // Inset the cell by half a texel (tilesets are 1024px → 64px cells) so neighbouring tiles
+    // never bleed in at fractional zoom — the same sub-texel correction the client applies via
+    // its Nudge/Frac offset. Applied symmetrically before flip/rotate so the corners stay valid.
+    const HALF_TEXEL = 0.5 / 1024;
+    const uL = col * s + HALF_TEXEL;
+    const uR = (col + 1) * s - HALF_TEXEL;
+    const vT = row * s + HALF_TEXEL;
+    const vB = (row + 1) * s - HALF_TEXEL;
 
     // DDNet corner order: (x0,y0)=TL (x1,y1)=TR (x2,y2)=BR (x3,y3)=BL.
     let x0 = uL,
