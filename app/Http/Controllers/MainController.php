@@ -146,7 +146,7 @@ class MainController extends Controller
      */
     public function maps(MapArchiver $archiver)
     {
-        $maps = Map::orderBy('name')->paginate(50);
+        $maps = Map::withCount('serverRecords')->orderBy('name')->paginate(50);
         $statuses = $maps->getCollection()->mapWithKeys(
             fn (Map $map) => [$map->id => $archiver->statusFor($map)]
         );

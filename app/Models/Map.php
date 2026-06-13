@@ -43,28 +43,47 @@ class Map extends Model
     }
 
     /**
-     * Maps that have a content key (sha256 or crc) but may still need a .map file fetched, ordered so
-     * never-attempted maps come first and the rest by oldest attempt. The cooldown threshold excludes
+     * Maps that may still need a .map file fetched: those with a content key (sha256/crc), plus keyless
+     * maps seen on a server we can connect to (a server_histories row) and download from over UDP. Ordered
+     * so never-attempted maps come first and the rest by oldest attempt. The cooldown threshold excludes
      * maps attempted too recently (a failed download is parked for the cooldown window). This is a
      * SQL-only filter — it cannot see the filesystem, so callers skip already-cached maps separately.
      */
     public function scopeNeedsArchiving(Builder $query, Carbon $cooldownThreshold): Builder
     {
         return $query
-            ->where(fn (Builder $q) => $q->whereNotNull('sha256')->orWhereNotNull('crc'))
+            ->where(fn (Builder $q) => $q->whereNotNull('sha256')
+                ->orWhereNotNull('crc')
+                ->orWhereHas('serverRecords'))
             ->where(fn (Builder $q) => $q->whereNull('last_archive_attempt_at')
                 ->orWhere('last_archive_attempt_at', '<', $cooldownThreshold))
             ->orderByRaw('last_archive_attempt_at IS NOT NULL, last_archive_attempt_at');
     }
 
     /**
-     * Whether a downloadable .map file can potentially be acquired for this map. A map with
-     * a sha256 is served via DDNet HTTP; a map with only a crc is reachable via the UDP
-     * GameServerMapSource when a live server hosting it is recorded in server_histories.
+     * Whether a downloadable .map file can potentially be acquired for this map: it has a content key
+     * (sha256/crc → DDNet HTTP or verified UDP), or it is keyless but was seen on a server we can
+     * connect to and download it from over UDP, backfilling the key from the bytes.
      */
     public function hasDownloadableFile(): bool
     {
-        return $this->getAttribute('sha256') !== null || $this->getAttribute('crc') !== null;
+        return $this->getAttribute('sha256') !== null
+            || $this->getAttribute('crc') !== null
+            || $this->hasRecordedHost();
+    }
+
+    /**
+     * Whether any server_histories row records a host for this map (a server we can attempt a UDP
+     * download from). Honours an eager-loaded server_records_count to avoid an N+1 on list pages.
+     */
+    public function hasRecordedHost(): bool
+    {
+        $count = $this->getAttribute('server_records_count');
+        if ($count !== null) {
+            return (int) $count > 0;
+        }
+
+        return $this->serverRecords()->exists();
     }
 
     /**

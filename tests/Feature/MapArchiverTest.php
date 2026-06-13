@@ -120,4 +120,55 @@ class MapArchiverTest extends TestCase
         $this->assertNotNull($map->fresh()->last_archive_attempt_at);
         $this->assertFalse($store->isCached($map->fresh()));
     }
+
+    public function test_has_downloadable_file_true_for_keyless_map_with_a_host(): void
+    {
+        $hosted  = Map::create(['name' => 'hosted']);
+        $mod     = \App\Models\Mod::create(['name' => 'dm']);
+        $server  = \App\Models\Server::factory()->create(['flavor' => 'vanilla_06']);
+        \App\Models\ServerHistory::create([
+            'weekday' => 1, 'hour' => 12, 'continuous' => true,
+            'server_id' => $server->id, 'map_id' => $hosted->id, 'mod_id' => $mod->id, 'minutes' => 5,
+        ]);
+
+        $orphan = Map::create(['name' => 'orphan']); // keyless, no host
+
+        $this->assertTrue($hosted->fresh()->hasDownloadableFile());
+        $this->assertFalse($orphan->fresh()->hasDownloadableFile());
+    }
+
+    public function test_needs_archiving_includes_keyless_hosted_excludes_orphan(): void
+    {
+        $cooldown = now()->subHours(24);
+
+        $hosted  = Map::create(['name' => 'hosted']);
+        $mod     = \App\Models\Mod::create(['name' => 'dm']);
+        $server  = \App\Models\Server::factory()->create(['flavor' => 'vanilla_06']);
+        \App\Models\ServerHistory::create([
+            'weekday' => 1, 'hour' => 12, 'continuous' => true,
+            'server_id' => $server->id, 'map_id' => $hosted->id, 'mod_id' => $mod->id, 'minutes' => 5,
+        ]);
+
+        Map::create(['name' => 'orphan']); // keyless, no host → excluded
+
+        $names = Map::needsArchiving($cooldown)->pluck('name')->all();
+
+        $this->assertContains('hosted', $names);
+        $this->assertNotContains('orphan', $names);
+    }
+
+    public function test_status_for_keyless_hosted_is_queued_not_unavailable(): void
+    {
+        Storage::fake('local');
+
+        $hosted  = Map::create(['name' => 'hosted']);
+        $mod     = \App\Models\Mod::create(['name' => 'dm']);
+        $server  = \App\Models\Server::factory()->create(['flavor' => 'vanilla_06']);
+        \App\Models\ServerHistory::create([
+            'weekday' => 1, 'hour' => 12, 'continuous' => true,
+            'server_id' => $server->id, 'map_id' => $hosted->id, 'mod_id' => $mod->id, 'minutes' => 5,
+        ]);
+
+        $this->assertSame(MapArchiveStatus::Queued, (new MapArchiver())->statusFor($hosted->fresh()));
+    }
 }
