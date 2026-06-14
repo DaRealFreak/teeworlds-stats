@@ -194,13 +194,14 @@ function pixelDataToImageData(p: PixelData): ImageData {
  * shader's fract() wrap repeats a whole texture, not an atlas sub-rectangle).
  */
 function extractTileCell(img: HTMLImageElement, col: number, row: number, cells = 16): HTMLCanvasElement | null {
-    const size = img.width / cells; // square atlas → square cells
+    const src = img.width / cells; // square atlas → square cells
+    const OUT = 64; // fixed power-of-two output so the kill texture can carry mipmaps (WebGL1 needs POT)
     const canvas = document.createElement('canvas');
-    canvas.width = size;
-    canvas.height = size;
+    canvas.width = OUT;
+    canvas.height = OUT;
     const ctx = canvas.getContext('2d');
     if (!ctx) return null;
-    ctx.drawImage(img, col * size, row * size, size, size, 0, 0, size, size);
+    ctx.drawImage(img, col * src, row * src, src, src, 0, 0, OUT, OUT);
     return canvas;
 }
 
@@ -621,12 +622,16 @@ export class MapViewer {
         this.borderBatches = batches;
     }
 
-    /** Drive a render loop while the kill field is visible (so it blinks), unless one already runs. */
+    /** Drive a render loop while the kill field is on screen AND shown (entities up), so it can blink. */
+    private killBlinking(): boolean {
+        return this.killVisible && this.entitiesOpacity > 0;
+    }
+
     private driveBorderBlink(): void {
-        if (!this.killVisible || this.animRafId !== null || this.borderRafId !== null) return;
+        if (!this.killBlinking() || this.animRafId !== null || this.borderRafId !== null) return;
         const tick = (timeMs: number): void => {
             this.render(timeMs);
-            this.borderRafId = this.killVisible ? requestAnimationFrame(tick) : null;
+            this.borderRafId = this.killBlinking() ? requestAnimationFrame(tick) : null;
         };
         this.borderRafId = requestAnimationFrame(tick);
     }
@@ -667,15 +672,18 @@ export class MapViewer {
             }
         }
 
-        // Kill-tile field on top, in the game group's space, blinking like DDNet's death border:
-        // alpha = 0.3 + 0.35·(1 + sin(2π·t/3)) over a 3 s cycle (render_layer.cpp GetDeathBorderColor).
+        // Kill-tile field on top, in the game group's space. It's a game-layer (entities) feature, so it
+        // fades in with the entities overlay like the physics layers — hidden at 0%. Blinks like DDNet's
+        // death border: alpha = 0.3 + 0.35·(1 + sin(2π·t/3)) over a 3 s cycle (GetDeathBorderColor).
         const gameGroup = this.scene.groups[this.gameGroupIndex];
-        if (gameGroup && this.killTex) {
+        const killAlpha = overlayLayerAlpha('physics', this.entitiesOpacity);
+        if (gameGroup && this.killTex && killAlpha > 0) {
             const transform = groupTransform(gameGroup, this.camera);
             const blink = 0.3 + 0.35 * (1 + Math.sin((2 * Math.PI * (timeMs / 1000)) / 3));
             for (const bb of this.borderBatches) {
                 if (!bb.isKill || bb.vertices.length === 0) continue;
-                this.renderer.draw(this.killTex, bb.vertices, transform, [1, 1, 1, blink]);
+                // hardwareWrap: the kill cell repeats via GL_REPEAT so its mipmaps stay LOD-correct.
+                this.renderer.draw(this.killTex, bb.vertices, transform, [1, 1, 1, blink * killAlpha], true);
             }
         }
 
@@ -772,7 +780,9 @@ export class MapViewer {
                 // Extract the red TILE_DEATH cell (id 2 → col 2, row 0 of the 16×16 entities atlas) into
                 // its own texture, so the kill field can tile a single cell via the shader's fract() wrap.
                 const killCell = extractTileCell(entImg, 2, 0);
-                if (killCell) v.killTex = renderer.createTexture(killCell);
+                // Tiling texture (GL_REPEAT + mipmaps): the kill field tiles this one cell across a huge
+                // area, so it needs mip minification to not alias into "big" Moiré blocks as you zoom.
+                if (killCell) v.killTex = renderer.createTiledTexture(killCell);
                 v.requestRender();
             }
         };
