@@ -28,9 +28,9 @@ function sceneWith(ids: number[], w: number, h: number, kind: LayerKind = 'game'
 const cat = (key: string) => HIGHLIGHT_CATEGORIES.find((c) => c.key === key)!;
 
 describe('buildHighlightVertices', () => {
-    it('outlines start/finish tiles and nothing else', () => {
+    it('outlines start tiles and nothing else', () => {
         const scene = sceneWith([33, 0], 2, 1); // [TILE_START, air]
-        const v = buildHighlightVertices(scene, 0, cat('startfinish'));
+        const v = buildHighlightVertices(scene, 0, cat('start'));
         // one tile × 4 border rects × 2 tris × 3 verts × 8 floats
         expect(v.length).toBe(4 * 2 * 3 * 8);
         expect(buildHighlightVertices(scene, 0, cat('freeze')).length).toBe(0);

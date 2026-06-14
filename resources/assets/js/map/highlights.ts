@@ -7,37 +7,47 @@ import type { MapScene, TileLayer } from './types';
  */
 const ENTITY_OFFSET = 255 - 16 * 4; // 191 (DDNet src/game/mapitems.h)
 
+/** DDNet time-checkpoint tile ids; checkpoint number n is tile id CHECKPOINT_FIRST + (n - 1). */
+export const CHECKPOINT_FIRST = 35;
+export const CHECKPOINT_LAST = 59;
+
 export interface HighlightCategory {
     key: string;
     label: string;
     /** Outline color, 0..1 RGB. */
     color: [number, number, number];
     ids: Set<number>;
+    /** Point landmark you can jump to; false for area fills (Freeze) and the checkpoint parent. */
+    jumpable: boolean;
 }
 
+const E = ENTITY_OFFSET;
+const checkpointIds = new Set<number>(
+    Array.from({ length: CHECKPOINT_LAST - CHECKPOINT_FIRST + 1 }, (_, i) => CHECKPOINT_FIRST + i),
+);
+
 export const HIGHLIGHT_CATEGORIES: readonly HighlightCategory[] = [
-    { key: 'startfinish', label: 'Start / Finish', color: [0.3, 1.0, 0.4], ids: new Set([33, 34]) },
+    { key: 'start', label: 'Start', color: [0.3, 1.0, 0.4], ids: new Set([33]), jumpable: true },
+    { key: 'finish', label: 'Finish / Goal', color: [1.0, 0.85, 0.2], ids: new Set([34]), jumpable: true },
+    // ENTITY_SPAWN, ENTITY_SPAWN_RED, ENTITY_SPAWN_BLUE
+    { key: 'spawn', label: 'Spawn', color: [0.4, 1.0, 0.7], ids: new Set([E + 1, E + 2, E + 3]), jumpable: true },
+    { key: 'shotgun', label: 'Shotgun', color: [1.0, 0.65, 0.15], ids: new Set([E + 8]), jumpable: true },
+    { key: 'grenade', label: 'Grenade', color: [1.0, 0.45, 0.2], ids: new Set([E + 9]), jumpable: true },
+    { key: 'laser', label: 'Laser', color: [0.7, 0.5, 1.0], ids: new Set([E + 11]), jumpable: true },
+    { key: 'ninja', label: 'Ninja', color: [0.85, 0.95, 1.0], ids: new Set([E + 10]), jumpable: true },
+    { key: 'health', label: 'Health', color: [1.0, 0.35, 0.4], ids: new Set([E + 7]), jumpable: true },
+    { key: 'armor', label: 'Armor', color: [0.4, 0.6, 1.0], ids: new Set([E + 6]), jumpable: true },
     {
         key: 'teleport',
         label: 'Teleports',
         color: [0.4, 0.75, 1.0],
         // TELEINEVIL,TELEINWEAPON,TELEINHOOK,TELEIN,TELEOUT,TELECHECKOUT,TELECHECKIN,TELECHECKINEVIL
         ids: new Set([10, 14, 15, 26, 27, 30, 31, 63]),
+        jumpable: true,
     },
-    {
-        key: 'weapons',
-        label: 'Weapons',
-        color: [1.0, 0.65, 0.15],
-        // SHOTGUN, GRENADE, NINJA, LASER
-        ids: new Set([ENTITY_OFFSET + 8, ENTITY_OFFSET + 9, ENTITY_OFFSET + 10, ENTITY_OFFSET + 11]),
-    },
-    {
-        key: 'pickups',
-        label: 'Health / Armor',
-        color: [1.0, 0.35, 0.6],
-        ids: new Set([ENTITY_OFFSET + 6, ENTITY_OFFSET + 7]),
-    },
-    { key: 'freeze', label: 'Freeze', color: [0.55, 0.9, 1.0], ids: new Set([9, 11, 12, 13]) },
+    // Parent toggles all checkpoint outlines; per-number jumps live on its children (see mapIndex.ts).
+    { key: 'checkpoints', label: 'Checkpoints', color: [0.8, 0.4, 1.0], ids: checkpointIds, jumpable: false },
+    { key: 'freeze', label: 'Freeze', color: [0.55, 0.9, 1.0], ids: new Set([9, 11, 12, 13]), jumpable: false },
 ] as const;
 
 /** Outline thickness as a fraction of a tile. */
