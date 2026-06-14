@@ -32,7 +32,12 @@ const NATIVE_ZOOM = 64;
 /** Identifies a drawable layer batch. */
 interface LayerBatch {
     groupIndex: number;
-    texture: WebGLTexture | null;
+    /**
+     * Index into {@link MapScene.images} for this layer's texture (-1 = none → white fallback).
+     * Resolved live at render time rather than cached: external mapres images (clouds/stars) load
+     * asynchronously, after batches are built, so a cached texture reference would stay null.
+     */
+    imageIndex: number;
     /** Physics (entities) layer: only drawn when the entities overlay is visible. */
     isPhysics: boolean;
     /** Parallax backdrop (sky/clouds, parallax ≠ 100): kept opaque through a partial overlay. */
@@ -75,6 +80,21 @@ export function groupTransform(group: Group, camera: Camera): [number, number, n
     const sx = (2 * zoom) / viewW;
     const sy = -(2 * zoom) / viewH; // Y-flip: clip-space Y is up, screen Y is down
     return [sx, sy, -ecx * sx, -ecy * sy];
+}
+
+/**
+ * Resolve the texture a batch should draw with. Physics layers use the shared entities texture;
+ * everything else looks its image up in the live textures map by index. The lookup is intentionally
+ * live (not cached on the batch) so externally-loaded mapres images — clouds, stars, any external
+ * tileset — appear as soon as their async load completes instead of staying the white fallback.
+ */
+export function resolveBatchTexture(
+    batch: { isPhysics: boolean; imageIndex: number },
+    textures: Map<number, WebGLTexture>,
+    entitiesTex: WebGLTexture | null,
+): WebGLTexture | null {
+    if (batch.isPhysics) return entitiesTex;
+    return textures.get(batch.imageIndex) ?? null;
 }
 
 /** Convert PixelData to a real ImageData for WebGL upload. */
@@ -454,7 +474,7 @@ export class MapViewer {
                 const role = batch.isPhysics ? 'physics' : batch.isBackdrop ? 'backdrop' : 'design';
                 const alpha = overlayLayerAlpha(role, this.entitiesOpacity);
                 if (alpha <= 0) continue;
-                const texture = batch.isPhysics ? this.entitiesTex : batch.texture;
+                const texture = resolveBatchTexture(batch, this.textures, this.entitiesTex);
                 this.renderer.draw(texture, batch.vertices, transform, [1, 1, 1, alpha]);
             }
         }
@@ -592,7 +612,7 @@ export class MapViewer {
                     }
                     batches.push({
                         groupIndex: gi,
-                        texture: textures.get(tl.image) ?? null,
+                        imageIndex: tl.image,
                         isPhysics,
                         isBackdrop: !isPhysics && groupIsBackdrop,
                         vertices: new Float32Array(buildTileLayerVertices(tl, colorMul)),
@@ -613,7 +633,7 @@ export class MapViewer {
                     }
                     batches.push({
                         groupIndex: gi,
-                        texture: textures.get(ql.image) ?? null,
+                        imageIndex: ql.image,
                         isPhysics: false,
                         isBackdrop: groupIsBackdrop,
                         vertices: new Float32Array(combined),
