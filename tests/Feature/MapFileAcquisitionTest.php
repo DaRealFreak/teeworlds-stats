@@ -469,6 +469,57 @@ class MapFileAcquisitionTest extends TestCase
 
         $this->assertSame(99999, $map->fresh()->size, 'a preset size must not be overwritten');
     }
+
+    private function buildMapChange07(string $name, int $crc, int $size, int $chunksPerRequest, int $chunkSize, string $sha256Raw): string
+    {
+        return VariableInt::pack((2 << 1) | 1)
+            . $name . "\x00"
+            . VariableInt::pack($this->toInt32($crc))
+            . VariableInt::pack($size)
+            . VariableInt::pack($chunksPerRequest)
+            . VariableInt::pack($chunkSize)
+            . $sha256Raw;
+    }
+
+    private function buildMapData07(string $data): string
+    {
+        return VariableInt::pack((3 << 1) | 1) . $data;
+    }
+
+    public function test_udp_uses_the_07_session_for_a_sixup_host(): void
+    {
+        $payload   = "DATA" . str_repeat('S', 40);
+        $crc       = crc32($payload);
+        $sha256Raw = hex2bin(hash('sha256', $payload));
+
+        // keyless map hosted on a vanilla_07 server reachable on a protocol-7 address
+        $map    = Map::create(['name' => 'sixup-map']);
+        $mod    = Mod::create(['name' => 'dm']);
+        $server = Server::factory()->create(['version' => '0.7.5', 'flavor' => 'vanilla_07']);
+        ServerAddress::factory()->create([
+            'server_id' => $server->id, 'ip' => '9.9.9.9', 'port' => 8307,
+            'protocol' => 7, 'is_canonical' => true,
+        ]);
+        ServerHistory::create([
+            'weekday' => 1, 'hour' => 12, 'continuous' => true,
+            'server_id' => $server->id, 'map_id' => $map->id, 'mod_id' => $mod->id, 'minutes' => 5,
+        ]);
+
+        $conn = new FakeGameConnection();
+        $conn->enqueue([$this->buildMapChange07('sixup-map', $crc, strlen($payload), 4, 16, $sha256Raw)]);
+        $conn->enqueue([$this->buildMapData07($payload)]);
+
+        $captured = null;
+        $source = new GameServerMapSource(
+            connectionFactory: static function (string $ip, int $port, string $flavor) use ($conn, &$captured) {
+                $captured = [$ip, $port, $flavor];
+                return $conn;
+            },
+        );
+
+        $this->assertSame($payload, $source->fetch($map));
+        $this->assertSame(['9.9.9.9', 8307, 'vanilla_07'], $captured, 'must dial the protocol-7 address with the 0.7 flavor');
+    }
 }
 
 // ---------------------------------------------------------------------------
