@@ -15,6 +15,7 @@ import { evalEnvelope } from './envelope';
 import { Overlay, buildAnnotations, pulseActive } from './overlay';
 import type { Annotation, PulseTarget } from './overlay';
 import { HIGHLIGHT_CATEGORIES, buildHighlightVertices } from './highlights';
+import { overlayLayerAlpha } from './overlayCompositing';
 import type { MapScene, Group, TileLayer, QuadLayer, PixelData } from './types';
 
 /** Tele tile m_Type values that act as a teleport source / destination (DDNet mapitems.h). */
@@ -34,6 +35,8 @@ interface LayerBatch {
     texture: WebGLTexture | null;
     /** Physics (entities) layer: only drawn when the entities overlay is visible. */
     isPhysics: boolean;
+    /** Parallax backdrop (sky/clouds, parallax ≠ 100): kept opaque through a partial overlay. */
+    isBackdrop: boolean;
     vertices: Float32Array;
     animatedTileLayer?: TileLayer;
     animatedQuadLayer?: QuadLayer;
@@ -442,14 +445,11 @@ export class MapViewer {
 
             for (const batch of this.batches) {
                 if (batch.groupIndex !== gi || batch.vertices.length === 0) continue;
-                if (batch.isPhysics) {
-                    if (this.entitiesOpacity <= 0) continue;
-                    this.renderer.draw(this.entitiesTex, batch.vertices, transform, [1, 1, 1, this.entitiesOpacity]);
-                } else {
-                    const bgAlpha = 1 - this.entitiesOpacity;
-                    if (bgAlpha <= 0) continue;
-                    this.renderer.draw(batch.texture, batch.vertices, transform, [1, 1, 1, bgAlpha]);
-                }
+                const role = batch.isPhysics ? 'physics' : batch.isBackdrop ? 'backdrop' : 'design';
+                const alpha = overlayLayerAlpha(role, this.entitiesOpacity);
+                if (alpha <= 0) continue;
+                const texture = batch.isPhysics ? this.entitiesTex : batch.texture;
+                this.renderer.draw(texture, batch.vertices, transform, [1, 1, 1, alpha]);
             }
         }
 
@@ -569,6 +569,8 @@ export class MapViewer {
 
         for (let gi = 0; gi < scene.groups.length; gi++) {
             const group = scene.groups[gi]!;
+            // Parallax (≠100) groups are the sky/cloud backdrop; kept opaque through a partial overlay.
+            const groupIsBackdrop = group.xParallax !== 100 || group.yParallax !== 100;
             for (const layer of group.layers) {
                 if (layer.type === 'tilemap') {
                     const tl: TileLayer = layer;
@@ -586,6 +588,7 @@ export class MapViewer {
                         groupIndex: gi,
                         texture: textures.get(tl.image) ?? null,
                         isPhysics,
+                        isBackdrop: !isPhysics && groupIsBackdrop,
                         vertices: new Float32Array(buildTileLayerVertices(tl, colorMul)),
                         animatedTileLayer: isAnimated ? tl : undefined,
                     });
@@ -606,6 +609,7 @@ export class MapViewer {
                         groupIndex: gi,
                         texture: textures.get(ql.image) ?? null,
                         isPhysics: false,
+                        isBackdrop: groupIsBackdrop,
                         vertices: new Float32Array(combined),
                         animatedQuadLayer: isAnimated ? ql : undefined,
                     });
