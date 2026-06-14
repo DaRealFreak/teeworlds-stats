@@ -242,3 +242,26 @@ click ⌖        → viewer.jumpToNext(key)
 `php artisan responsecache:clear`, then a Playwright check of a map detail page
 (`/map/<name>`): legend lists present entities with counts, ⌖ recenters + pulses +
 cycles, checkbox/sliders stay in sync.
+
+## v2 — Grouped & collapsible navigator
+
+A follow-up reshaped the flat list into grouped, collapsible categories:
+
+- **Flat rows:** Start, Finish/Goal, Spawn (own color, toggle + jump).
+- **Typed groups** (Weapons → Shotgun/Grenade/Laser/Ninja; Pickups → Health/Armor):
+  each child keeps its own color + outline toggle + jump; the group header is a
+  tri-state **master** checkbox toggling all children at once. Open by default.
+- **Numbered groups** (Teleports, Checkpoints): the header is a single outline toggle
+  (one group color); children are numbered, jump-only. Teleports number their cells by
+  the tele layer's `physics.number` (not the tile id); Checkpoints by `id − 34`.
+  Collapsed by default (they can hold 25+ rows).
+- **Freeze removed.**
+- Groups use native `<details>/<summary>` for accessible, keyboard-friendly collapse;
+  the master checkbox `stopPropagation`s its click so toggling the outline doesn't also
+  collapse the group.
+
+Implementation: `mapIndex.ts` emits the grouped tree (typed groups via a `TYPED_GROUPS`
+config, numbered groups via a shared helper; child jump keys `tele:<n>` / `cp:<n>`).
+`viewer.jumpToNext` maps `tele:* → teleport` alongside `cp:* → checkpoints`. The Blade
+builds it with `buildLeaf` + `buildGroup`; SCSS adds the group/header/caret/children
+rules. `highlights.ts` drops `freeze` and flips `teleport.jumpable → false`.
