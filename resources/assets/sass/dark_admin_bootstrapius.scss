@@ -3323,10 +3323,16 @@ pre code {
         }
     }
     &__legend {
+        // Single vertical column capped in height so entity-rich maps (up to 25 checkpoints)
+        // scroll instead of pushing the page down. flex-basis:100% forces the legend onto its
+        // own line within the wrapping controls row.
         display: flex;
-        align-items: center;
-        flex-wrap: wrap;
-        gap: 0.75rem;
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 0.15rem;
+        max-height: 16rem;
+        overflow-y: auto;
+        flex-basis: 100%;
     }
     &__legend-item {
         display: flex;
@@ -3334,8 +3340,44 @@ pre code {
         gap: 0.3rem;
         margin: 0;
         user-select: none;
-        cursor: pointer;
         font-size: 0.85rem;
+    }
+    &__legend-child {
+        padding-left: 1.35rem; // indent checkpoint children under the Checkpoints row
+    }
+    &__legend-label {
+        white-space: nowrap;
+    }
+    &__jump {
+        appearance: none;
+        border: 0;
+        padding: 0 0.2rem;
+        background: transparent;
+        color: inherit;
+        line-height: 1;
+        cursor: pointer;
+        opacity: 0.75;
+
+        &:hover {
+            opacity: 1;
+        }
+
+        &:focus-visible {
+            outline: 2px solid rgba(255, 255, 255, 0.6);
+            outline-offset: 2px;
+            border-radius: 2px;
+            opacity: 1;
+        }
+    }
+    &__jump-count {
+        min-width: 2.8rem;
+        font-size: 0.72rem;
+        color: rgba(255, 255, 255, 0.6);
+
+        // The counter is empty until the first jump; don't reserve a gap before then.
+        &:empty {
+            display: none;
+        }
     }
     &__swatch {
         display: inline-block;
