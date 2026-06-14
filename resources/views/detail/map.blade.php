@@ -94,26 +94,34 @@
                         var buildRow = function (entry, depth) {
                             var row = document.createElement('div');
                             row.className = 'map-viewer__legend-item' + (depth ? ' map-viewer__legend-child' : '');
-                            if (entry.toggleable) {
-                                var cb = document.createElement('input');
-                                cb.type = 'checkbox';
-                                cb.addEventListener('change', function () { viewer.setHighlight(entry.key, cb.checked); });
-                                checkboxes[entry.key] = cb;
-                                row.appendChild(cb);
-                            }
+                            var label = document.createElement('span');
+                            label.className = 'map-viewer__legend-label';
+                            label.textContent = entry.label + ' (' + entry.count + ')';
+                            var swatch = null;
                             if (entry.color) {
-                                var swatch = document.createElement('span');
+                                swatch = document.createElement('span');
                                 swatch.className = 'map-viewer__swatch';
                                 swatch.style.background = 'rgb(' +
                                     Math.round(entry.color[0] * 255) + ',' +
                                     Math.round(entry.color[1] * 255) + ',' +
                                     Math.round(entry.color[2] * 255) + ')';
-                                row.appendChild(swatch);
                             }
-                            var label = document.createElement('span');
-                            label.className = 'map-viewer__legend-label';
-                            label.textContent = entry.label + ' (' + entry.count + ')';
-                            row.appendChild(label);
+                            if (entry.toggleable) {
+                                // A <label> ties the checkbox to the swatch+name so the whole label toggles the outline.
+                                var toggle = document.createElement('label');
+                                toggle.className = 'map-viewer__legend-toggle';
+                                var cb = document.createElement('input');
+                                cb.type = 'checkbox';
+                                cb.addEventListener('change', function () { viewer.setHighlight(entry.key, cb.checked); });
+                                checkboxes[entry.key] = cb;
+                                toggle.appendChild(cb);
+                                if (swatch) toggle.appendChild(swatch);
+                                toggle.appendChild(label);
+                                row.appendChild(toggle);
+                            } else {
+                                if (swatch) row.appendChild(swatch);
+                                row.appendChild(label);
+                            }
                             if (entry.jumpable) {
                                 var jump = document.createElement('button');
                                 jump.type = 'button';

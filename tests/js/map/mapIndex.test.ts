@@ -1,5 +1,7 @@
 import { describe, it, expect } from 'vitest';
+import { readFileSync } from 'node:fs';
 import { buildMapIndex } from '../../../resources/assets/js/map/mapIndex';
+import { parseMap } from '../../../resources/assets/js/map/index';
 import type { MapScene, TileLayer, Group, LayerKind } from '../../../resources/assets/js/map/types';
 
 function layer(ids: number[], w: number, h: number, kind: LayerKind = 'game'): TileLayer {
@@ -79,5 +81,32 @@ describe('buildMapIndex', () => {
     it('accumulates a category across the game and front layers', () => {
         const scene = sceneOf(layer([33], 1, 1, 'game'), layer([33], 1, 1, 'front'));
         expect(buildMapIndex(scene, 0).entries.find((e) => e.key === 'start')!.count).toBe(2);
+    });
+
+    it('builds a well-formed index from the real gravity.map fixture', async () => {
+        const bytes = new Uint8Array(readFileSync(new URL('../fixtures/gravity.map', import.meta.url)));
+        const scene = await parseMap(bytes);
+        const found = scene.groups.findIndex((g) =>
+            g.layers.some((l) => l.type === 'tilemap' && l.kind === 'game'),
+        );
+        const gameGroupIndex = found < 0 ? 0 : found;
+        const { entries, positions } = buildMapIndex(scene, gameGroupIndex);
+        expect(Array.isArray(entries)).toBe(true);
+        expect(positions).toBeInstanceOf(Map);
+        for (const e of entries) {
+            expect(typeof e.key).toBe('string');
+            expect(e.count).toBeGreaterThan(0);
+            expect(typeof e.toggleable).toBe('boolean');
+            expect(typeof e.jumpable).toBe('boolean');
+            if (e.children) {
+                expect(e.key).toBe('checkpoints');
+                for (const c of e.children) {
+                    expect(c.label.startsWith('Checkpoint ')).toBe(true);
+                    expect(positions.get(c.key)?.length).toBeGreaterThan(0);
+                }
+            }
+            // Jumpable top-level categories must have positions; freeze/checkpoints-parent must not.
+            if (e.jumpable) expect((positions.get(e.key) ?? []).length).toBeGreaterThan(0);
+        }
     });
 });
