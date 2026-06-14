@@ -19,7 +19,12 @@ const FRAGMENT_GLSL = `
 precision mediump float;
 uniform sampler2D uTex; uniform vec4 uColorMul; varying vec2 vUV; varying vec4 vColor;
 void main() {
-    vec4 c = texture2D(uTex, vUV) * vColor * uColorMul;
+    // Sample with fract(uv) so textures REPEAT, matching how DDNet renders quads: a wide background
+    // quad (mountains, clouds) tiles its image across the strip with UVs running far outside [0,1],
+    // which CLAMP_TO_EDGE would smear into a flat edge column. This is safe for tilemap/entity layers
+    // because tileUV (geometry.ts) insets every cell by half a texel, so their UVs never reach an
+    // integer boundary — fract leaves them unchanged. (NEAREST filtering keeps tile seams crisp.)
+    vec4 c = texture2D(uTex, fract(vUV)) * vColor * uColorMul;
     if (c.a < 0.01) discard;
     gl_FragColor = c;
 }
@@ -121,8 +126,10 @@ export class GlRenderer {
 
     /**
      * Upload a TexImageSource as a WebGL texture.
-     * Uses NEAREST filter and CLAMP_TO_EDGE wrap so non-power-of-two images
-     * (e.g. external tileset images) are valid in WebGL1.
+     * Uses NEAREST filter and CLAMP_TO_EDGE wrap so non-power-of-two images (e.g. external mapres
+     * images) are valid in WebGL1 — GL_REPEAT requires power-of-two textures there. Texture tiling
+     * for wide quads is instead done in the fragment shader via fract(uv), which needs no GL wrap and
+     * works for NPOT images too.
      */
     createTexture(source: TexImageSource): WebGLTexture {
         const gl = this.gl;
