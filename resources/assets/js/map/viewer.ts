@@ -16,6 +16,7 @@ import { Overlay, buildAnnotations, pulseActive } from './overlay';
 import type { Annotation, PulseTarget } from './overlay';
 import { HIGHLIGHT_CATEGORIES, buildHighlightVertices } from './highlights';
 import { overlayLayerAlpha } from './overlayCompositing';
+import { BORDER_RENDER_DISTANCE, buildEdgeExtendVertices, buildKillBorderVertices } from './mapBorder';
 import type { MapScene, Group, TileLayer, QuadLayer, PixelData } from './types';
 
 /** Tele tile m_Type values that act as a teleport source / destination (DDNet mapitems.h). */
@@ -45,6 +46,20 @@ interface LayerBatch {
     vertices: Float32Array;
     animatedTileLayer?: TileLayer;
     animatedQuadLayer?: QuadLayer;
+}
+
+/**
+ * A view-dependent map-edge batch (rebuilt when the camera moves): either an edge-extend batch
+ * (outer tiles repeated past the map, drawn like its source layer) or the kill-tile field
+ * (`isKill`, drawn with the death texture and a blinking alpha). See {@link MapViewer.rebuildBorders}.
+ */
+interface BorderBatch {
+    groupIndex: number;
+    imageIndex: number;
+    isPhysics: boolean;
+    isBackdrop: boolean;
+    isKill: boolean;
+    vertices: Float32Array;
 }
 
 interface TeleEntry {
@@ -123,6 +138,21 @@ export function groupZoom(
     return (zoom * 100 * zd) / denom;
 }
 
+/**
+ * The world rect (in tile units) currently visible in a group — the inverse of {@link groupTransform}:
+ * the box that maps to clip space [-1,1]². Used to build the edge-extend / kill border only over what's
+ * on screen. Y is not flipped here (x0,y0 = top-left smaller coords, x1,y1 = bottom-right larger).
+ */
+export function groupVisibleTileRect(group: Group, camera: Camera): [number, number, number, number] {
+    const { center, viewW, viewH } = camera;
+    const ecx = center[0] * (group.xParallax / 100) + group.xOffset / TILE_WORLD_SIZE;
+    const ecy = center[1] * (group.yParallax / 100) + group.yOffset / TILE_WORLD_SIZE;
+    const gz = groupZoom(group.xParallax, group.yParallax, camera.zoom, viewW, viewH);
+    const halfW = viewW / (2 * gz);
+    const halfH = viewH / (2 * gz);
+    return [ecx - halfW, ecy - halfH, ecx + halfW, ecy + halfH];
+}
+
 /** Compute the world→clip transform for a group given the current camera. */
 export function groupTransform(group: Group, camera: Camera): [number, number, number, number] {
     const { center, viewW, viewH } = camera;
@@ -158,6 +188,22 @@ function pixelDataToImageData(p: PixelData): ImageData {
     return new ImageData(new Uint8ClampedArray(p.data), p.width, p.height);
 }
 
+/**
+ * Extract one cell of a `cells`×`cells` tileset image into a standalone canvas. Used to pull the
+ * single red death tile out of the entities atlas so the kill field can tile just that cell (the
+ * shader's fract() wrap repeats a whole texture, not an atlas sub-rectangle).
+ */
+function extractTileCell(img: HTMLImageElement, col: number, row: number, cells = 16): HTMLCanvasElement | null {
+    const size = img.width / cells; // square atlas → square cells
+    const canvas = document.createElement('canvas');
+    canvas.width = size;
+    canvas.height = size;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return null;
+    ctx.drawImage(img, col * size, row * size, size, size, 0, 0, size, size);
+    return canvas;
+}
+
 export class MapViewer {
     private readonly camera: Camera;
     private readonly renderer: GlRenderer;
@@ -169,8 +215,15 @@ export class MapViewer {
 
     private textures: Map<number, WebGLTexture>;
     private entitiesTex: WebGLTexture | null = null;
+    // The red TILE_DEATH cell, extracted to its own texture so the kill field can tile it.
+    private killTex: WebGLTexture | null = null;
     // Entities-overlay strength, 0..1 (DDNet's cl_overlay_entities / 100).
     private entitiesOpacity = 0;
+
+    // Map-edge geometry (edge-extend + kill field), rebuilt only when the camera/view changes.
+    private borderBatches: BorderBatch[] = [];
+    private borderKey = '';
+    private killVisible = false;
 
     // Inspection state
     private readonly annotations: Annotation[];
@@ -189,6 +242,7 @@ export class MapViewer {
     private readonly hasAnimation: boolean;
     private animRafId: number | null = null;
     private pulseRafId: number | null = null;
+    private borderRafId: number | null = null;
     private resizeObserver: ResizeObserver | null = null;
     private firstSized = false;
 
@@ -343,10 +397,10 @@ export class MapViewer {
 
     /** Release all GL resources and detach event listeners. */
     destroy(): void {
-        for (const id of [this.rafId, this.animRafId, this.pulseRafId]) {
+        for (const id of [this.rafId, this.animRafId, this.pulseRafId, this.borderRafId]) {
             if (id !== null) cancelAnimationFrame(id);
         }
-        this.rafId = this.animRafId = this.pulseRafId = null;
+        this.rafId = this.animRafId = this.pulseRafId = this.borderRafId = null;
         this.resizeObserver?.disconnect();
         this.renderer.dispose();
         this.canvas.removeEventListener('pointerdown', this.onPointerDown);
@@ -515,10 +569,73 @@ export class MapViewer {
         }
     }
 
+    /** Rebuild the edge-extend + kill geometry only when the camera/view has actually changed. */
+    private rebuildBordersIfMoved(): void {
+        const c = this.camera;
+        const key = `${c.zoom}|${c.center[0]}|${c.center[1]}|${c.viewW}|${c.viewH}`;
+        if (key === this.borderKey) return;
+        this.borderKey = key;
+        this.rebuildBorders();
+    }
+
+    private rebuildBorders(): void {
+        const batches: BorderBatch[] = [];
+        for (let gi = 0; gi < this.scene.groups.length; gi++) {
+            const group = this.scene.groups[gi]!;
+            const groupIsBackdrop = group.xParallax !== 100 || group.yParallax !== 100;
+            const vis = groupVisibleTileRect(group, this.camera);
+            for (const layer of group.layers) {
+                if (layer.type !== 'tilemap') continue;
+                const verts = buildEdgeExtendVertices(layer, vis, BORDER_RENDER_DISTANCE);
+                if (verts.length === 0) continue;
+                const isPhysics = layer.kind !== 'tiles';
+                batches.push({
+                    groupIndex: gi,
+                    imageIndex: layer.image,
+                    isPhysics,
+                    isBackdrop: !isPhysics && groupIsBackdrop,
+                    isKill: false,
+                    vertices: new Float32Array(verts),
+                });
+            }
+        }
+
+        // Kill-tile field, computed in the game group's space (parallax 100).
+        const gameGroup = this.scene.groups[this.gameGroupIndex];
+        this.killVisible = false;
+        if (gameGroup && this.gameW > 0 && this.gameH > 0) {
+            const vis = groupVisibleTileRect(gameGroup, this.camera);
+            const killVerts = buildKillBorderVertices(this.gameW, this.gameH, vis, BORDER_RENDER_DISTANCE);
+            if (killVerts.length > 0) {
+                this.killVisible = true;
+                batches.push({
+                    groupIndex: this.gameGroupIndex,
+                    imageIndex: -1,
+                    isPhysics: false,
+                    isBackdrop: false,
+                    isKill: true,
+                    vertices: new Float32Array(killVerts),
+                });
+            }
+        }
+        this.borderBatches = batches;
+    }
+
+    /** Drive a render loop while the kill field is visible (so it blinks), unless one already runs. */
+    private driveBorderBlink(): void {
+        if (!this.killVisible || this.animRafId !== null || this.borderRafId !== null) return;
+        const tick = (timeMs: number): void => {
+            this.render(timeMs);
+            this.borderRafId = this.killVisible ? requestAnimationFrame(tick) : null;
+        };
+        this.borderRafId = requestAnimationFrame(tick);
+    }
+
     private render(timeMs: number): void {
         for (const batch of this.batches) {
             if (batch.animatedTileLayer || batch.animatedQuadLayer) this.buildAnimatedBatch(batch, timeMs);
         }
+        this.rebuildBordersIfMoved();
 
         // As the entities overlay fades in, fade the backdrop from the dark viewer background
         // toward DDNet's grey "entities background" instead of dimming to black.
@@ -538,16 +655,41 @@ export class MapViewer {
                 const texture = resolveBatchTexture(batch, this.textures, this.entitiesTex);
                 this.renderer.draw(texture, batch.vertices, transform, [1, 1, 1, alpha]);
             }
+
+            // Edge-extend tiles for this group, drawn at the group's z-level like their source layer.
+            for (const bb of this.borderBatches) {
+                if (bb.isKill || bb.groupIndex !== gi || bb.vertices.length === 0) continue;
+                const role = bb.isPhysics ? 'physics' : bb.isBackdrop ? 'backdrop' : 'design';
+                const alpha = overlayLayerAlpha(role, this.entitiesOpacity);
+                if (alpha <= 0) continue;
+                const texture = resolveBatchTexture(bb, this.textures, this.entitiesTex);
+                this.renderer.draw(texture, bb.vertices, transform, [1, 1, 1, alpha]);
+            }
+        }
+
+        // Kill-tile field on top, in the game group's space, blinking like DDNet's death border:
+        // alpha = 0.3 + 0.35·(1 + sin(2π·t/3)) over a 3 s cycle (render_layer.cpp GetDeathBorderColor).
+        const gameGroup = this.scene.groups[this.gameGroupIndex];
+        if (gameGroup && this.killTex) {
+            const transform = groupTransform(gameGroup, this.camera);
+            const blink = 0.3 + 0.35 * (1 + Math.sin((2 * Math.PI * (timeMs / 1000)) / 3));
+            for (const bb of this.borderBatches) {
+                if (!bb.isKill || bb.vertices.length === 0) continue;
+                this.renderer.draw(this.killTex, bb.vertices, transform, [1, 1, 1, blink]);
+            }
         }
 
         // Highlight outlines, drawn on top in the game group's space (white texture + vertex color).
-        const gameGroup = this.scene.groups[this.gameGroupIndex];
         if (gameGroup && this.highlightBatches.size > 0) {
             const transform = groupTransform(gameGroup, this.camera);
             for (const verts of this.highlightBatches.values()) {
                 if (verts.length > 0) this.renderer.draw(null, verts, transform, [1, 1, 1, 1]);
             }
         }
+
+        // Keep frames coming while the kill field is on screen so it can blink, unless an envelope
+        // animation loop is already driving render. Self-stops once the field scrolls out of view.
+        this.driveBorderBlink();
 
         // 2D annotations (numbers, arrows, pulse) on the overlay canvas.
         this.overlay.draw(
@@ -627,6 +769,10 @@ export class MapViewer {
             const v = viewerRef[0];
             if (v) {
                 v.entitiesTex = tex;
+                // Extract the red TILE_DEATH cell (id 2 → col 2, row 0 of the 16×16 entities atlas) into
+                // its own texture, so the kill field can tile a single cell via the shader's fract() wrap.
+                const killCell = extractTileCell(entImg, 2, 0);
+                if (killCell) v.killTex = renderer.createTexture(killCell);
                 v.requestRender();
             }
         };
