@@ -61,11 +61,17 @@ interface ViewerParts {
     hasAnimation: boolean;
 }
 
+/** Teeworlds world units per tile: group offsets are stored in these px, tiles span 32 of them. */
+const TILE_WORLD_SIZE = 32;
+
 /** Compute the world→clip transform for a group given the current camera. */
-function groupTransform(group: Group, camera: Camera): [number, number, number, number] {
+export function groupTransform(group: Group, camera: Camera): [number, number, number, number] {
     const { center, zoom, viewW, viewH } = camera;
-    const ecx = center[0] * (group.xParallax / 100);
-    const ecy = center[1] * (group.yParallax / 100);
+    // Match DDNet MapScreenToWorld: the group offset shifts the view raw (not parallax-scaled),
+    // in world px → tiles. Skipping it left offset groups (e.g. detail layers) drawn at raw
+    // position, so their tiles appeared where the client has none in the non-entity view.
+    const ecx = center[0] * (group.xParallax / 100) + group.xOffset / TILE_WORLD_SIZE;
+    const ecy = center[1] * (group.yParallax / 100) + group.yOffset / TILE_WORLD_SIZE;
     const sx = (2 * zoom) / viewW;
     const sy = -(2 * zoom) / viewH; // Y-flip: clip-space Y is up, screen Y is down
     return [sx, sy, -ecx * sx, -ecy * sy];
