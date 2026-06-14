@@ -94,6 +94,8 @@ export function buildMapIndex(scene: MapScene, gameGroupIndex: number): MapIndex
                 counts.set(key, (counts.get(key) ?? 0) + 1);
                 if (key === 'teleport') {
                     // Teleports number their cells in the tele layer's physics meta, not the id.
+                    // Unnumbered (0) cells are still outlined via the parent toggle but get no jumpable
+                    // child, so the Teleports parent count can exceed the sum of its children.
                     const n = numbers?.[i] ?? 0;
                     if (n > 0) pushNum(teleByNumber, n, x, y);
                 } else if (CATEGORY.get(key)?.jumpable) {

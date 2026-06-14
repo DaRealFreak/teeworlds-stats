@@ -165,6 +165,8 @@
                             summary.appendChild(caret);
                             var master = document.createElement('input');
                             master.type = 'checkbox';
+                            // The group name is in a sibling span, not a <label>, so name the master for SR users.
+                            master.setAttribute('aria-label', 'Toggle all ' + entry.label);
                             // Toggling the checkbox must not also open/close the <details>.
                             master.addEventListener('click', function (e) { e.stopPropagation(); });
                             summary.appendChild(master);
