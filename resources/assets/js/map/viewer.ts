@@ -492,12 +492,15 @@ export class MapViewer {
             const combined: number[] = [];
             for (const quad of ql.quads) {
                 let posOffset: [number, number] = [0, 0];
+                let rotation = 0;
                 if (quad.posEnv >= 0 && quad.posEnv < this.scene.envelopes.length) {
                     const env = this.scene.envelopes[quad.posEnv]!;
                     const vals = evalEnvelope(env.channels, env.points, timeMs + quad.posEnvOffset);
                     // evalEnvelope yields fx2f world units (32/tile); quad points are in tiles, so
                     // scale the position-envelope offset to tiles too or drifting decals move 32× fast.
                     posOffset = [(vals[0] ?? 0) / TILE_WORLD_SIZE, (vals[1] ?? 0) / TILE_WORLD_SIZE];
+                    // Channel 2 is the pivot rotation, stored in degrees (DDNet: Rot = b/180·π rad).
+                    rotation = ((vals[2] ?? 0) / 180) * Math.PI;
                 }
                 let colorMul: [number, number, number, number] = [1, 1, 1, 1];
                 if (quad.colorEnv >= 0 && quad.colorEnv < this.scene.envelopes.length) {
@@ -505,7 +508,7 @@ export class MapViewer {
                     const vals = evalEnvelope(env.channels, env.points, timeMs + quad.colorEnvOffset);
                     colorMul = [vals[0] ?? 1, vals[1] ?? 1, vals[2] ?? 1, vals[3] ?? 1];
                 }
-                const verts = buildQuadVertices(quad, posOffset, colorMul);
+                const verts = buildQuadVertices(quad, posOffset, colorMul, rotation);
                 for (const v of verts) combined.push(v);
             }
             batch.vertices = new Float32Array(combined);

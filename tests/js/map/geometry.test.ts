@@ -95,4 +95,36 @@ describe('geometry', () => {
         expect(v[4]).toBeCloseTo(1, 5);  // r = 255/255 * 1
         expect(v[5]).toBeCloseTo(0, 5);  // g = 0/255 * 1
     });
+
+    // Quad pivot rotation — CRenderMap::ForceRenderQuads + Rotate (render_map.cpp):
+    // each corner is rotated around the pivot points[4] by the position-envelope angle
+    //   x' = dx·cos − dy·sin + cx,  y' = dx·sin + dy·cos + cy  (dx = px−cx, dy = py−cy)
+    // and the offset is added AFTER the rotation.
+    const rotQuad = () => ({
+        // All four corners at (2,1); pivot points[4] at (1,1).
+        points: [[2, 1], [2, 1], [2, 1], [2, 1], [1, 1]] as [number, number][],
+        colors: [[255, 255, 255, 255], [255, 255, 255, 255], [255, 255, 255, 255], [255, 255, 255, 255]] as [number, number, number, number][],
+        texCoords: [[0, 0], [1, 0], [0, 1], [1, 1]] as [number, number][],
+        posEnv: -1, posEnvOffset: 0, colorEnv: -1, colorEnvOffset: 0,
+    });
+
+    it('leaves corners unrotated when the angle is 0', () => {
+        const v = buildQuadVertices(rotQuad(), [0, 0], [1, 1, 1, 1], 0);
+        expect(v[0]).toBe(2);
+        expect(v[1]).toBe(1);
+    });
+
+    it('rotates each corner around the pivot points[4]', () => {
+        // (2,1) about pivot (1,1): dx=1, dy=0; 90° → (0,1) → +pivot = (1,2).
+        const v = buildQuadVertices(rotQuad(), [0, 0], [1, 1, 1, 1], Math.PI / 2);
+        expect(v[0]).toBeCloseTo(1, 6); // x
+        expect(v[1]).toBeCloseTo(2, 6); // y
+    });
+
+    it('adds the position offset after rotating', () => {
+        // rotated corner (1,2) then + offset (10,20) = (11,22) — offset is not itself rotated.
+        const v = buildQuadVertices(rotQuad(), [10, 20], [1, 1, 1, 1], Math.PI / 2);
+        expect(v[0]).toBeCloseTo(11, 6);
+        expect(v[1]).toBeCloseTo(22, 6);
+    });
 });
