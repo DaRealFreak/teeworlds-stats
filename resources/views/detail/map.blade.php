@@ -73,30 +73,73 @@
                         zoom.value = String(Math.round(frac * 100));
                     });
                 }
-                if (ent) ent.addEventListener('input', function () {
-                    viewer.setEntitiesOpacity(Number(ent.value) / 100);
-                });
-
-                // Build the highlight legend from the viewer's categories.
-                var legend = document.getElementById('mapLegend');
-                if (legend && window.MapViewer.highlightCategories) {
-                    window.MapViewer.highlightCategories().forEach(function (cat) {
-                        var item = document.createElement('label');
-                        item.className = 'map-viewer__legend-item';
-                        var cb = document.createElement('input');
-                        cb.type = 'checkbox';
-                        cb.addEventListener('change', function () { viewer.setHighlight(cat.key, cb.checked); });
-                        var swatch = document.createElement('span');
-                        swatch.className = 'map-viewer__swatch';
-                        swatch.style.background = 'rgb(' +
-                            Math.round(cat.color[0] * 255) + ',' +
-                            Math.round(cat.color[1] * 255) + ',' +
-                            Math.round(cat.color[2] * 255) + ')';
-                        item.appendChild(cb);
-                        item.appendChild(swatch);
-                        item.appendChild(document.createTextNode(' ' + cat.label));
-                        legend.appendChild(item);
+                if (ent) {
+                    ent.addEventListener('input', function () {
+                        viewer.setEntitiesOpacity(Number(ent.value) / 100);
                     });
+                    // Keep the slider in sync when a jump auto-raises the entities overlay.
+                    viewer.setEntitiesChangeListener(function (op) {
+                        ent.value = String(Math.round(op * 100));
+                    });
+                }
+
+                // Build the legend/navigator from the entities actually present on this map.
+                var legend = document.getElementById('mapLegend');
+                if (legend && viewer.mapIndex) {
+                    var entries = viewer.mapIndex();
+                    if (!entries.length) {
+                        legend.style.display = 'none';
+                    } else {
+                        var checkboxes = {}; // highlight key -> checkbox, for jump-driven sync
+                        var buildRow = function (entry, depth) {
+                            var row = document.createElement('div');
+                            row.className = 'map-viewer__legend-item' + (depth ? ' map-viewer__legend-child' : '');
+                            if (entry.toggleable) {
+                                var cb = document.createElement('input');
+                                cb.type = 'checkbox';
+                                cb.addEventListener('change', function () { viewer.setHighlight(entry.key, cb.checked); });
+                                checkboxes[entry.key] = cb;
+                                row.appendChild(cb);
+                            }
+                            if (entry.color) {
+                                var swatch = document.createElement('span');
+                                swatch.className = 'map-viewer__swatch';
+                                swatch.style.background = 'rgb(' +
+                                    Math.round(entry.color[0] * 255) + ',' +
+                                    Math.round(entry.color[1] * 255) + ',' +
+                                    Math.round(entry.color[2] * 255) + ')';
+                                row.appendChild(swatch);
+                            }
+                            var label = document.createElement('span');
+                            label.className = 'map-viewer__legend-label';
+                            label.textContent = entry.label + ' (' + entry.count + ')';
+                            row.appendChild(label);
+                            if (entry.jumpable) {
+                                var jump = document.createElement('button');
+                                jump.type = 'button';
+                                jump.className = 'map-viewer__jump';
+                                jump.title = 'Jump to ' + entry.label + ' (click again for the next one)';
+                                jump.innerHTML = '<i class="fa fa-crosshairs" aria-hidden="true"></i>';
+                                var counter = document.createElement('span');
+                                counter.className = 'map-viewer__jump-count';
+                                jump.addEventListener('click', function () {
+                                    var res = viewer.jumpToNext(entry.key);
+                                    if (!res) return;
+                                    counter.textContent = (res.index + 1) + '/' + res.total;
+                                    if (checkboxes[res.highlightKey]) checkboxes[res.highlightKey].checked = true;
+                                });
+                                row.appendChild(jump);
+                                row.appendChild(counter);
+                            }
+                            return row;
+                        };
+                        entries.forEach(function (entry) {
+                            legend.appendChild(buildRow(entry, 0));
+                            if (entry.children) {
+                                entry.children.forEach(function (child) { legend.appendChild(buildRow(child, 1)); });
+                            }
+                        });
+                    }
                 }
             });
         });
