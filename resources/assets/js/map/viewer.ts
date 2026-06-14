@@ -15,6 +15,8 @@ import { evalEnvelope } from './envelope';
 import { Overlay, buildAnnotations, pulseActive } from './overlay';
 import type { Annotation, PulseTarget } from './overlay';
 import { HIGHLIGHT_CATEGORIES, buildHighlightVertices } from './highlights';
+import { buildMapIndex } from './mapIndex';
+import type { LegendEntry } from './mapIndex';
 import { overlayLayerAlpha } from './overlayCompositing';
 import { BORDER_RENDER_DISTANCE, buildEdgeExtendVertices, buildKillBorderVertices } from './mapBorder';
 import type { MapScene, Group, TileLayer, QuadLayer, PixelData } from './types';
@@ -29,6 +31,11 @@ const CLICK_MAX_MS = 400;
 
 /** Native tileset scale: a 1024px tileset has 64px cells, so 1 tile = 64 CSS px ("actual size"). */
 const NATIVE_ZOOM = 64;
+
+// Smart-focus floors used by jumpToNext: zoom in to at least FOCUS_ZOOM px/tile when more
+// zoomed out, and raise the entities overlay to ENTITIES_MIN so the jumped-to sprite shows.
+const FOCUS_ZOOM = 24;
+const ENTITIES_MIN = 0.6;
 
 /** Identifies a drawable layer batch. */
 interface LayerBatch {
@@ -233,6 +240,12 @@ export class MapViewer {
     private readonly highlightBatches = new Map<string, Float32Array>();
     private pulse: PulseTarget | null = null;
     private zoomListener: ((fraction: number) => void) | null = null;
+    private entitiesListener: ((opacity: number) => void) | null = null;
+
+    // Legend / jump navigator (built once in the ctor from buildMapIndex).
+    private readonly legendEntries: LegendEntry[];
+    private readonly jumpPositions: Map<string, [number, number][]>;
+    private readonly jumpCursors = new Map<string, number>();
 
     private gameW = 0;
     private gameH = 0;
@@ -274,6 +287,10 @@ export class MapViewer {
 
         this.annotations = buildAnnotations(p.scene, p.gameGroupIndex);
         this.buildTeleIndex();
+
+        const idx = buildMapIndex(p.scene, p.gameGroupIndex);
+        this.legendEntries = idx.entries;
+        this.jumpPositions = idx.positions;
 
         const canvas = p.canvas;
         canvas.style.cursor = 'grab';
@@ -376,10 +393,11 @@ export class MapViewer {
     /** Set the entities-overlay strength (0 = design only, 1 = entities only). */
     setEntitiesOpacity(opacity: number): void {
         this.entitiesOpacity = Math.max(0, Math.min(1, opacity));
+        this.entitiesListener?.(this.entitiesOpacity);
         this.requestRender();
     }
 
-    /** Toggle a highlight category (see {@link MapViewer.highlightCategories}). */
+    /** Toggle a highlight category's outline (see {@link MapViewer.mapIndex}). */
     setHighlight(key: string, on: boolean): void {
         if (on) {
             const cat = HIGHLIGHT_CATEGORIES.find((c) => c.key === key);
@@ -391,9 +409,39 @@ export class MapViewer {
         this.requestRender();
     }
 
-    /** The available highlight categories (key, label, 0..1 RGB color) for building a legend. */
-    static highlightCategories(): { key: string; label: string; color: [number, number, number] }[] {
-        return HIGHLIGHT_CATEGORIES.map((c) => ({ key: c.key, label: c.label, color: c.color }));
+    /** Present-on-this-map legend rows (no positions) for building the navigator UI. Treat as read-only. */
+    mapIndex(): LegendEntry[] {
+        return this.legendEntries;
+    }
+
+    /**
+     * Smart-focus the next instance of `key`, cycling on repeat calls: enable the category
+     * outline, raise the entities overlay and zoom to readable floors, then recenter + pulse.
+     * `key` is a legend key (incl. checkpoint children `cp:<n>`). Returns null when empty.
+     * The returned `index` is the 0-based cursor (display as `index + 1`).
+     */
+    jumpToNext(key: string): { index: number; total: number; highlightKey: string } | null {
+        const positions = this.jumpPositions.get(key);
+        if (!positions || positions.length === 0) return null;
+        const cursor = ((this.jumpCursors.get(key) ?? -1) + 1) % positions.length;
+        this.jumpCursors.set(key, cursor);
+        const [x, y] = positions[cursor]!;
+        const highlightKey = key.startsWith('cp:') ? 'checkpoints' : key;
+        this.setHighlight(highlightKey, true);
+        if (this.entitiesOpacity < ENTITIES_MIN) this.setEntitiesOpacity(ENTITIES_MIN);
+        if (this.camera.zoom < FOCUS_ZOOM) {
+            this.camera.zoom = FOCUS_ZOOM;
+            this.notifyZoom();
+        }
+        this.camera.center = [x + 0.5, y + 0.5];
+        this.startPulse(x, y);
+        return { index: cursor, total: positions.length, highlightKey };
+    }
+
+    /** Register a listener invoked immediately, then on every entities-opacity change (0..1). */
+    setEntitiesChangeListener(cb: (opacity: number) => void): void {
+        this.entitiesListener = cb;
+        cb(this.entitiesOpacity);
     }
 
     /** Release all GL resources and detach event listeners. */
