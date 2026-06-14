@@ -426,7 +426,11 @@ export class MapViewer {
         const cursor = ((this.jumpCursors.get(key) ?? -1) + 1) % positions.length;
         this.jumpCursors.set(key, cursor);
         const [x, y] = positions[cursor]!;
-        const highlightKey = key.startsWith('cp:') ? 'checkpoints' : key;
+        const highlightKey = key.startsWith('cp:')
+            ? 'checkpoints'
+            : key.startsWith('tele:')
+              ? 'teleport'
+              : key;
         this.setHighlight(highlightKey, true);
         if (this.entitiesOpacity < ENTITIES_MIN) this.setEntitiesOpacity(ENTITIES_MIN);
         if (this.camera.zoom < FOCUS_ZOOM) {

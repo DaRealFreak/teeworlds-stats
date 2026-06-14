@@ -83,43 +83,48 @@
                     });
                 }
 
-                // Build the legend/navigator from the entities actually present on this map.
+                // Build the grouped legend/navigator from the entities present on this map.
                 var legend = document.getElementById('mapLegend');
                 if (legend && viewer.mapIndex) {
                     var entries = viewer.mapIndex();
                     if (!entries.length) {
                         legend.style.display = 'none';
                     } else {
-                        var checkboxes = {}; // highlight key -> checkbox, for jump-driven sync
-                        var buildRow = function (entry, depth) {
+                        var checkboxes = {}; // outline key -> checkbox, for jump-driven sync
+                        var masterSync = {}; // child outline key -> fn refreshing its group master
+
+                        var swatchEl = function (color) {
+                            var s = document.createElement('span');
+                            s.className = 'map-viewer__swatch';
+                            s.style.background = 'rgb(' + Math.round(color[0] * 255) + ',' +
+                                Math.round(color[1] * 255) + ',' + Math.round(color[2] * 255) + ')';
+                            return s;
+                        };
+
+                        // A leaf row: optional outline checkbox (+swatch, label-wrapped so clicking the
+                        // name toggles it), label, and an optional crosshair jump that cycles instances.
+                        var buildLeaf = function (entry, depth, onToggle) {
                             var row = document.createElement('div');
                             row.className = 'map-viewer__legend-item' + (depth ? ' map-viewer__legend-child' : '');
                             var label = document.createElement('span');
                             label.className = 'map-viewer__legend-label';
                             label.textContent = entry.label + ' (' + entry.count + ')';
-                            var swatch = null;
-                            if (entry.color) {
-                                swatch = document.createElement('span');
-                                swatch.className = 'map-viewer__swatch';
-                                swatch.style.background = 'rgb(' +
-                                    Math.round(entry.color[0] * 255) + ',' +
-                                    Math.round(entry.color[1] * 255) + ',' +
-                                    Math.round(entry.color[2] * 255) + ')';
-                            }
                             if (entry.toggleable) {
-                                // A <label> ties the checkbox to the swatch+name so the whole label toggles the outline.
                                 var toggle = document.createElement('label');
                                 toggle.className = 'map-viewer__legend-toggle';
                                 var cb = document.createElement('input');
                                 cb.type = 'checkbox';
-                                cb.addEventListener('change', function () { viewer.setHighlight(entry.key, cb.checked); });
+                                cb.addEventListener('change', function () {
+                                    viewer.setHighlight(entry.key, cb.checked);
+                                    if (onToggle) onToggle();
+                                });
                                 checkboxes[entry.key] = cb;
                                 toggle.appendChild(cb);
-                                if (swatch) toggle.appendChild(swatch);
+                                if (entry.color) toggle.appendChild(swatchEl(entry.color));
                                 toggle.appendChild(label);
                                 row.appendChild(toggle);
                             } else {
-                                if (swatch) row.appendChild(swatch);
+                                if (entry.color) row.appendChild(swatchEl(entry.color));
                                 row.appendChild(label);
                             }
                             if (entry.jumpable) {
@@ -135,17 +140,82 @@
                                     if (!res) return;
                                     counter.textContent = (res.index + 1) + '/' + res.total;
                                     if (checkboxes[res.highlightKey]) checkboxes[res.highlightKey].checked = true;
+                                    if (masterSync[res.highlightKey]) masterSync[res.highlightKey]();
                                 });
                                 row.appendChild(jump);
                                 row.appendChild(counter);
                             }
                             return row;
                         };
-                        entries.forEach(function (entry) {
-                            legend.appendChild(buildRow(entry, 0));
-                            if (entry.children) {
-                                entry.children.forEach(function (child) { legend.appendChild(buildRow(child, 1)); });
+
+                        // A collapsible <details> group. Typed groups (per-child colours) start open
+                        // with a tri-state master toggle; numbered groups (one colour, jump-only
+                        // children) start collapsed and the master is the group's single outline toggle.
+                        var buildGroup = function (entry) {
+                            var typed = entry.children.length > 0 && entry.children[0].toggleable;
+                            var details = document.createElement('details');
+                            details.className = 'map-viewer__legend-group';
+                            if (typed) details.open = true;
+
+                            var summary = document.createElement('summary');
+                            summary.className = 'map-viewer__legend-header';
+                            var caret = document.createElement('span');
+                            caret.className = 'map-viewer__legend-caret';
+                            caret.setAttribute('aria-hidden', 'true');
+                            summary.appendChild(caret);
+                            var master = document.createElement('input');
+                            master.type = 'checkbox';
+                            // Toggling the checkbox must not also open/close the <details>.
+                            master.addEventListener('click', function (e) { e.stopPropagation(); });
+                            summary.appendChild(master);
+                            if (entry.color) summary.appendChild(swatchEl(entry.color));
+                            var label = document.createElement('span');
+                            label.className = 'map-viewer__legend-label';
+                            label.textContent = entry.label + ' (' + entry.count + ')';
+                            summary.appendChild(label);
+                            details.appendChild(summary);
+
+                            var body = document.createElement('div');
+                            body.className = 'map-viewer__legend-children';
+                            if (typed) {
+                                // Master aggregates the per-child outline toggles (tri-state).
+                                var childBoxes = [];
+                                var refresh = function () {
+                                    var on = 0;
+                                    for (var i = 0; i < childBoxes.length; i++) if (childBoxes[i].checked) on++;
+                                    master.checked = on === childBoxes.length && on > 0;
+                                    master.indeterminate = on > 0 && on < childBoxes.length;
+                                };
+                                entry.children.forEach(function (child) {
+                                    body.appendChild(buildLeaf(child, 1, refresh));
+                                    childBoxes.push(checkboxes[child.key]);
+                                    masterSync[child.key] = refresh;
+                                });
+                                master.addEventListener('change', function () {
+                                    var on = master.checked;
+                                    childBoxes.forEach(function (cb, i) {
+                                        cb.checked = on;
+                                        viewer.setHighlight(entry.children[i].key, on);
+                                    });
+                                    master.indeterminate = false;
+                                });
+                                refresh();
+                            } else {
+                                // Numbered group: the master is the group's single outline toggle.
+                                checkboxes[entry.key] = master;
+                                master.addEventListener('change', function () {
+                                    viewer.setHighlight(entry.key, master.checked);
+                                });
+                                entry.children.forEach(function (child) {
+                                    body.appendChild(buildLeaf(child, 1));
+                                });
                             }
+                            details.appendChild(body);
+                            return details;
+                        };
+
+                        entries.forEach(function (entry) {
+                            legend.appendChild(entry.children ? buildGroup(entry) : buildLeaf(entry, 0));
                         });
                     }
                 }

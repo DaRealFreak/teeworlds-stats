@@ -33,7 +33,7 @@ describe('buildHighlightVertices', () => {
         const v = buildHighlightVertices(scene, 0, cat('start'));
         // one tile × 4 border rects × 2 tris × 3 verts × 8 floats
         expect(v.length).toBe(4 * 2 * 3 * 8);
-        expect(buildHighlightVertices(scene, 0, cat('freeze')).length).toBe(0);
+        expect(buildHighlightVertices(scene, 0, cat('spawn')).length).toBe(0);
     });
 
     it('matches tele types on the tele layer', () => {
@@ -41,8 +41,8 @@ describe('buildHighlightVertices', () => {
         expect(buildHighlightVertices(scene, 0, cat('teleport')).length).toBeGreaterThan(0);
     });
 
-    it('ignores design (tiles) layers so cell index 9 is not treated as freeze', () => {
-        const scene = sceneWith([9], 1, 1, 'tiles');
-        expect(buildHighlightVertices(scene, 0, cat('freeze')).length).toBe(0);
+    it('ignores design (tiles) layers so a physics id on a design layer is not outlined', () => {
+        const scene = sceneWith([33], 1, 1, 'tiles'); // TILE_START, but on a design layer
+        expect(buildHighlightVertices(scene, 0, cat('start')).length).toBe(0);
     });
 });

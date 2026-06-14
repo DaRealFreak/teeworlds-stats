@@ -3352,6 +3352,43 @@ pre code {
     &__legend-child {
         padding-left: 1.35rem; // indent checkpoint children under the Checkpoints row
     }
+    &__legend-group {
+        margin: 0; // collapsible <details>; children show/hide with the native open state
+    }
+    &__legend-group[open] &__legend-caret {
+        transform: rotate(90deg);
+    }
+    &__legend-header {
+        display: flex;
+        align-items: center;
+        gap: 0.3rem;
+        cursor: pointer;
+        font-weight: 600;
+        user-select: none;
+        list-style: none; // hide the default <summary> disclosure marker
+
+        &::-webkit-details-marker {
+            display: none;
+        }
+    }
+    &__legend-caret {
+        // Custom disclosure triangle; rotates to point down when the group is open.
+        display: inline-block;
+        width: 0.7rem;
+        font-size: 0.7rem;
+        color: rgba(255, 255, 255, 0.6);
+        transition: transform 0.12s ease;
+
+        &::before {
+            content: '\25b8'; // ▸
+        }
+    }
+    &__legend-children {
+        display: flex;
+        flex-direction: column;
+        gap: 0.15rem;
+        margin-top: 0.15rem;
+    }
     &__legend-label {
         white-space: nowrap;
     }

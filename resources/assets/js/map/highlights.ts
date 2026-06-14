@@ -17,7 +17,7 @@ export interface HighlightCategory {
     /** Outline color, 0..1 RGB. */
     color: [number, number, number];
     ids: Set<number>;
-    /** Point landmark you can jump to; false for area fills (Freeze) and the checkpoint parent. */
+    /** Point landmark you can jump to; false for the teleport/checkpoint group parents (their numbered children carry the jumps). */
     jumpable: boolean;
 }
 
@@ -43,11 +43,11 @@ export const HIGHLIGHT_CATEGORIES: readonly HighlightCategory[] = [
         color: [0.4, 0.75, 1.0],
         // TELEINEVIL,TELEINWEAPON,TELEINHOOK,TELEIN,TELEOUT,TELECHECKOUT,TELECHECKIN,TELECHECKINEVIL
         ids: new Set([10, 14, 15, 26, 27, 30, 31, 63]),
-        jumpable: true,
+        // Parent toggles all teleport outlines; per-number jumps live on its children (see mapIndex.ts).
+        jumpable: false,
     },
     // Parent toggles all checkpoint outlines; per-number jumps live on its children (see mapIndex.ts).
     { key: 'checkpoints', label: 'Checkpoints', color: [0.8, 0.4, 1.0], ids: checkpointIds, jumpable: false },
-    { key: 'freeze', label: 'Freeze', color: [0.55, 0.9, 1.0], ids: new Set([9, 11, 12, 13]), jumpable: false },
 ] as const;
 
 /** Outline thickness as a fraction of a tile. */
