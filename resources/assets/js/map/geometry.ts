@@ -113,16 +113,33 @@ export function buildTileLayerVertices(layer: TileLayer, colorMul: [number, numb
     return out;
 }
 
-/** Build interleaved vertices for one quad. `posOffset` shifts all corners; `colorMul` multiplies corner colors (0..1). */
+/**
+ * Build interleaved vertices for one quad. `posOffset` shifts all corners; `colorMul` multiplies
+ * corner colors (0..1); `rotation` (radians) spins each corner about the quad's pivot (`points[4]`)
+ * before the offset is applied — matching CRenderMap::ForceRenderQuads + Rotate (render_map.cpp):
+ *   x' = dx·cos − dy·sin + cx,  y' = dx·sin + dy·cos + cy   (dx = px−cx, dy = py−cy)
+ */
 export function buildQuadVertices(
     quad: Quad,
     posOffset: [number, number],
     colorMul: [number, number, number, number],
+    rotation = 0,
 ): number[] {
     const out: number[] = [];
+    const pivot = quad.points[4] ?? [0, 0];
+    const cos = Math.cos(rotation);
+    const sin = Math.sin(rotation);
     const p: [number, number][] = [0, 1, 2, 3].map((i) => {
         const pt = quad.points[i]!;
-        return [pt[0] + posOffset[0], pt[1] + posOffset[1]];
+        let px = pt[0];
+        let py = pt[1];
+        if (rotation !== 0) {
+            const dx = px - pivot[0];
+            const dy = py - pivot[1];
+            px = dx * cos - dy * sin + pivot[0];
+            py = dx * sin + dy * cos + pivot[1];
+        }
+        return [px + posOffset[0], py + posOffset[1]];
     });
     const uv: [number, number][] = [0, 1, 2, 3].map((i) => quad.texCoords[i]!);
     for (const tri of [

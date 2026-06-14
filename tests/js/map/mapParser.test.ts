@@ -56,4 +56,12 @@ describe('parseMap (gravity.map)', () => {
         expect(tc[0]).toBeGreaterThanOrEqual(-2); // normalised (÷1024); allow a small margin for out-of-[0,1] authoring
         expect(tc[0]).toBeLessThanOrEqual(2);
     });
+    it('parses quad points in tile units near the 50×120 map (not 64× out)', () => {
+        // Regression: with the wrong fixed-point scale, these background quads landed at ±1500 tiles
+        // instead of within the map, so decals only showed at fit. They sit within a tile of the map.
+        const quadLayers = scene.groups.flatMap((g) => g.layers).filter((l): l is QuadLayer => l.type === 'quads');
+        const pts = quadLayers.flatMap((l) => l.quads.flatMap((q) => q.points));
+        expect(pts.length).toBeGreaterThan(0);
+        expect(pts.every((p) => Math.abs(p[0]) <= 100 && Math.abs(p[1]) <= 200)).toBe(true);
+    });
 });

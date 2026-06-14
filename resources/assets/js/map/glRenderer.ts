@@ -17,9 +17,17 @@ void main() {
 
 const FRAGMENT_GLSL = `
 precision mediump float;
-uniform sampler2D uTex; uniform vec4 uColorMul; varying vec2 vUV; varying vec4 vColor;
+uniform sampler2D uTex; uniform vec4 uColorMul; uniform float uFract; varying vec2 vUV; varying vec4 vColor;
 void main() {
-    vec4 c = texture2D(uTex, vUV) * vColor * uColorMul;
+    // When uFract=1, sample with fract(uv) so textures REPEAT, matching how DDNet renders quads: a wide
+    // background quad (mountains, clouds) tiles its image across the strip with UVs far outside [0,1],
+    // which CLAMP_TO_EDGE would smear into a flat edge column. Safe for tilemap/entity layers because
+    // tileUV (geometry.ts) insets every cell by half a texel, so their UVs never hit an integer boundary.
+    // When uFract=0 the raw UV is used: a power-of-two texture (the kill cell) repeats via hardware
+    // GL_REPEAT instead, which keeps the UV continuous so mipmaps pick the right LOD (fract's seam jumps
+    // would force the coarsest mip at every tile edge and alias the field as the camera zooms).
+    vec2 uv = uFract > 0.5 ? fract(vUV) : vUV;
+    vec4 c = texture2D(uTex, uv) * vColor * uColorMul;
     if (c.a < 0.01) discard;
     gl_FragColor = c;
 }
@@ -59,6 +67,7 @@ export class GlRenderer {
     private readonly uTransform: WebGLUniformLocation;
     private readonly uTex: WebGLUniformLocation;
     private readonly uColorMul: WebGLUniformLocation;
+    private readonly uFract: WebGLUniformLocation;
 
     constructor(private readonly gl: WebGLRenderingContext) {
         // --- compile shaders & link program ---
@@ -100,6 +109,10 @@ export class GlRenderer {
         if (!uColorMul) throw new Error('GlRenderer: uColorMul uniform not found');
         this.uColorMul = uColorMul;
 
+        const uFract = gl.getUniformLocation(program, 'uFract');
+        if (!uFract) throw new Error('GlRenderer: uFract uniform not found');
+        this.uFract = uFract;
+
         // --- shared vertex buffer ---
         const buffer = gl.createBuffer();
         if (!buffer) throw new Error('GlRenderer: gl.createBuffer returned null');
@@ -121,8 +134,10 @@ export class GlRenderer {
 
     /**
      * Upload a TexImageSource as a WebGL texture.
-     * Uses NEAREST filter and CLAMP_TO_EDGE wrap so non-power-of-two images
-     * (e.g. external tileset images) are valid in WebGL1.
+     * Uses NEAREST filter and CLAMP_TO_EDGE wrap so non-power-of-two images (e.g. external mapres
+     * images) are valid in WebGL1 — GL_REPEAT requires power-of-two textures there. Texture tiling
+     * for wide quads is instead done in the fragment shader via fract(uv), which needs no GL wrap and
+     * works for NPOT images too.
      */
     createTexture(source: TexImageSource): WebGLTexture {
         const gl = this.gl;
@@ -134,6 +149,28 @@ export class GlRenderer {
         gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
         gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
         gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+        gl.bindTexture(gl.TEXTURE_2D, null);
+        return tex;
+    }
+
+    /**
+     * Upload a power-of-two TexImageSource as a tiling texture: GL_REPEAT wrap + mipmaps with trilinear
+     * minification (NEAREST magnification keeps it crisp when zoomed in). Used for the kill-tile cell,
+     * which tiles across a huge field — without mipmaps, minifying the repeated cell with NEAREST aliases
+     * into a coarse Moiré that "pulses" big as the camera zooms. Draw these with hardwareWrap=true so the
+     * shader skips fract() and the hardware does the (continuous, mip-correct) repeat. POT source required.
+     */
+    createTiledTexture(source: TexImageSource): WebGLTexture {
+        const gl = this.gl;
+        const tex = gl.createTexture();
+        if (!tex) throw new Error('GlRenderer: gl.createTexture returned null');
+        gl.bindTexture(gl.TEXTURE_2D, tex);
+        gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, source);
+        gl.generateMipmap(gl.TEXTURE_2D);
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR_MIPMAP_LINEAR);
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.REPEAT);
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.REPEAT);
         gl.bindTexture(gl.TEXTURE_2D, null);
         return tex;
     }
@@ -160,12 +197,16 @@ export class GlRenderer {
      * @param transform [scaleX, scaleY, offX, offY] world→clip mapping.
      * @param colorMul  RGBA multiplied over every fragment (default opaque white).
      *                  Used to fade layers in/out for the entities overlay.
+     * @param hardwareWrap  When true, the shader skips fract() and the bound texture is expected to
+     *                  repeat via GL_REPEAT (a {@link createTiledTexture}). Keeps the UV continuous so
+     *                  mipmaps choose the right LOD; use for the tiling kill field, not NPOT quads.
      */
     draw(
         texture: WebGLTexture | null,
         vertices: Float32Array,
         transform: [number, number, number, number],
         colorMul: [number, number, number, number] = [1, 1, 1, 1],
+        hardwareWrap = false,
     ): void {
         if (vertices.length === 0) return;
 
@@ -199,6 +240,9 @@ export class GlRenderer {
 
         // per-draw color multiplier (entities overlay fade)
         gl.uniform4f(this.uColorMul, colorMul[0], colorMul[1], colorMul[2], colorMul[3]);
+
+        // fract() repeat in-shader, unless the texture wraps in hardware (continuous UV for mipmaps)
+        gl.uniform1f(this.uFract, hardwareWrap ? 0 : 1);
 
         const vertexCount = (vertices.length / FLOATS_PER_VERTEX) | 0;
         gl.drawArrays(gl.TRIANGLES, 0, vertexCount);

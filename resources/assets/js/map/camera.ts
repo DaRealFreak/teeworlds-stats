@@ -1,3 +1,12 @@
+/**
+ * Zoom bounds in pixels-per-tile. The floor is well below 1 so very large maps
+ * (e.g. 4200-wide sky maps) can fit a normal-sized viewport — clamping the fit
+ * zoom up to 1 would otherwise show only a slice and strand the default view in
+ * the map's middle. The ceiling caps how far a single tile can be magnified.
+ */
+const MIN_ZOOM = 0.05;
+const MAX_ZOOM = 256;
+
 export class Camera {
     center: [number, number] = [0, 0];
     zoom = 32; // pixels per tile
@@ -23,7 +32,7 @@ export class Camera {
     /** Zoom by `factor` keeping the world point under (sx,sy) fixed on screen. */
     zoomAt(sx: number, sy: number, factor: number): void {
         const before = this.screenToWorld(sx, sy);
-        this.zoom = Math.max(1, Math.min(256, this.zoom * factor));
+        this.zoom = Math.max(MIN_ZOOM, Math.min(MAX_ZOOM, this.zoom * factor));
         const after = this.screenToWorld(sx, sy);
         this.center = [this.center[0] + (before[0] - after[0]), this.center[1] + (before[1] - after[1])];
     }
@@ -37,7 +46,7 @@ export class Camera {
     fitZoomFor(w: number, h: number): number {
         const ww = Math.max(1e-6, w);
         const hh = Math.max(1e-6, h);
-        return Math.max(1, Math.min(256, Math.min(this.viewW / ww, this.viewH / hh) * 0.95));
+        return Math.max(MIN_ZOOM, Math.min(MAX_ZOOM, Math.min(this.viewW / ww, this.viewH / hh) * 0.95));
     }
 
     /** Center on a world box and zoom to contain it (with a small margin). */

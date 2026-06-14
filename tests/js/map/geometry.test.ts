@@ -78,6 +78,24 @@ describe('geometry', () => {
         expect(v[11]).toBeCloseTo(0);  // TR.v
     });
 
+    // Invariant the renderer depends on: glRenderer samples with fract(uv) so quad textures REPEAT
+    // (a wide background quad tiles its image, UVs running far outside [0,1]). That fract is a no-op
+    // for tilemap/entity layers ONLY because tileUV insets every cell by half a texel, keeping all
+    // corner UVs strictly inside (0,1) — never on an integer boundary that fract would wrap. If this
+    // ever fails, tiles would wrap (e.g. a cell's right edge sampling the opposite cell) under repeat.
+    it('keeps every tile UV strictly inside (0,1) for all flag combinations (fract-safe)', () => {
+        for (const id of [0, 1, 16, 17, 128, 255]) {
+            for (let flags = 0; flags <= 15; flags++) {
+                for (const corner of tileUV(id, flags)) {
+                    expect(corner[0]).toBeGreaterThan(0);
+                    expect(corner[0]).toBeLessThan(1);
+                    expect(corner[1]).toBeGreaterThan(0);
+                    expect(corner[1]).toBeLessThan(1);
+                }
+            }
+        }
+    });
+
     it('buildQuadVertices emits 48 floats, applies posOffset, and normalises per-corner colors', () => {
         // Triangle order [0,1,2],[1,3,2] — first vertex is corner 0 (TL).
         // Interleave per vertex: x, y, u, v, r, g, b, a.
@@ -94,5 +112,37 @@ describe('geometry', () => {
         expect(v[1]).toBe(20);           // y
         expect(v[4]).toBeCloseTo(1, 5);  // r = 255/255 * 1
         expect(v[5]).toBeCloseTo(0, 5);  // g = 0/255 * 1
+    });
+
+    // Quad pivot rotation — CRenderMap::ForceRenderQuads + Rotate (render_map.cpp):
+    // each corner is rotated around the pivot points[4] by the position-envelope angle
+    //   x' = dx·cos − dy·sin + cx,  y' = dx·sin + dy·cos + cy  (dx = px−cx, dy = py−cy)
+    // and the offset is added AFTER the rotation.
+    const rotQuad = () => ({
+        // All four corners at (2,1); pivot points[4] at (1,1).
+        points: [[2, 1], [2, 1], [2, 1], [2, 1], [1, 1]] as [number, number][],
+        colors: [[255, 255, 255, 255], [255, 255, 255, 255], [255, 255, 255, 255], [255, 255, 255, 255]] as [number, number, number, number][],
+        texCoords: [[0, 0], [1, 0], [0, 1], [1, 1]] as [number, number][],
+        posEnv: -1, posEnvOffset: 0, colorEnv: -1, colorEnvOffset: 0,
+    });
+
+    it('leaves corners unrotated when the angle is 0', () => {
+        const v = buildQuadVertices(rotQuad(), [0, 0], [1, 1, 1, 1], 0);
+        expect(v[0]).toBe(2);
+        expect(v[1]).toBe(1);
+    });
+
+    it('rotates each corner around the pivot points[4]', () => {
+        // (2,1) about pivot (1,1): dx=1, dy=0; 90° → (0,1) → +pivot = (1,2).
+        const v = buildQuadVertices(rotQuad(), [0, 0], [1, 1, 1, 1], Math.PI / 2);
+        expect(v[0]).toBeCloseTo(1, 6); // x
+        expect(v[1]).toBeCloseTo(2, 6); // y
+    });
+
+    it('adds the position offset after rotating', () => {
+        // rotated corner (1,2) then + offset (10,20) = (11,22) — offset is not itself rotated.
+        const v = buildQuadVertices(rotQuad(), [10, 20], [1, 1, 1, 1], Math.PI / 2);
+        expect(v[0]).toBeCloseTo(11, 6);
+        expect(v[1]).toBeCloseTo(22, 6);
     });
 });

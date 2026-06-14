@@ -35,11 +35,23 @@ describe('Camera', () => {
         expect(cam.zoom).toBeLessThanOrEqual(800 / 50);
         expect(cam.zoom).toBeCloseTo(15.2, 5);
     });
-    it('fitZoomFor matches the zoom fitBounds applies (and clamps to [1,256])', () => {
+    it('fitZoomFor matches the zoom fitBounds applies (and clamps the upper bound)', () => {
         const cam = new Camera(800, 600);
         expect(cam.fitZoomFor(50, 30)).toBeCloseTo(15.2, 5);
-        // a huge box clamps to the minimum zoom, a tiny one to the maximum
-        expect(cam.fitZoomFor(100000, 100000)).toBe(1);
+        // a tiny box clamps to the maximum zoom
         expect(cam.fitZoomFor(0.001, 0.001)).toBe(256);
+    });
+    it('fits a map wider than the viewport in tiles (not clamped at 1 px/tile)', () => {
+        // "Back in the sky" is 4200 tiles wide; a 1200px view needs ~0.27 px/tile to show it all.
+        const cam = new Camera(1200, 800);
+        const z = cam.fitZoomFor(4200, 630);
+        expect(z).toBeLessThan(1); // would be clamped to 1 by the old floor
+        expect(z * 4200).toBeLessThanOrEqual(1200); // whole width is visible
+    });
+    it('lets wheel-zoom-out follow a fitted large map below 1 px/tile (no snap-up)', () => {
+        const cam = new Camera(1200, 800);
+        cam.zoom = 0.27; // already fitted to a wide map
+        cam.zoomAt(600, 400, 1 / 1.1); // zoom out one wheel notch
+        expect(cam.zoom).toBeLessThan(0.27); // must go further out, not snap up toward 1
     });
 });

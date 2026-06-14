@@ -15,6 +15,8 @@ import { evalEnvelope } from './envelope';
 import { Overlay, buildAnnotations, pulseActive } from './overlay';
 import type { Annotation, PulseTarget } from './overlay';
 import { HIGHLIGHT_CATEGORIES, buildHighlightVertices } from './highlights';
+import { overlayLayerAlpha } from './overlayCompositing';
+import { BORDER_RENDER_DISTANCE, buildEdgeExtendVertices, buildKillBorderVertices } from './mapBorder';
 import type { MapScene, Group, TileLayer, QuadLayer, PixelData } from './types';
 
 /** Tele tile m_Type values that act as a teleport source / destination (DDNet mapitems.h). */
@@ -31,12 +33,33 @@ const NATIVE_ZOOM = 64;
 /** Identifies a drawable layer batch. */
 interface LayerBatch {
     groupIndex: number;
-    texture: WebGLTexture | null;
+    /**
+     * Index into {@link MapScene.images} for this layer's texture (-1 = none → white fallback).
+     * Resolved live at render time rather than cached: external mapres images (clouds/stars) load
+     * asynchronously, after batches are built, so a cached texture reference would stay null.
+     */
+    imageIndex: number;
     /** Physics (entities) layer: only drawn when the entities overlay is visible. */
     isPhysics: boolean;
+    /** Parallax backdrop (sky/clouds, parallax ≠ 100): kept opaque through a partial overlay. */
+    isBackdrop: boolean;
     vertices: Float32Array;
     animatedTileLayer?: TileLayer;
     animatedQuadLayer?: QuadLayer;
+}
+
+/**
+ * A view-dependent map-edge batch (rebuilt when the camera moves): either an edge-extend batch
+ * (outer tiles repeated past the map, drawn like its source layer) or the kill-tile field
+ * (`isKill`, drawn with the death texture and a blinking alpha). See {@link MapViewer.rebuildBorders}.
+ */
+interface BorderBatch {
+    groupIndex: number;
+    imageIndex: number;
+    isPhysics: boolean;
+    isBackdrop: boolean;
+    isKill: boolean;
+    vertices: Float32Array;
 }
 
 interface TeleEntry {
@@ -58,19 +81,128 @@ interface ViewerParts {
     hasAnimation: boolean;
 }
 
+/** Teeworlds world units per tile: group offsets are stored in these px, tiles span 32 of them. */
+const TILE_WORLD_SIZE = 32;
+
+/**
+ * Base world-space view size (in world px, before zoom) for an aspect ratio — DDNet's
+ * CalcScreenParams (engine/graphics.cpp). Defines the world extent shown at the client's neutral
+ * zoom, from which {@link neutralZoom} converts to our px-per-tile units.
+ */
+function baseViewWidth(aspect: number): number {
+    const AMOUNT = 1150 * 1000;
+    const W_MAX = 1500;
+    const H_MAX = 1050;
+    const f = Math.sqrt(AMOUNT) / Math.sqrt(aspect);
+    let w = f * aspect;
+    let h = f;
+    if (w > W_MAX) {
+        w = W_MAX;
+        h = w / aspect;
+    }
+    if (h > H_MAX) {
+        h = H_MAX;
+        w = h * aspect;
+    }
+    return w;
+}
+
+/**
+ * The px-per-tile zoom at which the client's parallax zoom is neutral (DDNet Zoom == 1): every
+ * group — foreground and backdrop — scales identically here. Zooming away from it makes backdrops
+ * lag (see {@link groupZoom}). Derived from {@link baseViewWidth} so it tracks the real client.
+ */
+export function neutralZoom(viewW: number, viewH: number): number {
+    const aspect = viewW / Math.max(1, viewH);
+    return (TILE_WORLD_SIZE * viewW) / baseViewWidth(aspect);
+}
+
+/**
+ * Effective px-per-tile zoom for a group, applying DDNet's parallax zoom (render_layer.cpp:275 +
+ * graphics.cpp MapScreenToWorld): ParallaxZoom = clamp(max(parallaxX, parallaxY), 0, 100), and the
+ * group's world window scales by (ParallaxZoom·(Zoom−1) + 100) / 100 / Zoom. The foreground
+ * (parallax 100) stays at the raw zoom; low-parallax backdrops respond to zoom less, so the sky,
+ * clouds and stars stay in view when zoomed in instead of sliding out of a too-narrow window.
+ */
+export function groupZoom(
+    parallaxX: number,
+    parallaxY: number,
+    zoom: number,
+    viewW: number,
+    viewH: number,
+): number {
+    const pz = Math.min(100, Math.max(0, Math.max(parallaxX, parallaxY)));
+    const zd = neutralZoom(viewW, viewH) / zoom; // DDNet Zoom equivalent
+    const denom = pz * (zd - 1) + 100;
+    if (denom <= 0) return zoom; // degenerate (only at extreme zoom); fall back to foreground scale
+    return (zoom * 100 * zd) / denom;
+}
+
+/**
+ * The world rect (in tile units) currently visible in a group — the inverse of {@link groupTransform}:
+ * the box that maps to clip space [-1,1]². Used to build the edge-extend / kill border only over what's
+ * on screen. Y is not flipped here (x0,y0 = top-left smaller coords, x1,y1 = bottom-right larger).
+ */
+export function groupVisibleTileRect(group: Group, camera: Camera): [number, number, number, number] {
+    const { center, viewW, viewH } = camera;
+    const ecx = center[0] * (group.xParallax / 100) + group.xOffset / TILE_WORLD_SIZE;
+    const ecy = center[1] * (group.yParallax / 100) + group.yOffset / TILE_WORLD_SIZE;
+    const gz = groupZoom(group.xParallax, group.yParallax, camera.zoom, viewW, viewH);
+    const halfW = viewW / (2 * gz);
+    const halfH = viewH / (2 * gz);
+    return [ecx - halfW, ecy - halfH, ecx + halfW, ecy + halfH];
+}
+
 /** Compute the world→clip transform for a group given the current camera. */
-function groupTransform(group: Group, camera: Camera): [number, number, number, number] {
-    const { center, zoom, viewW, viewH } = camera;
-    const ecx = center[0] * (group.xParallax / 100);
-    const ecy = center[1] * (group.yParallax / 100);
-    const sx = (2 * zoom) / viewW;
-    const sy = -(2 * zoom) / viewH; // Y-flip: clip-space Y is up, screen Y is down
+export function groupTransform(group: Group, camera: Camera): [number, number, number, number] {
+    const { center, viewW, viewH } = camera;
+    // Match DDNet MapScreenToWorld: the group offset shifts the view raw (not parallax-scaled),
+    // in world px → tiles. Skipping it left offset groups (e.g. detail layers) drawn at raw
+    // position, so their tiles appeared where the client has none in the non-entity view.
+    const ecx = center[0] * (group.xParallax / 100) + group.xOffset / TILE_WORLD_SIZE;
+    const ecy = center[1] * (group.yParallax / 100) + group.yOffset / TILE_WORLD_SIZE;
+    // Backdrops zoom less than the foreground (parallax zoom); the center above is unaffected.
+    const gz = groupZoom(group.xParallax, group.yParallax, camera.zoom, viewW, viewH);
+    const sx = (2 * gz) / viewW;
+    const sy = -(2 * gz) / viewH; // Y-flip: clip-space Y is up, screen Y is down
     return [sx, sy, -ecx * sx, -ecy * sy];
+}
+
+/**
+ * Resolve the texture a batch should draw with. Physics layers use the shared entities texture;
+ * everything else looks its image up in the live textures map by index. The lookup is intentionally
+ * live (not cached on the batch) so externally-loaded mapres images — clouds, stars, any external
+ * tileset — appear as soon as their async load completes instead of staying the white fallback.
+ */
+export function resolveBatchTexture(
+    batch: { isPhysics: boolean; imageIndex: number },
+    textures: Map<number, WebGLTexture>,
+    entitiesTex: WebGLTexture | null,
+): WebGLTexture | null {
+    if (batch.isPhysics) return entitiesTex;
+    return textures.get(batch.imageIndex) ?? null;
 }
 
 /** Convert PixelData to a real ImageData for WebGL upload. */
 function pixelDataToImageData(p: PixelData): ImageData {
     return new ImageData(new Uint8ClampedArray(p.data), p.width, p.height);
+}
+
+/**
+ * Extract one cell of a `cells`×`cells` tileset image into a standalone canvas. Used to pull the
+ * single red death tile out of the entities atlas so the kill field can tile just that cell (the
+ * shader's fract() wrap repeats a whole texture, not an atlas sub-rectangle).
+ */
+function extractTileCell(img: HTMLImageElement, col: number, row: number, cells = 16): HTMLCanvasElement | null {
+    const src = img.width / cells; // square atlas → square cells
+    const OUT = 64; // fixed power-of-two output so the kill texture can carry mipmaps (WebGL1 needs POT)
+    const canvas = document.createElement('canvas');
+    canvas.width = OUT;
+    canvas.height = OUT;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return null;
+    ctx.drawImage(img, col * src, row * src, src, src, 0, 0, OUT, OUT);
+    return canvas;
 }
 
 export class MapViewer {
@@ -84,8 +216,15 @@ export class MapViewer {
 
     private textures: Map<number, WebGLTexture>;
     private entitiesTex: WebGLTexture | null = null;
+    // The red TILE_DEATH cell, extracted to its own texture so the kill field can tile it.
+    private killTex: WebGLTexture | null = null;
     // Entities-overlay strength, 0..1 (DDNet's cl_overlay_entities / 100).
     private entitiesOpacity = 0;
+
+    // Map-edge geometry (edge-extend + kill field), rebuilt only when the camera/view changes.
+    private borderBatches: BorderBatch[] = [];
+    private borderKey = '';
+    private killVisible = false;
 
     // Inspection state
     private readonly annotations: Annotation[];
@@ -104,6 +243,7 @@ export class MapViewer {
     private readonly hasAnimation: boolean;
     private animRafId: number | null = null;
     private pulseRafId: number | null = null;
+    private borderRafId: number | null = null;
     private resizeObserver: ResizeObserver | null = null;
     private firstSized = false;
 
@@ -258,10 +398,10 @@ export class MapViewer {
 
     /** Release all GL resources and detach event listeners. */
     destroy(): void {
-        for (const id of [this.rafId, this.animRafId, this.pulseRafId]) {
+        for (const id of [this.rafId, this.animRafId, this.pulseRafId, this.borderRafId]) {
             if (id !== null) cancelAnimationFrame(id);
         }
-        this.rafId = this.animRafId = this.pulseRafId = null;
+        this.rafId = this.animRafId = this.pulseRafId = this.borderRafId = null;
         this.resizeObserver?.disconnect();
         this.renderer.dispose();
         this.canvas.removeEventListener('pointerdown', this.onPointerDown);
@@ -407,10 +547,15 @@ export class MapViewer {
             const combined: number[] = [];
             for (const quad of ql.quads) {
                 let posOffset: [number, number] = [0, 0];
+                let rotation = 0;
                 if (quad.posEnv >= 0 && quad.posEnv < this.scene.envelopes.length) {
                     const env = this.scene.envelopes[quad.posEnv]!;
                     const vals = evalEnvelope(env.channels, env.points, timeMs + quad.posEnvOffset);
-                    posOffset = [vals[0] ?? 0, vals[1] ?? 0];
+                    // evalEnvelope yields fx2f world units (32/tile); quad points are in tiles, so
+                    // scale the position-envelope offset to tiles too or drifting decals move 32× fast.
+                    posOffset = [(vals[0] ?? 0) / TILE_WORLD_SIZE, (vals[1] ?? 0) / TILE_WORLD_SIZE];
+                    // Channel 2 is the pivot rotation, stored in degrees (DDNet: Rot = b/180·π rad).
+                    rotation = ((vals[2] ?? 0) / 180) * Math.PI;
                 }
                 let colorMul: [number, number, number, number] = [1, 1, 1, 1];
                 if (quad.colorEnv >= 0 && quad.colorEnv < this.scene.envelopes.length) {
@@ -418,17 +563,84 @@ export class MapViewer {
                     const vals = evalEnvelope(env.channels, env.points, timeMs + quad.colorEnvOffset);
                     colorMul = [vals[0] ?? 1, vals[1] ?? 1, vals[2] ?? 1, vals[3] ?? 1];
                 }
-                const verts = buildQuadVertices(quad, posOffset, colorMul);
+                const verts = buildQuadVertices(quad, posOffset, colorMul, rotation);
                 for (const v of verts) combined.push(v);
             }
             batch.vertices = new Float32Array(combined);
         }
     }
 
+    /** Rebuild the edge-extend + kill geometry only when the camera/view has actually changed. */
+    private rebuildBordersIfMoved(): void {
+        const c = this.camera;
+        const key = `${c.zoom}|${c.center[0]}|${c.center[1]}|${c.viewW}|${c.viewH}`;
+        if (key === this.borderKey) return;
+        this.borderKey = key;
+        this.rebuildBorders();
+    }
+
+    private rebuildBorders(): void {
+        const batches: BorderBatch[] = [];
+        for (let gi = 0; gi < this.scene.groups.length; gi++) {
+            const group = this.scene.groups[gi]!;
+            const groupIsBackdrop = group.xParallax !== 100 || group.yParallax !== 100;
+            const vis = groupVisibleTileRect(group, this.camera);
+            for (const layer of group.layers) {
+                if (layer.type !== 'tilemap') continue;
+                const verts = buildEdgeExtendVertices(layer, vis, BORDER_RENDER_DISTANCE);
+                if (verts.length === 0) continue;
+                const isPhysics = layer.kind !== 'tiles';
+                batches.push({
+                    groupIndex: gi,
+                    imageIndex: layer.image,
+                    isPhysics,
+                    isBackdrop: !isPhysics && groupIsBackdrop,
+                    isKill: false,
+                    vertices: new Float32Array(verts),
+                });
+            }
+        }
+
+        // Kill-tile field, computed in the game group's space (parallax 100).
+        const gameGroup = this.scene.groups[this.gameGroupIndex];
+        this.killVisible = false;
+        if (gameGroup && this.gameW > 0 && this.gameH > 0) {
+            const vis = groupVisibleTileRect(gameGroup, this.camera);
+            const killVerts = buildKillBorderVertices(this.gameW, this.gameH, vis, BORDER_RENDER_DISTANCE);
+            if (killVerts.length > 0) {
+                this.killVisible = true;
+                batches.push({
+                    groupIndex: this.gameGroupIndex,
+                    imageIndex: -1,
+                    isPhysics: false,
+                    isBackdrop: false,
+                    isKill: true,
+                    vertices: new Float32Array(killVerts),
+                });
+            }
+        }
+        this.borderBatches = batches;
+    }
+
+    /** Drive a render loop while the kill field is on screen AND shown (entities up), so it can blink. */
+    private killBlinking(): boolean {
+        return this.killVisible && this.entitiesOpacity > 0;
+    }
+
+    private driveBorderBlink(): void {
+        if (!this.killBlinking() || this.animRafId !== null || this.borderRafId !== null) return;
+        const tick = (timeMs: number): void => {
+            this.render(timeMs);
+            this.borderRafId = this.killBlinking() ? requestAnimationFrame(tick) : null;
+        };
+        this.borderRafId = requestAnimationFrame(tick);
+    }
+
     private render(timeMs: number): void {
         for (const batch of this.batches) {
             if (batch.animatedTileLayer || batch.animatedQuadLayer) this.buildAnimatedBatch(batch, timeMs);
         }
+        this.rebuildBordersIfMoved();
 
         // As the entities overlay fades in, fade the backdrop from the dark viewer background
         // toward DDNet's grey "entities background" instead of dimming to black.
@@ -442,25 +654,50 @@ export class MapViewer {
 
             for (const batch of this.batches) {
                 if (batch.groupIndex !== gi || batch.vertices.length === 0) continue;
-                if (batch.isPhysics) {
-                    if (this.entitiesOpacity <= 0) continue;
-                    this.renderer.draw(this.entitiesTex, batch.vertices, transform, [1, 1, 1, this.entitiesOpacity]);
-                } else {
-                    const bgAlpha = 1 - this.entitiesOpacity;
-                    if (bgAlpha <= 0) continue;
-                    this.renderer.draw(batch.texture, batch.vertices, transform, [1, 1, 1, bgAlpha]);
-                }
+                const role = batch.isPhysics ? 'physics' : batch.isBackdrop ? 'backdrop' : 'design';
+                const alpha = overlayLayerAlpha(role, this.entitiesOpacity);
+                if (alpha <= 0) continue;
+                const texture = resolveBatchTexture(batch, this.textures, this.entitiesTex);
+                this.renderer.draw(texture, batch.vertices, transform, [1, 1, 1, alpha]);
+            }
+
+            // Edge-extend tiles for this group, drawn at the group's z-level like their source layer.
+            for (const bb of this.borderBatches) {
+                if (bb.isKill || bb.groupIndex !== gi || bb.vertices.length === 0) continue;
+                const role = bb.isPhysics ? 'physics' : bb.isBackdrop ? 'backdrop' : 'design';
+                const alpha = overlayLayerAlpha(role, this.entitiesOpacity);
+                if (alpha <= 0) continue;
+                const texture = resolveBatchTexture(bb, this.textures, this.entitiesTex);
+                this.renderer.draw(texture, bb.vertices, transform, [1, 1, 1, alpha]);
+            }
+        }
+
+        // Kill-tile field on top, in the game group's space. It's a game-layer (entities) feature, so it
+        // fades in with the entities overlay like the physics layers — hidden at 0%. Blinks like DDNet's
+        // death border: alpha = 0.3 + 0.35·(1 + sin(2π·t/3)) over a 3 s cycle (GetDeathBorderColor).
+        const gameGroup = this.scene.groups[this.gameGroupIndex];
+        const killAlpha = overlayLayerAlpha('physics', this.entitiesOpacity);
+        if (gameGroup && this.killTex && killAlpha > 0) {
+            const transform = groupTransform(gameGroup, this.camera);
+            const blink = 0.3 + 0.35 * (1 + Math.sin((2 * Math.PI * (timeMs / 1000)) / 3));
+            for (const bb of this.borderBatches) {
+                if (!bb.isKill || bb.vertices.length === 0) continue;
+                // hardwareWrap: the kill cell repeats via GL_REPEAT so its mipmaps stay LOD-correct.
+                this.renderer.draw(this.killTex, bb.vertices, transform, [1, 1, 1, blink * killAlpha], true);
             }
         }
 
         // Highlight outlines, drawn on top in the game group's space (white texture + vertex color).
-        const gameGroup = this.scene.groups[this.gameGroupIndex];
         if (gameGroup && this.highlightBatches.size > 0) {
             const transform = groupTransform(gameGroup, this.camera);
             for (const verts of this.highlightBatches.values()) {
                 if (verts.length > 0) this.renderer.draw(null, verts, transform, [1, 1, 1, 1]);
             }
         }
+
+        // Keep frames coming while the kill field is on screen so it can blink, unless an envelope
+        // animation loop is already driving render. Self-stops once the field scrolls out of view.
+        this.driveBorderBlink();
 
         // 2D annotations (numbers, arrows, pulse) on the overlay canvas.
         this.overlay.draw(
@@ -540,6 +777,12 @@ export class MapViewer {
             const v = viewerRef[0];
             if (v) {
                 v.entitiesTex = tex;
+                // Extract the red TILE_DEATH cell (id 2 → col 2, row 0 of the 16×16 entities atlas) into
+                // its own texture, so the kill field can tile a single cell via the shader's fract() wrap.
+                const killCell = extractTileCell(entImg, 2, 0);
+                // Tiling texture (GL_REPEAT + mipmaps): the kill field tiles this one cell across a huge
+                // area, so it needs mip minification to not alias into "big" Moiré blocks as you zoom.
+                if (killCell) v.killTex = renderer.createTiledTexture(killCell);
                 v.requestRender();
             }
         };
@@ -569,6 +812,8 @@ export class MapViewer {
 
         for (let gi = 0; gi < scene.groups.length; gi++) {
             const group = scene.groups[gi]!;
+            // Parallax (≠100) groups are the sky/cloud backdrop; kept opaque through a partial overlay.
+            const groupIsBackdrop = group.xParallax !== 100 || group.yParallax !== 100;
             for (const layer of group.layers) {
                 if (layer.type === 'tilemap') {
                     const tl: TileLayer = layer;
@@ -584,8 +829,9 @@ export class MapViewer {
                     }
                     batches.push({
                         groupIndex: gi,
-                        texture: textures.get(tl.image) ?? null,
+                        imageIndex: tl.image,
                         isPhysics,
+                        isBackdrop: !isPhysics && groupIsBackdrop,
                         vertices: new Float32Array(buildTileLayerVertices(tl, colorMul)),
                         animatedTileLayer: isAnimated ? tl : undefined,
                     });
@@ -604,8 +850,9 @@ export class MapViewer {
                     }
                     batches.push({
                         groupIndex: gi,
-                        texture: textures.get(ql.image) ?? null,
+                        imageIndex: ql.image,
                         isPhysics: false,
+                        isBackdrop: groupIsBackdrop,
                         vertices: new Float32Array(combined),
                         animatedQuadLayer: isAnimated ? ql : undefined,
                     });

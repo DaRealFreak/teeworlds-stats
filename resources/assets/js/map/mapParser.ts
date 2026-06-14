@@ -285,6 +285,21 @@ async function parseTilemapLayer(df: DataFile, item: DataFileItem): Promise<Tile
 // Quad layer
 // ---------------------------------------------------------------------------
 
+/** DDNet fixed-point scale (i2fx/fx2f, 1<<10): raw value = real × 1024. */
+const FXP_SCALE = 1024;
+/** World units per tile: the engine renders tiles at x*32 and quads at fx2f(point) in that space. */
+const QUAD_TILE_SIZE = 32;
+
+/**
+ * Convert a raw quad point coordinate to tiles. Quad points are DDNet fixed-point world units
+ * (i2fx: ×1024) in a 32-units-per-tile world; the viewer's world is one unit per tile, so divide by
+ * 1024·32. (Texcoords are also ×1024 but normalised 0..1, so they only divide by 1024 — no tile
+ * scale.) Using the wrong scale put decals 64× too far/large, visible only at full-map fit.
+ */
+export function fxToTiles(raw: number): number {
+    return raw / (FXP_SCALE * QUAD_TILE_SIZE);
+}
+
 async function parseQuadLayer(df: DataFile, item: DataFileItem): Promise<QuadLayer> {
     const d = item.data;
     // [3]version, [4]num_quads, [5]data, [6]image, [7-9]name(opt v2)
@@ -321,10 +336,10 @@ function parseQuads(bytes: Uint8Array, count: number): Quad[] {
             return dv.getInt32(absIdx, true);
         };
 
-        // [0..9] positions: 5 × (x, y) — divide by 512 for world coords
+        // [0..9] positions: 5 × (x, y) — fixed-point world units → tiles
         const points: [number, number][] = [];
         for (let p = 0; p < 5; p++) {
-            points.push([ri(p * 2) / 512, ri(p * 2 + 1) / 512]);
+            points.push([fxToTiles(ri(p * 2)), fxToTiles(ri(p * 2 + 1))]);
         }
 
         // [10..25] colors: 4 × (r, g, b, a)
@@ -334,10 +349,10 @@ function parseQuads(bytes: Uint8Array, count: number): Quad[] {
             colors.push([ri(base2), ri(base2 + 1), ri(base2 + 2), ri(base2 + 3)]);
         }
 
-        // [26..33] texcoords: 4 × (x, y) — divide by 1024 for normalised 0..1
+        // [26..33] texcoords: 4 × (x, y) — fixed-point, normalised to 0..1 (no tile scale)
         const texCoords: [number, number][] = [];
         for (let t = 0; t < 4; t++) {
-            texCoords.push([ri(26 + t * 2) / 1024, ri(26 + t * 2 + 1) / 1024]);
+            texCoords.push([ri(26 + t * 2) / FXP_SCALE, ri(26 + t * 2 + 1) / FXP_SCALE]);
         }
 
         // [34..37] env references
