@@ -8,14 +8,15 @@ use App\Models\Map;
 use App\Models\ServerHistory;
 use App\TwStats\Connection\ConnectionInterface;
 use App\TwStats\Connection\GameConnection;
-use App\TwStats\Connection\MapDownloadSession;
+use App\TwStats\Connection\MapDownloadSessionFactory;
 use App\TwStats\Net\SocketUdpTransport;
+use App\TwStats\Discovery\FlavorClassifier;
 
 /**
- * Downloads a .map file directly from a live Teeworlds game server over UDP using the
- * in-game map-download protocol (0.6). Only invoked by MapFileStore when HTTP delivery
- * (DdnetHttpMapSource) did not serve the map, so this path exclusively handles non-DDNet
- * servers that have no HTTP-accessible mirror.
+ * Downloads a .map file directly from a live Teeworlds game server over UDP using the in-game
+ * map-download protocol (0.6 or 0.7, selected by flavour). Invoked by MapFileStore when HTTP
+ * delivery (DdnetHttpMapSource) did not serve the map — i.e. maps with no HTTP-accessible mirror
+ * (vanilla 0.6/0.7) and keyless maps for which no sha256 is known yet.
  *
  * A connected ConnectionInterface is obtained from the injected $connectionFactory;
  * the default factory builds a real GameConnection (SocketUdpTransport) so no wrapper
@@ -23,10 +24,10 @@ use App\TwStats\Net\SocketUdpTransport;
  * avoiding any real UDP traffic.
  *
  * Host selection: we query the most-recently-updated server_histories row for this map,
- * resolve the server's 0.6 address (protocol = 6), and derive the flavor from the server's
- * version column. We prefer 0.6 because MapDownloadSession implements the 0.6 request-per-
- * chunk flow; 0.7 servers stream MAP_DATA without per-chunk requests and would need a
- * separate session variant.
+ * resolve the server's address by preferred protocol (7 for vanilla_07, 6 otherwise), and
+ * route to the correct download session via MapDownloadSessionFactory — SevenMapDownloadSession
+ * for native sixup hosts (MAP_DATA streams without per-chunk requests), MapDownloadSession for
+ * 0.6/DDNet hosts (MAP_DATA includes per-chunk framing).
  */
 final class GameServerMapSource implements MapSource
 {
@@ -54,11 +55,6 @@ final class GameServerMapSource implements MapSource
         $crcHex = $map->getAttribute('crc');
         $sha256 = $map->getAttribute('sha256');
 
-        // Nothing to verify against — skip.
-        if ($crcHex === null && $sha256 === null) {
-            return null;
-        }
-
         // Find the most recently seen server that was hosting this map.
         $history = ServerHistory::where('map_id', $map->getAttribute('id'))
             ->orderByDesc('updated_at')
@@ -74,23 +70,19 @@ final class GameServerMapSource implements MapSource
             return null;
         }
 
-        // Prefer a 0.6 address; MapDownloadSession implements the 0.6 per-chunk protocol.
-        $address = $server->addresses
-            ->where('protocol', 6)
-            ->first();
+        $flavor = $server->getAttribute('flavor') ?? FlavorClassifier::FLAVOR_VANILLA_06;
 
-        // Fall back to any address when no 0.6 address exists (best-effort).
-        if ($address === null) {
-            $address = $server->addresses->first();
-        }
+        // Dial the address that matches the flavour's wire: protocol 7 for native sixup, else 0.6.
+        $preferredProtocol = $flavor === FlavorClassifier::FLAVOR_VANILLA_07 ? 7 : 6;
+        $address = $server->addresses->where('protocol', $preferredProtocol)->first()
+            ?? $server->addresses->first();
 
         if ($address === null) {
             return null;
         }
 
-        $ip     = $address->ip;
-        $port   = $address->port;
-        $flavor = $server->getAttribute('flavor') ?? 'vanilla_06';
+        $ip   = $address->ip;
+        $port = $address->port;
 
         // Convert the 8-hex crc string to a signed int32 for the session.
         $expectedCrc = null;
@@ -105,11 +97,43 @@ final class GameServerMapSource implements MapSource
         $factory = $this->connectionFactory ?? $this->defaultFactory();
         $conn    = ($factory)($ip, $port, $flavor);
 
-        return (new MapDownloadSession($conn))->download(
+        $result = MapDownloadSessionFactory::for($conn, $flavor)->downloadWithIdentity(
             expectedSha256: $sha256,
             expectedCrc: $expectedCrc,
             timeoutMs: $this->timeoutMs,
         );
+
+        // Name-match gate: the source picked a host from server_histories; if that host has since
+        // switched maps it answers with a different name, and archiving its bytes as this map would
+        // mislabel them. Reject the mismatch (the map is retried after the cooldown). Both sides are
+        // trimmed because the stored name may have been recorded from the DDNet HTTP feed while this
+        // name comes off the UDP MAP_CHANGE — tolerate that cross-source whitespace, not a real diff.
+        if (trim($result->name) !== trim((string) $map->getAttribute('name'))) {
+            return null;
+        }
+
+        // Datafile sanity: reject placeholder/troll content that is not a real Teeworlds map
+        // (mirrors resources/assets/js/map/datafile.ts: 'DATA'/'ATAD' magic, ≥36 bytes).
+        if (!$this->looksLikeMapDatafile($result->bytes)) {
+            return null;
+        }
+
+        return $result->bytes;
+    }
+
+    /**
+     * Whether the bytes are a Teeworlds map datafile: a 4-byte 'DATA'/'ATAD' magic and at least the
+     * 36-byte header (4 magic + 7×4 header ints). Guards against archiving placeholder maps a swapped
+     * host might still answer with.
+     */
+    private function looksLikeMapDatafile(string $bytes): bool
+    {
+        if (strlen($bytes) < 36) {
+            return false;
+        }
+        $magic = substr($bytes, 0, 4);
+
+        return $magic === 'DATA' || $magic === 'ATAD';
     }
 
     /**

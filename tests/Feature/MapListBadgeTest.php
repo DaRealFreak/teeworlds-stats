@@ -23,11 +23,22 @@ class MapListBadgeTest extends TestCase
         Map::create(['name' => 'retrying-map', 'sha256' => str_repeat('c', 64), 'last_archive_attempt_at' => now()]);
         Map::create(['name' => 'unavailable-map']);
 
+        $hosted = Map::create(['name' => 'hosted-keyless-map']);
+        $mod    = \App\Models\Mod::create(['name' => 'dm']);
+        $server = \App\Models\Server::factory()->create(['flavor' => 'vanilla_06']);
+        \App\Models\ServerHistory::create([
+            'weekday' => 1, 'hour' => 12, 'continuous' => true,
+            'server_id' => $server->id, 'map_id' => $hosted->id, 'mod_id' => $mod->id, 'minutes' => 5,
+        ]);
+
         $this->get('/maps')
             ->assertOk()
             ->assertSee('Downloaded')
             ->assertSee('Queued')
             ->assertSee('Retrying')
-            ->assertSee('Unavailable');
+            ->assertSee('Unavailable')
+            // the keyless-but-hosted map renders on the list (exercises the withCount eager path);
+            // its Queued status is asserted directly in MapArchiverTest
+            ->assertSee('hosted-keyless-map');
     }
 }

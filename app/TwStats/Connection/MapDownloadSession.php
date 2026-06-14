@@ -64,8 +64,10 @@ use App\TwStats\Protocol\Seven\VariableInt;
  *     reason.  A pure 0.7 (sixup) server streams MAP_DATA without per-chunk
  *     requests and would still need a separate session variant.
  */
-final class MapDownloadSession
+final class MapDownloadSession implements MapDownloadSessionInterface
 {
+    use MapDownloadVerification;
+
     // -----------------------------------------------------------------------
     // Protocol constants confirmed from protocol.h
     // -----------------------------------------------------------------------
@@ -114,7 +116,20 @@ final class MapDownloadSession
     private const STALL_WINDOW_MS = 8000;
 
     /**
-     * Execute the in-game map download and return the raw map bytes.
+     * Download and return only the raw map bytes. Thin wrapper over downloadWithIdentity() for
+     * callers that do not need the observed identity (preserves the original return contract).
+     */
+    public function download(
+        ?string $expectedSha256 = null,
+        ?int $expectedCrc = null,
+        int $timeoutMs = 120000,
+    ): string {
+        return $this->downloadWithIdentity($expectedSha256, $expectedCrc, $timeoutMs)->bytes;
+    }
+
+    /**
+     * Execute the in-game map download and return the raw map bytes together with the
+     * identity the server announced in MAP_CHANGE.
      *
      * @param string|null $expectedSha256  Hex SHA-256 to verify against (optional).
      * @param int|null    $expectedCrc     CRC32 to verify against (optional, in addition
@@ -124,14 +139,14 @@ final class MapDownloadSession
      *                                     the download fails if no chunk is accepted for
      *                                     that duration even before the overall cap.
      *
-     * @return string  Raw map file bytes.
+     * @return MapDownloadResult  Verified bytes plus the server-announced identity.
      * @throws MapDownloadFailed  On timeout, malformed messages, or integrity failure.
      */
-    public function download(
+    public function downloadWithIdentity(
         ?string $expectedSha256 = null,
         ?int $expectedCrc = null,
         int $timeoutMs = 120000,
-    ): string {
+    ): MapDownloadResult {
         $now      = hrtime(true) / 1_000_000;
         $deadline = $now + $timeoutMs;
 
@@ -153,6 +168,7 @@ final class MapDownloadSession
         $mapCrc        = 0;
         $mapSize       = 0;
         $mapSha256     = null;
+        $mapName       = '';
         $payload       = '';
         $expectedChunk = 0;
         $stallDeadline = $now + self::STALL_WINDOW_MS;
@@ -184,7 +200,7 @@ final class MapDownloadSession
                         continue;
                     }
 
-                    [, $mapCrc, $mapSize, $mapSha256] = $parsed;
+                    [$mapName, $mapCrc, $mapSize, $mapSha256] = $parsed;
                     $haveMapChange = true;
                     $payload       = '';
                     $expectedChunk = 0;
@@ -222,7 +238,7 @@ final class MapDownloadSession
                     $this->verifyIntegrity($payload, $mapSize, $mapCrc, $mapSha256, $expectedSha256, $expectedCrc);
                     $this->conn->disconnect();
 
-                    return $payload;
+                    return new MapDownloadResult($payload, $mapName, $mapCrc, $mapSize, $mapSha256);
                 }
 
                 // Advance the window: request the next chunk (drives both the
@@ -379,81 +395,4 @@ final class MapDownloadSession
         return ['last' => $last, 'crc' => $crc, 'chunk' => $chunk, 'data' => $data];
     }
 
-    // -----------------------------------------------------------------------
-    // Integrity checks
-    // -----------------------------------------------------------------------
-
-    /**
-     * Verify total size, CRC32, and optional SHA-256.
-     *
-     * CRC note: PHP's crc32() returns a signed 32-bit int. Teeworlds packs the
-     * CRC as a signed int too (via VariableInt). Normalise both to signed int32
-     * before comparing so positive server CRCs and negative PHP CRCs agree.
-     *
-     * @throws MapDownloadFailed on any mismatch.
-     */
-    private function verifyIntegrity(
-        string $payload,
-        int $announcedSize,
-        int $announcedCrc,
-        ?string $serverSha256Hex,
-        ?string $expectedSha256,
-        ?int $expectedCrc,
-    ): void {
-        $actual = strlen($payload);
-        if ($actual !== $announcedSize) {
-            throw new MapDownloadFailed(
-                "Map size mismatch: announced {$announcedSize}, received {$actual}",
-            );
-        }
-
-        $phpCrc = $this->toInt32(crc32($payload));
-        $srvCrc = $this->toInt32($announcedCrc);
-
-        if ($phpCrc !== $srvCrc) {
-            throw new MapDownloadFailed(
-                sprintf('CRC32 mismatch: server 0x%08x, computed 0x%08x', $srvCrc & 0xFFFFFFFF, $phpCrc & 0xFFFFFFFF),
-            );
-        }
-
-        if ($expectedCrc !== null) {
-            $expCrc = $this->toInt32($expectedCrc);
-            if ($phpCrc !== $expCrc) {
-                throw new MapDownloadFailed(
-                    sprintf('CRC32 mismatch with caller expectation: expected 0x%08x, computed 0x%08x', $expCrc & 0xFFFFFFFF, $phpCrc & 0xFFFFFFFF),
-                );
-            }
-        }
-
-        if ($expectedSha256 !== null) {
-            $actual256 = hash('sha256', $payload);
-            if (!hash_equals($expectedSha256, $actual256)) {
-                throw new MapDownloadFailed(
-                    "SHA-256 mismatch: expected {$expectedSha256}, got {$actual256}",
-                );
-            }
-        }
-
-        if ($serverSha256Hex !== null && $expectedSha256 !== null) {
-            if (!hash_equals($serverSha256Hex, $expectedSha256)) {
-                throw new MapDownloadFailed(
-                    "Server-announced SHA-256 {$serverSha256Hex} does not match caller expectation {$expectedSha256}",
-                );
-            }
-        }
-    }
-
-    /**
-     * Normalise an arbitrary int to signed 32-bit two's complement, matching
-     * both PHP's crc32() range and Teeworlds' VariableInt int32 representation.
-     */
-    private function toInt32(int $v): int
-    {
-        $v &= 0xFFFFFFFF;
-        if ($v & 0x80000000) {
-            $v -= 0x100000000;
-        }
-
-        return $v;
-    }
 }

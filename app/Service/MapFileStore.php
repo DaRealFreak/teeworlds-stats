@@ -28,26 +28,62 @@ final class MapFileStore
      */
     public function ensure(Map $map): string
     {
-        $relative = $this->relativePathFor($map);
-        if ($relative === null) {
-            throw new MapFileUnavailable();
-        }
-
         $storage = Storage::disk($this->disk);
-        if ($storage->exists($relative)) {
+
+        // Fast path: a keyed map whose file is already cached.
+        $relative = $this->relativePathFor($map);
+        if ($relative !== null && $storage->exists($relative)) {
             return $relative;
         }
 
         foreach ($this->sources as $source) {
             $bytes = $source->fetch($map);
-            if ($bytes !== null) {
-                $storage->put($relative, $bytes);
-
-                return $relative;
+            if ($bytes === null) {
+                continue;
             }
+
+            // Keyless maps have no path until now: derive their content identity from the verified
+            // bytes and record it (no-clobber) so relativePathFor() can name the file.
+            if ($this->relativePathFor($map) === null) {
+                $this->backfillIdentity($map, $bytes);
+            }
+
+            $relative = $this->relativePathFor($map);
+            if ($relative === null) {
+                // Still unkeyable (e.g. a pre-set but non-hex key) — cannot safely name the file.
+                continue;
+            }
+
+            $storage->put($relative, $bytes);
+
+            return $relative;
         }
 
         throw new MapFileUnavailable();
+    }
+
+    /**
+     * Record a freshly-downloaded keyless map's content identity, setting only the columns that are
+     * still null (no-clobber, mirroring UpdateData::updateMapIdentity). The derived sha256 is the true
+     * content hash of the verified bytes, so it is a valid cache key even for maps DDNet never mirrors.
+     * Only the changed columns are written, so a concurrently-stamped last_archive_attempt_at survives.
+     */
+    private function backfillIdentity(Map $map, string $bytes): void
+    {
+        $updates = [];
+        if ($map->getAttribute('sha256') === null) {
+            $updates['sha256'] = hash('sha256', $bytes);
+        }
+        if ($map->getAttribute('crc') === null) {
+            $updates['crc'] = sprintf('%08x', crc32($bytes) & 0xFFFFFFFF);
+        }
+        if ($map->getAttribute('size') === null) {
+            $updates['size'] = strlen($bytes);
+        }
+
+        if ($updates !== []) {
+            $map->update($updates);
+        }
     }
 
     /**

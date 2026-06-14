@@ -258,7 +258,7 @@ class MapFileAcquisitionTest extends TestCase
     {
         Storage::fake('local');
 
-        $payload = 'FAKEMAPBYTES';
+        $payload = "DATA" . str_repeat('M', 40); // valid datafile: 'DATA' magic + ≥36 bytes
         $crc     = crc32($payload);
         $crcHex  = sprintf('%08x', $crc & 0xFFFFFFFF);
 
@@ -366,6 +366,159 @@ class MapFileAcquisitionTest extends TestCase
 
         // Verify no file was written.
         Storage::disk('local')->assertMissing('maps/../etc.map');
+    }
+
+    public function test_udp_downloads_a_keyless_map_when_name_matches(): void
+    {
+        $payload = "DATA" . str_repeat('K', 40);
+        $crc     = crc32($payload);
+
+        // Seeded inline rather than via seedHostedMap(), which sets a crc and would make the map
+        // no longer keyless — the whole point of this test is a map with neither sha256 nor crc.
+        $map    = Map::create(['name' => 'kobra']);
+        $mod    = Mod::create(['name' => 'dm']);
+        $server = Server::factory()->create(['version' => '0.6.4', 'flavor' => 'vanilla_06']);
+        ServerAddress::factory()->create([
+            'server_id' => $server->id, 'ip' => '1.2.3.4', 'port' => 8303,
+            'protocol' => 6, 'is_canonical' => true,
+        ]);
+        ServerHistory::create([
+            'weekday' => 1, 'hour' => 12, 'continuous' => true,
+            'server_id' => $server->id, 'map_id' => $map->id, 'mod_id' => $mod->id, 'minutes' => 10,
+        ]);
+
+        $conn = new FakeGameConnection();
+        $conn->enqueue([$this->buildMapChange('kobra', $crc, strlen($payload))]);
+        $conn->enqueue([$this->buildMapData(1, $crc, 0, $payload)]);
+
+        $source = new GameServerMapSource(connectionFactory: static fn () => $conn);
+
+        $this->assertSame($payload, $source->fetch($map));
+    }
+
+    public function test_udp_rejects_when_server_reports_a_different_map(): void
+    {
+        $payload = "DATA" . str_repeat('X', 40);
+        $crc     = crc32($payload);
+
+        [$map] = $this->seedHostedMap('dm1', sprintf('%08x', $crc & 0xFFFFFFFF));
+
+        // host has since swapped to 'ctf7' — name must not match 'dm1'
+        $conn = new FakeGameConnection();
+        $conn->enqueue([$this->buildMapChange('ctf7', $crc, strlen($payload))]);
+        $conn->enqueue([$this->buildMapData(1, $crc, 0, $payload)]);
+
+        $source = new GameServerMapSource(connectionFactory: static fn () => $conn);
+
+        $this->assertNull($source->fetch($map));
+    }
+
+    public function test_udp_rejects_non_datafile_bytes(): void
+    {
+        $payload = 'NOTADATAFILE-juststuff-0123456789012345'; // ≥36 bytes but no DATA/ATAD magic
+        $crc     = crc32($payload);
+
+        [$map] = $this->seedHostedMap('dm1', sprintf('%08x', $crc & 0xFFFFFFFF));
+
+        $conn = new FakeGameConnection();
+        $conn->enqueue([$this->buildMapChange('dm1', $crc, strlen($payload))]);
+        $conn->enqueue([$this->buildMapData(1, $crc, 0, $payload)]);
+
+        $source = new GameServerMapSource(connectionFactory: static fn () => $conn);
+
+        $this->assertNull($source->fetch($map));
+    }
+
+    public function test_store_backfills_identity_and_caches_a_keyless_map(): void
+    {
+        Storage::fake('local');
+
+        $body = "DATA" . str_repeat('Z', 40);
+        $sha  = hash('sha256', $body);
+        $map  = Map::create(['name' => 'keyless map']); // no sha256, no crc
+
+        $source = new class($body) implements \App\Service\MapSource {
+            public function __construct(private string $body) {}
+            public function fetch(\App\Models\Map $map): ?string { return $this->body; }
+        };
+
+        $rel = (new MapFileStore([$source]))->ensure($map);
+
+        $this->assertSame('maps/keyless_map_' . $sha . '.map', $rel);
+        Storage::disk('local')->assertExists($rel);
+
+        $fresh = $map->fresh();
+        $this->assertSame($sha, $fresh->sha256);
+        $this->assertSame(sprintf('%08x', crc32($body) & 0xFFFFFFFF), $fresh->crc);
+        $this->assertSame(strlen($body), $fresh->size);
+    }
+
+    public function test_store_backfill_does_not_clobber_an_existing_size(): void
+    {
+        Storage::fake('local');
+
+        $body = "DATA" . str_repeat('Q', 40);
+        $map  = Map::create(['name' => 'sized', 'size' => 99999]); // size preset, still keyless
+
+        $source = new class($body) implements \App\Service\MapSource {
+            public function __construct(private string $body) {}
+            public function fetch(\App\Models\Map $map): ?string { return $this->body; }
+        };
+
+        (new MapFileStore([$source]))->ensure($map);
+
+        $this->assertSame(99999, $map->fresh()->size, 'a preset size must not be overwritten');
+    }
+
+    private function buildMapChange07(string $name, int $crc, int $size, int $chunksPerRequest, int $chunkSize, string $sha256Raw): string
+    {
+        return VariableInt::pack((2 << 1) | 1)
+            . $name . "\x00"
+            . VariableInt::pack($this->toInt32($crc))
+            . VariableInt::pack($size)
+            . VariableInt::pack($chunksPerRequest)
+            . VariableInt::pack($chunkSize)
+            . $sha256Raw;
+    }
+
+    private function buildMapData07(string $data): string
+    {
+        return VariableInt::pack((3 << 1) | 1) . $data;
+    }
+
+    public function test_udp_uses_the_07_session_for_a_sixup_host(): void
+    {
+        $payload   = "DATA" . str_repeat('S', 40);
+        $crc       = crc32($payload);
+        $sha256Raw = hex2bin(hash('sha256', $payload));
+
+        // keyless map hosted on a vanilla_07 server reachable on a protocol-7 address
+        $map    = Map::create(['name' => 'sixup-map']);
+        $mod    = Mod::create(['name' => 'dm']);
+        $server = Server::factory()->create(['version' => '0.7.5', 'flavor' => 'vanilla_07']);
+        ServerAddress::factory()->create([
+            'server_id' => $server->id, 'ip' => '9.9.9.9', 'port' => 8307,
+            'protocol' => 7, 'is_canonical' => true,
+        ]);
+        ServerHistory::create([
+            'weekday' => 1, 'hour' => 12, 'continuous' => true,
+            'server_id' => $server->id, 'map_id' => $map->id, 'mod_id' => $mod->id, 'minutes' => 5,
+        ]);
+
+        $conn = new FakeGameConnection();
+        $conn->enqueue([$this->buildMapChange07('sixup-map', $crc, strlen($payload), 4, 16, $sha256Raw)]);
+        $conn->enqueue([$this->buildMapData07($payload)]);
+
+        $captured = null;
+        $source = new GameServerMapSource(
+            connectionFactory: static function (string $ip, int $port, string $flavor) use ($conn, &$captured) {
+                $captured = [$ip, $port, $flavor];
+                return $conn;
+            },
+        );
+
+        $this->assertSame($payload, $source->fetch($map));
+        $this->assertSame(['9.9.9.9', 8307, 'vanilla_07'], $captured, 'must dial the protocol-7 address with the 0.7 flavor');
     }
 }
 

@@ -6,6 +6,7 @@ namespace Tests\Feature\Connection;
 
 use App\TwStats\Connection\ConnectionInterface;
 use App\TwStats\Connection\MapDownloadFailed;
+use App\TwStats\Connection\MapDownloadResult;
 use App\TwStats\Connection\MapDownloadSession;
 use App\TwStats\Protocol\Seven\VariableInt;
 use PHPUnit\Framework\TestCase;
@@ -463,6 +464,28 @@ class MapDownloadSessionTest extends TestCase
         $result  = $session->download(timeoutMs: 5000);
 
         self::assertSame($payload, $result, 'All bundled window chunks must be reassembled in order');
+    }
+
+    // -----------------------------------------------------------------------
+    // Test 12 — downloadWithIdentity() returns the observed name, crc, size, sha256
+    // -----------------------------------------------------------------------
+
+    public function testDownloadWithIdentityReturnsObservedFields(): void
+    {
+        $payload = $this->makePayload(16);
+        $crc     = crc32($payload);
+
+        $conn = new FakeConnection();
+        $conn->enqueue([$this->buildMapChange('ctf5', $crc, strlen($payload))]);
+        $conn->enqueue([$this->buildMapData(1, $crc, 0, $payload)]);
+
+        $result = (new MapDownloadSession($conn))->downloadWithIdentity(timeoutMs: 5000);
+
+        self::assertSame($payload, $result->bytes);
+        self::assertSame('ctf5', $result->name);
+        self::assertSame($this->toInt32($crc), $result->crc);
+        self::assertSame(strlen($payload), $result->size);
+        self::assertNull($result->sha256, 'vanilla 0.6 MAP_CHANGE announces no sha256');
     }
 
     // -----------------------------------------------------------------------
