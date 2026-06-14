@@ -69,16 +69,72 @@ interface ViewerParts {
 /** Teeworlds world units per tile: group offsets are stored in these px, tiles span 32 of them. */
 const TILE_WORLD_SIZE = 32;
 
+/**
+ * Base world-space view size (in world px, before zoom) for an aspect ratio — DDNet's
+ * CalcScreenParams (engine/graphics.cpp). Defines the world extent shown at the client's neutral
+ * zoom, from which {@link neutralZoom} converts to our px-per-tile units.
+ */
+function baseViewWidth(aspect: number): number {
+    const AMOUNT = 1150 * 1000;
+    const W_MAX = 1500;
+    const H_MAX = 1050;
+    const f = Math.sqrt(AMOUNT) / Math.sqrt(aspect);
+    let w = f * aspect;
+    let h = f;
+    if (w > W_MAX) {
+        w = W_MAX;
+        h = w / aspect;
+    }
+    if (h > H_MAX) {
+        h = H_MAX;
+        w = h * aspect;
+    }
+    return w;
+}
+
+/**
+ * The px-per-tile zoom at which the client's parallax zoom is neutral (DDNet Zoom == 1): every
+ * group — foreground and backdrop — scales identically here. Zooming away from it makes backdrops
+ * lag (see {@link groupZoom}). Derived from {@link baseViewWidth} so it tracks the real client.
+ */
+export function neutralZoom(viewW: number, viewH: number): number {
+    const aspect = viewW / Math.max(1, viewH);
+    return (TILE_WORLD_SIZE * viewW) / baseViewWidth(aspect);
+}
+
+/**
+ * Effective px-per-tile zoom for a group, applying DDNet's parallax zoom (render_layer.cpp:275 +
+ * graphics.cpp MapScreenToWorld): ParallaxZoom = clamp(max(parallaxX, parallaxY), 0, 100), and the
+ * group's world window scales by (ParallaxZoom·(Zoom−1) + 100) / 100 / Zoom. The foreground
+ * (parallax 100) stays at the raw zoom; low-parallax backdrops respond to zoom less, so the sky,
+ * clouds and stars stay in view when zoomed in instead of sliding out of a too-narrow window.
+ */
+export function groupZoom(
+    parallaxX: number,
+    parallaxY: number,
+    zoom: number,
+    viewW: number,
+    viewH: number,
+): number {
+    const pz = Math.min(100, Math.max(0, Math.max(parallaxX, parallaxY)));
+    const zd = neutralZoom(viewW, viewH) / zoom; // DDNet Zoom equivalent
+    const denom = pz * (zd - 1) + 100;
+    if (denom <= 0) return zoom; // degenerate (only at extreme zoom); fall back to foreground scale
+    return (zoom * 100 * zd) / denom;
+}
+
 /** Compute the world→clip transform for a group given the current camera. */
 export function groupTransform(group: Group, camera: Camera): [number, number, number, number] {
-    const { center, zoom, viewW, viewH } = camera;
+    const { center, viewW, viewH } = camera;
     // Match DDNet MapScreenToWorld: the group offset shifts the view raw (not parallax-scaled),
     // in world px → tiles. Skipping it left offset groups (e.g. detail layers) drawn at raw
     // position, so their tiles appeared where the client has none in the non-entity view.
     const ecx = center[0] * (group.xParallax / 100) + group.xOffset / TILE_WORLD_SIZE;
     const ecy = center[1] * (group.yParallax / 100) + group.yOffset / TILE_WORLD_SIZE;
-    const sx = (2 * zoom) / viewW;
-    const sy = -(2 * zoom) / viewH; // Y-flip: clip-space Y is up, screen Y is down
+    // Backdrops zoom less than the foreground (parallax zoom); the center above is unaffected.
+    const gz = groupZoom(group.xParallax, group.yParallax, camera.zoom, viewW, viewH);
+    const sx = (2 * gz) / viewW;
+    const sy = -(2 * gz) / viewH; // Y-flip: clip-space Y is up, screen Y is down
     return [sx, sy, -ecx * sx, -ecy * sy];
 }
 
@@ -439,7 +495,9 @@ export class MapViewer {
                 if (quad.posEnv >= 0 && quad.posEnv < this.scene.envelopes.length) {
                     const env = this.scene.envelopes[quad.posEnv]!;
                     const vals = evalEnvelope(env.channels, env.points, timeMs + quad.posEnvOffset);
-                    posOffset = [vals[0] ?? 0, vals[1] ?? 0];
+                    // evalEnvelope yields fx2f world units (32/tile); quad points are in tiles, so
+                    // scale the position-envelope offset to tiles too or drifting decals move 32× fast.
+                    posOffset = [(vals[0] ?? 0) / TILE_WORLD_SIZE, (vals[1] ?? 0) / TILE_WORLD_SIZE];
                 }
                 let colorMul: [number, number, number, number] = [1, 1, 1, 1];
                 if (quad.colorEnv >= 0 && quad.colorEnv < this.scene.envelopes.length) {
