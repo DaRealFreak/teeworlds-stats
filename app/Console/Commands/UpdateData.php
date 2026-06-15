@@ -9,8 +9,10 @@ use App\Models\ModRule;
 use App\Models\Player;
 use App\Models\PlayerClanHistory;
 use App\Models\PlayerHistory;
+use App\Models\MapVersion;
 use App\Models\Server;
 use App\Models\ServerHistory;
+use App\Service\MapVersionRecorder;
 use App\Service\SessionRecorder;
 use App\TwStats\Discovery\DdnetHttpSource;
 use App\TwStats\Model\DiscoveredServer;
@@ -40,6 +42,7 @@ class UpdateData extends Command
 
     public function __construct(
         private readonly SessionRecorder $sessionRecorder,
+        private readonly MapVersionRecorder $mapVersionRecorder = new MapVersionRecorder(),
         private readonly DdnetHttpSource $ddnetHttpSource = new DdnetHttpSource(),
         private readonly Teeworlds07Source $teeworldsSevenSource = new Teeworlds07Source(),
         private readonly Teeworlds06Source $teeworldsSixSource = new Teeworlds06Source(),
@@ -82,30 +85,60 @@ class UpdateData extends Command
      */
     private function updateServerMapAndMod(Server $serverModel, DiscoveredServer $server): void
     {
-        /** @var Map $mapModel */
-        $mapModel = Map::firstOrCreate(['name' => $server->map]);
-        $this->updateMapIdentity($mapModel, $server);
+        [$mapModel, $version] = $this->recordServerMap($server);
         /** @var Mod $modModel */
         [$modModel, $originalModModel] = $this->retrieveOrCreateMod($serverModel, $server->gametype);
 
-        $this->updateServerHistory($serverModel, $mapModel, $modModel, $originalModModel);
+        $this->updateServerHistory($serverModel, $mapModel, $version, $modModel, $originalModModel);
     }
 
     /**
-     * Refresh a map's download identity from a sighting, but only with values the sighting
-     * actually carries — a UDP/0.6 source that knows the crc but not the sha256 must never null
-     * out a sha256 a DDNet sighting already recorded (mirrors the afk/skin no-clobber rule).
+     * Run the full server-map handling for one sighting (map + version + mod + history). Public seam
+     * so a test can exercise version recording + history stamping without driving the whole scrape.
      */
-    private function updateMapIdentity(Map $mapModel, DiscoveredServer $server): void
+    public function recordServerSighting(Server $serverModel, DiscoveredServer $server): void
     {
-        $updates = array_filter(
-            ['sha256' => $server->mapSha256, 'size' => $server->mapSize, 'crc' => $server->mapCrc],
-            static fn ($value) => $value !== null,
+        $this->updateServerMapAndMod($serverModel, $server);
+    }
+
+    /**
+     * Resolve the map for a sighting and record its content version: upsert the map_versions row,
+     * and repoint maps.sha256/crc/size at that (current) version so the default viewer/download and
+     * hasDownloadableFile() track the latest file.
+     *
+     * @return array{0: Map, 1: ?MapVersion}
+     */
+    private function recordServerMap(DiscoveredServer $server): array
+    {
+        /** @var Map $mapModel */
+        $mapModel = Map::firstOrCreate(['name' => $server->map]);
+        $version = $this->mapVersionRecorder->record(
+            $mapModel,
+            $server->mapSha256,
+            $server->mapCrc,
+            $server->mapSize,
         );
 
-        if ($updates !== []) {
-            $mapModel->update($updates);
+        // maps.* is a denormalized pointer to the current version (not no-clobber): it mirrors one
+        // version's full identity, never a mix of two. Only non-null version fields are written so a
+        // crc-only version does not clear a sha256 that a prior DDNet sighting recorded on the row.
+        // Keyless sightings leave it unchanged.
+        if ($version !== null) {
+            $updates = array_filter(
+                [
+                    'sha256' => $version->getAttribute('sha256'),
+                    'crc' => $version->getAttribute('crc'),
+                    'size' => $version->getAttribute('size'),
+                ],
+                static fn ($value) => $value !== null,
+            );
+
+            if ($updates !== []) {
+                $mapModel->update($updates);
+            }
         }
+
+        return [$mapModel, $version];
     }
 
     /**
@@ -113,10 +146,11 @@ class UpdateData extends Command
      *
      * @param Server $serverModel
      * @param Map $mapModel
+     * @param MapVersion|null $version
      * @param Mod $modModel
      * @param Mod|null $originalModModel
      */
-    private function updateServerHistory(Server $serverModel, Map $mapModel, Mod $modModel, ?Mod $originalModModel)
+    private function updateServerHistory(Server $serverModel, Map $mapModel, ?MapVersion $version, Mod $modModel, ?Mod $originalModModel)
     {
         // retrieve the latest history for the server
         /** @var ServerHistory $latestHistoryEntry */
@@ -162,6 +196,7 @@ class UpdateData extends Command
                     'continuous' => $continuous,
                     'server_id' => $serverModel->getAttribute('id'),
                     'map_id' => $mapModel->getAttribute('id'),
+                    'map_version_id' => $version?->getAttribute('id'),
                     'mod_id' => $modModel->getAttribute('id'),
                     'mod_original_id' => $originalModModel ? $originalModModel->getAttribute('id') : null,
                 ]
