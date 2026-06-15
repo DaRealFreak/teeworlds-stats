@@ -13,7 +13,7 @@ class BackfillMapVersionsTest extends TestCase
 {
     use RefreshDatabase;
 
-    public function test_backfills_one_version_per_identitied_map_and_links_histories(): void
+    public function test_backfills_one_version_per_identified_map_and_links_histories(): void
     {
         $withId = Map::create(['name' => 'FlipLipp30', 'crc' => '3421b577', 'size' => 335351]);
         $keyless = Map::create(['name' => 'mysterymap']);

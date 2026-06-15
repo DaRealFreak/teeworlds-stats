@@ -32,7 +32,8 @@ class BackfillMapVersions extends Command
                         'sha256' => $map->getAttribute('sha256'),
                         'crc' => $map->getAttribute('crc'),
                         'size' => $map->getAttribute('size'),
-                        'first_seen_at' => $map->getAttribute('updated_at'),
+                        // created_at = first insert (true first-seen); updated_at = most recent activity.
+                        'first_seen_at' => $map->getAttribute('created_at'),
                         'last_seen_at' => $map->getAttribute('updated_at'),
                     ]);
 
