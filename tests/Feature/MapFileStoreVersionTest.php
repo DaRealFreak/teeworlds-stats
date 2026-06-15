@@ -62,4 +62,27 @@ class MapFileStoreVersionTest extends TestCase
         $this->expectException(\App\Service\MapFileUnavailable::class);
         (new MapFileStore(sources: []))->ensureVersion($version);
     }
+
+    public function test_ensure_version_survives_a_backfill_that_merges_the_version_away(): void
+    {
+        // bytes whose sha256 already belongs to a SEPARATE version row → backfill merges our crc row away.
+        $bytes = 'DATA' . str_repeat("\x02", 64);
+        $sha = hash('sha256', $bytes);
+        $crc = sprintf('%08x', crc32($bytes) & 0xFFFFFFFF);
+        $map = \App\Models\Map::create(['name' => 'Aim']);
+        $crcVersion = \App\Models\MapVersion::create(['map_id' => $map->id, 'crc' => $crc, 'first_seen_at' => now(), 'last_seen_at' => now()]);
+        \App\Models\MapVersion::create(['map_id' => $map->id, 'sha256' => $sha, 'first_seen_at' => now(), 'last_seen_at' => now()]);
+
+        $stub = new class($bytes) implements \App\Service\MapSource {
+            public function __construct(private string $bytes) {}
+            public function fetch(\App\Models\Map $map): ?string { return null; }
+            public function fetchVersion(\App\Models\MapVersion $version): ?string { return $this->bytes; }
+        };
+
+        $relative = (new \App\Service\MapFileStore(sources: [$stub]))->ensureVersion($crcVersion);
+
+        $this->assertStringContainsString($sha, $relative); // served under the surviving (sha) version's key
+        $this->assertTrue(\Illuminate\Support\Facades\Storage::disk('local')->exists($relative));
+        $this->assertSame(1, \App\Models\MapVersion::where('map_id', $map->id)->count()); // merged to one row
+    }
 }

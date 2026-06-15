@@ -92,15 +92,14 @@ final class MapFileStore
                 continue;
             }
 
-            // Backfill the version's identity from the verified bytes and reload so
-            // relativePathForVersion() can compute the canonical path.
-            $this->versionRecorder->record(
+            // record() backfills + may MERGE (deleting this row, returning the survivor); adopt the returned
+            // row so the cache key reflects the surviving version's identity. It is non-null here (we pass both keys).
+            $version = $this->versionRecorder->record(
                 $version->map,
                 hash('sha256', $bytes),
                 sprintf('%08x', crc32($bytes) & 0xFFFFFFFF),
                 strlen($bytes),
-            );
-            $version->refresh();
+            ) ?? $version;
 
             $relative = $this->relativePathForVersion($version);
             if ($relative === null) {
