@@ -212,6 +212,43 @@ function extractTileCell(img: HTMLImageElement, col: number, row: number, cells 
     return canvas;
 }
 
+/** Thrown when the map file route does not return the bytes (e.g. 404: no source could produce it). */
+export class MapUnavailableError extends Error {
+    constructor(readonly status: number) {
+        super(`map file unavailable (HTTP ${status})`);
+        this.name = 'MapUnavailableError';
+    }
+}
+
+/**
+ * Fetch and parse a map's .map bytes. A non-ok response (commonly a 404 when neither the DDNet
+ * mirror nor a live host can produce the file) throws MapUnavailableError — never feed the error
+ * page to parseMap, which would surface a confusing "not a Teeworlds datafile" rejection instead.
+ */
+export async function loadMapScene(mapUrl: string): Promise<MapScene> {
+    const res = await fetch(mapUrl);
+    if (!res.ok) throw new MapUnavailableError(res.status);
+    return parseMap(new Uint8Array(await res.arrayBuffer()));
+}
+
+/** Centered status text on the canvas (the bail-out paths that return null), so the viewer shows a
+ *  message instead of a blank black box when the map file or WebGL is unavailable. */
+function canvasMessage(canvas: HTMLCanvasElement, text: string): void {
+    const ctx2d = canvas.getContext('2d');
+    if (ctx2d) {
+        ctx2d.fillStyle = '#111';
+        ctx2d.fillRect(0, 0, canvas.width, canvas.height);
+        ctx2d.fillStyle = '#ccc';
+        ctx2d.font = '16px sans-serif';
+        ctx2d.textAlign = 'center';
+        ctx2d.fillText(text, canvas.width / 2, canvas.height / 2);
+    } else {
+        const msg = document.createElement('p');
+        msg.textContent = text;
+        canvas.parentElement?.appendChild(msg);
+    }
+}
+
 export class MapViewer {
     private readonly camera: Camera;
     private readonly renderer: GlRenderer;
@@ -772,24 +809,19 @@ export class MapViewer {
         canvas: HTMLCanvasElement,
         opts: { mapUrl: string; mapresBase: string; entitiesUrl: string; overlayCanvas: HTMLCanvasElement },
     ): Promise<MapViewer | null> {
-        const res = await fetch(opts.mapUrl);
-        const scene = await parseMap(new Uint8Array(await res.arrayBuffer()));
+        let scene: MapScene;
+        try {
+            scene = await loadMapScene(opts.mapUrl);
+        } catch (e) {
+            // Resolve to null (not a rejection): an unavailable map is an expected state, not a crash.
+            canvasMessage(canvas, e instanceof MapUnavailableError ? 'Map file not available' : 'Could not load map');
+            console.warn('map viewer: could not load map', e);
+            return null;
+        }
 
         const gl = canvas.getContext('webgl');
         if (!gl) {
-            const ctx2d = canvas.getContext('2d');
-            if (ctx2d) {
-                ctx2d.fillStyle = '#111';
-                ctx2d.fillRect(0, 0, canvas.width, canvas.height);
-                ctx2d.fillStyle = '#ccc';
-                ctx2d.font = '16px sans-serif';
-                ctx2d.textAlign = 'center';
-                ctx2d.fillText('WebGL unavailable', canvas.width / 2, canvas.height / 2);
-            } else {
-                const msg = document.createElement('p');
-                msg.textContent = 'WebGL unavailable';
-                canvas.parentElement?.appendChild(msg);
-            }
+            canvasMessage(canvas, 'WebGL unavailable');
             return null;
         }
 
