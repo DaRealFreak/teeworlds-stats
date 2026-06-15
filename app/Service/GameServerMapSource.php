@@ -6,12 +6,14 @@ namespace App\Service;
 
 use App\Models\Map;
 use App\Models\MapVersion;
+use App\Models\Server;
 use App\Models\ServerHistory;
 use App\TwStats\Connection\ConnectionInterface;
 use App\TwStats\Connection\GameConnection;
 use App\TwStats\Connection\MapDownloadSessionFactory;
 use App\TwStats\Net\SocketUdpTransport;
 use App\TwStats\Discovery\FlavorClassifier;
+use Illuminate\Database\Eloquent\Builder;
 
 /**
  * Downloads a .map file directly from a live Teeworlds game server over UDP using the in-game
@@ -102,15 +104,36 @@ final class GameServerMapSource implements MapSource
     }
 
     /**
-     * Walk the distinct recent hosts from $historyQuery (newest first, capped at MAP_UDP_MAX_HOSTS),
-     * trying each until one serves verified bytes. Targeting the hosts known to have served this exact
-     * identity avoids wasting connects on hosts that have moved to a different map/version.
+     * Try the distinct servers that served this identity, most-recently-seen first, capped at
+     * MAP_UDP_MAX_HOSTS, until one yields verified bytes. Grouping by server_id (history rows aggregate
+     * per server/weekday/hour, so one server owns many rows) guarantees we surface up to N *different*
+     * hosts rather than many rows of a single busy server — which is the whole point of the fallback.
      */
-    private function downloadFromCandidates(\Illuminate\Database\Eloquent\Builder $historyQuery, ?string $sha256, ?int $crc, string $name): ?string
+    private function downloadFromCandidates(Builder $historyQuery, ?string $sha256, ?int $crc, string $name): ?string
     {
-        $histories = $historyQuery->orderByDesc('updated_at')->with(['server.addresses'])->limit(50)->get();
+        $serverIds = $historyQuery->getQuery()
+            ->select('server_id')
+            ->selectRaw('MAX(updated_at) as recent_at')
+            ->groupBy('server_id')
+            ->orderByDesc('recent_at')
+            ->limit($this->maxHosts())
+            ->pluck('server_id');
 
-        foreach ($this->candidateHosts($histories) as $host) {
+        if ($serverIds->isEmpty()) {
+            return null;
+        }
+
+        $servers = Server::whereIn('id', $serverIds)->with('addresses')->get()->keyBy('id');
+
+        foreach ($serverIds as $serverId) {
+            $server = $servers->get($serverId);
+            if ($server === null) {
+                continue;
+            }
+            $host = $this->hostFor($server);
+            if ($host === null) {
+                continue;
+            }
             $bytes = $this->downloadFromHost($host['ip'], $host['port'], $host['flavor'], $sha256, $crc, $name, $this->timeoutMs);
             if ($bytes !== null) {
                 return $bytes;
@@ -121,38 +144,21 @@ final class GameServerMapSource implements MapSource
     }
 
     /**
-     * Distinct (ip, port, flavor) hosts from the histories, most-recent first, capped. Each server's
-     * dialled address matches its flavour's wire (protocol 7 for native sixup, else 0.6).
+     * The (ip, port, flavor) to dial for a server: protocol 7 for native sixup, else the 0.6 address.
      *
-     * @param \Illuminate\Support\Collection<int, ServerHistory> $histories
-     * @return array<int, array{ip: string, port: int, flavor: string}>
+     * @return array{ip: string, port: int, flavor: string}|null
      */
-    private function candidateHosts($histories): array
+    private function hostFor(Server $server): ?array
     {
-        $hosts = [];
-        foreach ($histories as $history) {
-            $server = $history->server;
-            if ($server === null) {
-                continue;
-            }
-            $flavor = $server->getAttribute('flavor') ?? FlavorClassifier::FLAVOR_VANILLA_06;
-            $preferredProtocol = $flavor === FlavorClassifier::FLAVOR_VANILLA_07 ? 7 : 6;
-            $address = $server->addresses->where('protocol', $preferredProtocol)->first()
-                ?? $server->addresses->first();
-            if ($address === null) {
-                continue;
-            }
-            $key = $address->ip . ':' . $address->port;
-            if (isset($hosts[$key])) {
-                continue;
-            }
-            $hosts[$key] = ['ip' => (string) $address->ip, 'port' => (int) $address->port, 'flavor' => $flavor];
-            if (count($hosts) >= $this->maxHosts()) {
-                break;
-            }
+        $flavor = $server->getAttribute('flavor') ?? FlavorClassifier::FLAVOR_VANILLA_06;
+        $preferredProtocol = $flavor === FlavorClassifier::FLAVOR_VANILLA_07 ? 7 : 6;
+        $address = $server->addresses->where('protocol', $preferredProtocol)->first()
+            ?? $server->addresses->first();
+        if ($address === null) {
+            return null;
         }
 
-        return array_values($hosts);
+        return ['ip' => (string) $address->ip, 'port' => (int) $address->port, 'flavor' => $flavor];
     }
 
     /** Convert an 8-hex crc string to a signed int32 for the download session, or null. */
