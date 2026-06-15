@@ -189,6 +189,41 @@ class GameConnectionTest extends TestCase
         $this->assertSame(ControlMessages::ACCEPT, $acceptCtrl['ctrlMsg']);
     }
 
+    public function test_06_handshake_retransmits_connect_when_the_reply_is_dropped(): void
+    {
+        $transport = new FakeUdpTransport();
+        $serverIp = '127.0.0.1';
+        $serverPort = 8303;
+
+        // The first poll finds nothing (the CONNECT or its CONNECTACCEPT was dropped); the
+        // CONNECTACCEPT only arrives on the next poll. Without a retransmit the handshake would hang.
+        $transport->queueGap();
+        $transport->queue($serverIp, $serverPort, $this->make06ConnectAcceptPacket(0xDEADBEEF));
+
+        // Clock advances past HANDSHAKE_RESEND_MS (500 ms) on each iteration so the resend fires.
+        $n = 0;
+        $clock = function () use (&$n): int {
+            $n++;
+
+            return $n <= 2 ? 0 : ($n - 2) * 600;
+        };
+
+        $conn = new GameConnection($transport, $serverIp, $serverPort, 'vanilla_06', $clock);
+        $conn->connect(5000);
+
+        $this->assertTrue($conn->isOnline(), 'must reach ONLINE after retransmitting the dropped CONNECT');
+
+        $connects = 0;
+        foreach ($transport->sent as $pkt) {
+            $p = $this->codec->unpack($pkt['data'], false);
+            if (($p['flags'] & PacketCodec::FLAG_CONTROL)
+                && ControlMessages::parse($p['control'])['ctrlMsg'] === ControlMessages::CONNECT) {
+                $connects++;
+            }
+        }
+        $this->assertGreaterThanOrEqual(2, $connects, 'CONNECT must be retransmitted when its reply is dropped');
+    }
+
     // -----------------------------------------------------------------------
     // Test 1b — DDNet flavor uses the 0.6 classic handshake (regression)
     //

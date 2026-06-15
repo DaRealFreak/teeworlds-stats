@@ -574,6 +574,30 @@ class MapDownloadSessionTest extends TestCase
     }
 
     // -----------------------------------------------------------------------
+    // Test 16 — the session pumps flush() while waiting (drives reliable-layer resends)
+    //
+    // On a lossy link the initial INFO (or a map-data request) can be dropped. The session must keep
+    // flushing while it waits so the reliable layer retransmits the overdue chunk; otherwise a single
+    // lost packet deadlocks the download. With nothing enqueued the session waits to its deadline —
+    // flush() must be called more than the one-shot send path would.
+    // -----------------------------------------------------------------------
+
+    public function testPumpsTheReliableLayerWhileWaiting(): void
+    {
+        $conn = new FakeConnection(); // server stays silent → session waits, then times out
+
+        try {
+            (new MapDownloadSession($conn))->download(timeoutMs: 5);
+            self::fail('Expected a timeout');
+        } catch (MapDownloadFailed) {
+            // expected
+        }
+
+        // 1 flush is the initial CLIENTVER+INFO send; anything beyond proves it pumps while waiting.
+        self::assertGreaterThan(1, $conn->flushCount, 'session must keep flushing while waiting so a lost vital chunk resends');
+    }
+
+    // -----------------------------------------------------------------------
     // Helper: assert the msgId packed in the first VariableInt of a sent message
     // -----------------------------------------------------------------------
 
@@ -605,6 +629,9 @@ final class FakeConnection implements ConnectionInterface
 
     public bool $disconnected = false;
 
+    /** How many times flush() was called — the session pumps it to drive reliable-layer resends. */
+    public int $flushCount = 0;
+
     /** @var array<int, string[]> */
     private array $inbox = [];
 
@@ -625,7 +652,8 @@ final class FakeConnection implements ConnectionInterface
 
     public function flush(): void
     {
-        // No-op: in tests, flushing is instant; messages are available to receive() immediately.
+        // No-op beyond counting: in tests, flushing is instant; messages are available immediately.
+        $this->flushCount++;
     }
 
     /**

@@ -273,6 +273,13 @@ final class MapDownloadSession implements MapDownloadSessionInterface
                 // vanilla per-chunk flow and DDNet fast-download windowing).
                 $this->sendRequestMapData($expectedChunk);
             }
+
+            // Pump the reliable layer: an unacked vital chunk (the initial INFO, or a map-data
+            // request) is retransmitted once it is overdue. Without this, a single dropped packet on
+            // a lossy/high-latency link (e.g. distant servers) deadlocks the download — we would wait
+            // forever for a reply to a request the server never received. flush() is a no-op when
+            // nothing is due, so this only costs work when a retransmit is actually owed.
+            $this->conn->flush();
         }
     }
 

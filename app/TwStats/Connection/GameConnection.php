@@ -76,6 +76,14 @@ final class GameConnection implements ConnectionInterface
     private const RESEND_TIMEOUT_MS = 1000;
 
     /**
+     * Handshake retransmit interval. The CONNECT / token-request (and our ACCEPT) are control packets
+     * outside the vital/resend buffer, so if one is dropped on a lossy link nothing retransmits them
+     * and connect() would hang to its deadline. Re-send the current handshake step this often while
+     * still connecting, mirroring the client net layer's periodic resend.
+     */
+    private const HANDSHAKE_RESEND_MS = 500;
+
+    /**
      * Sequence number modulus (NET_MAX_SEQUENCE = 1 << 10 = 1024).
      */
     private const MAX_SEQUENCE = 1024;
@@ -201,12 +209,20 @@ final class GameConnection implements ConnectionInterface
             $this->sendControl06(ControlMessages::connect06());
         }
 
-        // Poll until ONLINE or timeout.
+        // Poll until ONLINE or timeout, retransmitting the handshake step if its reply is overdue
+        // (the CONNECT/token-request or its ACCEPT may have been dropped — see HANDSHAKE_RESEND_MS).
+        $lastSentMs = ($this->clock)();
         while ($this->state !== self::STATE_ONLINE) {
-            $remaining = $deadline - ($this->clock)();
+            $now = ($this->clock)();
+            $remaining = $deadline - $now;
             if ($remaining <= 0) {
                 $this->state = self::STATE_OFFLINE;
                 throw new ConnectionFailed('Handshake timed out');
+            }
+
+            if ($now - $lastSentMs >= self::HANDSHAKE_RESEND_MS) {
+                $this->resendHandshakeStep();
+                $lastSentMs = $now;
             }
 
             $dgram = $this->transport->receive((int) min($remaining, 200));
@@ -358,6 +374,24 @@ final class GameConnection implements ConnectionInterface
     // -----------------------------------------------------------------------
     // Handshake helpers
     // -----------------------------------------------------------------------
+
+    /**
+     * Re-send the control packet for the current handshake state, to recover from a dropped
+     * CONNECT/token-request or CONNECTACCEPT. Re-sending CONNECT is safe: a server that already
+     * accepted it simply re-sends CONNECTACCEPT.
+     */
+    private function resendHandshakeStep(): void
+    {
+        if ($this->state === self::STATE_WANT_TOKEN) {
+            $this->sendTokenRequest07();
+        } elseif ($this->state === self::STATE_CONNECT) {
+            if ($this->sixup) {
+                $this->sendControl07(ControlMessages::connect07($this->myToken));
+            } else {
+                $this->sendControl06(ControlMessages::connect06());
+            }
+        }
+    }
 
     /**
      * Process an incoming datagram during the handshake phase.
