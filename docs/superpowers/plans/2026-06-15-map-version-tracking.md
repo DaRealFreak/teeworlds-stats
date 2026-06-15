@@ -645,8 +645,8 @@ class MapVersionScrapeTest extends TestCase
             mapCrc: '3421b577',
         );
 
-        // exercise the scraper's server-map handler in isolation via a public test seam
-        app(UpdateData::class)->recordServerMap($server, $sighting);
+        // exercise the scraper's full server-map handler (map + version + history) via a public seam
+        app(UpdateData::class)->recordServerSighting($server, $sighting);
 
         $map = Map::where('name', 'FlipLipp30')->firstOrFail();
         $this->assertSame('3421b577', $map->crc, 'maps.* points at the current version');
@@ -664,7 +664,7 @@ class MapVersionScrapeTest extends TestCase
 - [ ] **Step 2: Run to verify it fails**
 
 Run: `vendor/bin/phpunit --filter MapVersionScrapeTest`
-Expected: FAIL — `Call to undefined method App\Console\Commands\UpdateData::recordServerMap()`.
+Expected: FAIL — `Call to undefined method App\Console\Commands\UpdateData::recordServerSighting()`.
 
 - [ ] **Step 3: Inject the recorder** — add to the `UpdateData::__construct` parameter list (after `SessionRecorder $sessionRecorder`):
 
@@ -689,7 +689,7 @@ Replace the existing `updateServerMapAndMod(...)` and `updateMapIdentity(...)` m
      */
     private function updateServerMapAndMod(Server $serverModel, DiscoveredServer $server): void
     {
-        [$mapModel, $version] = $this->recordServerMap($serverModel, $server);
+        [$mapModel, $version] = $this->recordServerMap($server);
         /** @var Mod $modModel */
         [$modModel, $originalModModel] = $this->retrieveOrCreateMod($serverModel, $server->gametype);
 
@@ -697,13 +697,22 @@ Replace the existing `updateServerMapAndMod(...)` and `updateMapIdentity(...)` m
     }
 
     /**
+     * Run the full server-map handling for one sighting (map + version + mod + history). Public seam
+     * so a test can exercise version recording + history stamping without driving the whole scrape.
+     */
+    public function recordServerSighting(Server $serverModel, DiscoveredServer $server): void
+    {
+        $this->updateServerMapAndMod($serverModel, $server);
+    }
+
+    /**
      * Resolve the map for a sighting and record its content version: upsert the map_versions row,
      * and repoint maps.sha256/crc/size at that (current) version so the default viewer/download and
-     * hasDownloadableFile() track the latest file. Public seam for tests.
+     * hasDownloadableFile() track the latest file.
      *
      * @return array{0: Map, 1: ?MapVersion}
      */
-    public function recordServerMap(Server $serverModel, DiscoveredServer $server): array
+    private function recordServerMap(DiscoveredServer $server): array
     {
         /** @var Map $mapModel */
         $mapModel = Map::firstOrCreate(['name' => $server->map]);
@@ -727,8 +736,6 @@ Replace the existing `updateServerMapAndMod(...)` and `updateMapIdentity(...)` m
         return [$mapModel, $version];
     }
 ```
-
-(Note: the `recordServerMap` first argument is `Server` to match the call site, but the body only needs `$server`. Keep the `Server` parameter so the signature reads naturally at the call site and matches the test.)
 
 - [ ] **Step 5: Stamp `map_version_id` on the created history.**
 
