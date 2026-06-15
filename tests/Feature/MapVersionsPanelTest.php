@@ -13,7 +13,7 @@ class MapVersionsPanelTest extends TestCase
 
     public function test_panel_lists_versions_when_there_are_multiple(): void
     {
-        $map = Map::create(['name' => 'multi']);
+        $map = Map::create(['name' => 'multi', 'crc' => '22222222']);
         MapVersion::create(['map_id' => $map->id, 'crc' => '11111111', 'size' => 100000, 'first_seen_at' => now()->subDay(), 'last_seen_at' => now()->subDay()]);
         MapVersion::create(['map_id' => $map->id, 'crc' => '22222222', 'size' => 200000, 'first_seen_at' => now(), 'last_seen_at' => now()]);
 
@@ -28,7 +28,7 @@ class MapVersionsPanelTest extends TestCase
 
     public function test_no_panel_for_a_single_version_map(): void
     {
-        $map = Map::create(['name' => 'solo']);
+        $map = Map::create(['name' => 'solo', 'crc' => '33333333']);
         MapVersion::create(['map_id' => $map->id, 'crc' => '33333333', 'first_seen_at' => now(), 'last_seen_at' => now()]);
 
         $this->get('/map/solo/')->assertOk()->assertDontSee('id="mapVersions"', false);
@@ -36,7 +36,7 @@ class MapVersionsPanelTest extends TestCase
 
     public function test_selecting_a_version_points_the_viewer_at_its_file(): void
     {
-        $map = Map::create(['name' => 'multi']);
+        $map = Map::create(['name' => 'multi', 'crc' => '22222222']);
         MapVersion::create(['map_id' => $map->id, 'crc' => '11111111', 'first_seen_at' => now()->subDay(), 'last_seen_at' => now()->subDay()]);
         MapVersion::create(['map_id' => $map->id, 'crc' => '22222222', 'first_seen_at' => now(), 'last_seen_at' => now()]);
 

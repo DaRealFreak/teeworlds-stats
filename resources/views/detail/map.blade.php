@@ -97,8 +97,8 @@
             if (!canvas || !overlay || !window.MapViewer) return;
             window.MapViewer.init(canvas, {
                 mapUrl: {!! json_encode($selected ? route('mapFile', ['map_name' => $map->name, 'version' => $selected->contentKey()]) : route('mapFile', ['map_name' => $map->name]), JSON_UNESCAPED_SLASHES) !!},
-                mapresBase: {!! json_encode(asset('mapres')) !!},
-                entitiesUrl: {!! json_encode(asset('entities/DDNet.png')) !!},
+                mapresBase: {!! json_encode(asset('mapres'), JSON_UNESCAPED_SLASHES) !!},
+                entitiesUrl: {!! json_encode(asset('entities/DDNet.png'), JSON_UNESCAPED_SLASHES) !!},
                 overlayCanvas: overlay
             }).then(function (viewer) {
                 if (!viewer) return;
