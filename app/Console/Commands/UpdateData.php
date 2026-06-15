@@ -12,6 +12,7 @@ use App\Models\PlayerHistory;
 use App\Models\MapVersion;
 use App\Models\Server;
 use App\Models\ServerHistory;
+use App\Service\InlineMapAcquirer;
 use App\Service\MapVersionRecorder;
 use App\Service\SessionRecorder;
 use App\TwStats\Discovery\DdnetHttpSource;
@@ -48,6 +49,7 @@ class UpdateData extends Command
         private readonly Teeworlds06Source $teeworldsSixSource = new Teeworlds06Source(),
         private readonly ServerMerger $serverMerger = new ServerMerger(),
         private readonly ServerPersister $serverPersister = new ServerPersister(),
+        private readonly InlineMapAcquirer $inlineAcquirer = new InlineMapAcquirer(),
     ) {
         parent::__construct();
     }
@@ -70,12 +72,21 @@ class UpdateData extends Command
 
         foreach ($servers as $server) {
             $serverModel = $this->serverPersister->persist($server);
-            $this->updateServerMapAndMod($serverModel, $server);
+            $version = $this->updateServerMapAndMod($serverModel, $server);
+            if ($version !== null) {
+                $this->inlineAcquirer->consider($version);
+            }
             $this->updatePlayers($server, $serverModel);
         }
 
         // close sessions of players who dropped off every tracked server this run
         $this->sessionRecorder->closeStale();
+
+        // grab newly-seen UDP-only maps from the hosts still serving them (bounded, best-effort);
+        // gated off in tests so the scrape suite never makes real UDP connections.
+        if (env('MAP_ACQUIRE_ENABLED', true)) {
+            $this->inlineAcquirer->run(fn (string $message) => $this->info($message));
+        }
 
         return self::SUCCESS;
     }
@@ -83,13 +94,15 @@ class UpdateData extends Command
     /**
      * resolve the server's current map and mod, then bump its server history
      */
-    private function updateServerMapAndMod(Server $serverModel, DiscoveredServer $server): void
+    private function updateServerMapAndMod(Server $serverModel, DiscoveredServer $server): ?MapVersion
     {
         [$mapModel, $version] = $this->recordServerMap($server);
         /** @var Mod $modModel */
         [$modModel, $originalModModel] = $this->retrieveOrCreateMod($serverModel, $server->gametype);
 
         $this->updateServerHistory($serverModel, $mapModel, $version, $modModel, $originalModModel);
+
+        return $version;
     }
 
     /**

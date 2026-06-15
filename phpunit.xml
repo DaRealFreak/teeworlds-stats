@@ -30,5 +30,6 @@
         <env name="QUEUE_CONNECTION" value="sync"/>
         <env name="SESSION_DRIVER" value="array"/>
         <env name="RESPONSE_CACHE_ENABLED" value="false"/>
+        <env name="MAP_ACQUIRE_ENABLED" value="false"/>
     </php>
 </phpunit>

@@ -94,10 +94,15 @@ final class MapFileStore
 
             // record() backfills + may MERGE (deleting this row, returning the survivor); adopt the returned
             // row so the cache key reflects the surviving version's identity. It is non-null here (we pass both keys).
+            // For versions that already carry a server-reported CRC (UDP sources), trust that CRC for the
+            // identity lookup rather than recomputing it from the bytes — the computed sha256 still captures
+            // the true content hash. This ensures the existing CRC row gets its sha256 backfilled (so
+            // isCachedVersion stays consistent) rather than a duplicate row being created for the new hash.
+            $computedCrc = sprintf('%08x', crc32($bytes) & 0xFFFFFFFF);
             $version = $this->versionRecorder->record(
                 $version->map,
                 hash('sha256', $bytes),
-                sprintf('%08x', crc32($bytes) & 0xFFFFFFFF),
+                $version->getAttribute('crc') ?? $computedCrc,
                 strlen($bytes),
             ) ?? $version;
 
