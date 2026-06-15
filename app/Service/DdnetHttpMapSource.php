@@ -3,6 +3,7 @@
 namespace App\Service;
 
 use App\Models\Map;
+use App\Models\MapVersion;
 use Illuminate\Support\Facades\Http;
 
 /**
@@ -11,6 +12,9 @@ use Illuminate\Support\Facades\Http;
  * `_`, hex and `.` are RFC-3986 unreserved, so only the name needs escaping. Bytes are verified
  * against the advertised size and sha256 before being accepted; any failure returns null so the
  * store can fall through to another source.
+ *
+ * Both the map-keyed (fetch) and version-keyed (fetchVersion) paths share a private download()
+ * helper; only the identity attributes differ between the two callers.
  */
 final class DdnetHttpMapSource implements MapSource
 {
@@ -22,12 +26,33 @@ final class DdnetHttpMapSource implements MapSource
 
     public function fetch(Map $map): ?string
     {
-        $sha256 = $map->getAttribute('sha256');
+        return $this->download(
+            name: (string) $map->getAttribute('name'),
+            sha256: $map->getAttribute('sha256'),
+            size: $map->getAttribute('size'),
+        );
+    }
+
+    public function fetchVersion(MapVersion $version): ?string
+    {
+        return $this->download(
+            name: (string) $version->map->getAttribute('name'),
+            sha256: $version->getAttribute('sha256'),
+            size: $version->getAttribute('size'),
+        );
+    }
+
+    /**
+     * Fetch and verify a map file by name and sha256. Returns null when sha256 is absent (not
+     * eligible for DDNet HTTP delivery), the server is unreachable, or the bytes fail verification.
+     */
+    private function download(string $name, ?string $sha256, ?int $size): ?string
+    {
         if ($sha256 === null) {
             return null;
         }
 
-        $url = rtrim($this->baseUrl, '/') . '/' . rawurlencode($map->getAttribute('name')) . '_' . $sha256 . '.map';
+        $url = rtrim($this->baseUrl, '/') . '/' . rawurlencode($name) . '_' . $sha256 . '.map';
 
         try {
             $response = Http::timeout(20)->get($url);
@@ -40,11 +65,10 @@ final class DdnetHttpMapSource implements MapSource
         }
 
         $body = $response->body();
-        $size = $map->getAttribute('size');
         if ($size !== null && strlen($body) !== $size) {
             return null;
         }
-        if (hash('sha256', $body) !== strtolower((string) $sha256)) {
+        if (hash('sha256', $body) !== strtolower($sha256)) {
             return null;
         }
 

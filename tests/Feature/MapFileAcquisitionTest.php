@@ -106,6 +106,10 @@ class MapFileAcquisitionTest extends TestCase
             {
                 return null;
             }
+            public function fetchVersion(\App\Models\MapVersion $version): ?string
+            {
+                return null;
+            }
         };
 
         $this->expectException(MapFileUnavailable::class);
@@ -440,6 +444,7 @@ class MapFileAcquisitionTest extends TestCase
         $source = new class($body) implements \App\Service\MapSource {
             public function __construct(private string $body) {}
             public function fetch(\App\Models\Map $map): ?string { return $this->body; }
+            public function fetchVersion(\App\Models\MapVersion $version): ?string { return $this->body; }
         };
 
         $rel = (new MapFileStore([$source]))->ensure($map);
@@ -463,6 +468,7 @@ class MapFileAcquisitionTest extends TestCase
         $source = new class($body) implements \App\Service\MapSource {
             public function __construct(private string $body) {}
             public function fetch(\App\Models\Map $map): ?string { return $this->body; }
+            public function fetchVersion(\App\Models\MapVersion $version): ?string { return $this->body; }
         };
 
         (new MapFileStore([$source]))->ensure($map);

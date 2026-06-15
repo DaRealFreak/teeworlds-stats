@@ -40,7 +40,9 @@ final class MapArchiver
     }
 
     /**
-     * Stamp the attempt, then download. Throws MapFileUnavailable when no source can serve the map,
+     * Stamp the attempt, then download. Uses the version-keyed path when a current version is
+     * known (MapFileStore::ensureVersion), otherwise falls back to the map-keyed path
+     * (MapFileStore::ensure). Throws MapFileUnavailable when no source can serve the map,
      * which lets the queue job retry and ultimately fail — the stamp keeps the map parked for the
      * cooldown window either way. The passed $map instance is not refreshed; callers re-inspecting
      * status afterwards should reload it (e.g. $map->fresh()).
@@ -48,7 +50,12 @@ final class MapArchiver
     public function download(Map $map): void
     {
         $this->markAttempted($map);
-        $this->store->ensure($map);
+        $currentVersion = $map->currentVersion;
+        if ($currentVersion !== null) {
+            $this->store->ensureVersion($currentVersion);
+        } else {
+            $this->store->ensure($map);
+        }
     }
 
     private function markAttempted(Map $map): void

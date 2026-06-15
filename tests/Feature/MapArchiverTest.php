@@ -76,6 +76,7 @@ class MapArchiverTest extends TestCase
         $source = new class($body) implements MapSource {
             public function __construct(private string $body) {}
             public function fetch(Map $map): ?string { return $this->body; }
+            public function fetchVersion(\App\Models\MapVersion $version): ?string { return $this->body; }
         };
         $store = new MapFileStore([$source]);
         $archiver = new MapArchiver($store);

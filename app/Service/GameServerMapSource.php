@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Service;
 
 use App\Models\Map;
+use App\Models\MapVersion;
 use App\Models\ServerHistory;
 use App\TwStats\Connection\ConnectionInterface;
 use App\TwStats\Connection\GameConnection;
@@ -48,6 +49,83 @@ final class GameServerMapSource implements MapSource
         } catch (\Throwable) {
             return null;
         }
+    }
+
+    /**
+     * Version-keyed acquisition path: resolve the most-recently-seen host from server_histories
+     * filtered by map_version_id, then verify bytes against the version's known identity
+     * (sha256/crc) and name. Returns null on any failure so the store can try the next source.
+     */
+    public function fetchVersion(MapVersion $version): ?string
+    {
+        try {
+            return $this->doFetchVersion($version);
+        } catch (\Throwable) {
+            return null;
+        }
+    }
+
+    private function doFetchVersion(MapVersion $version): ?string
+    {
+        $crcHex = $version->getAttribute('crc');
+        $sha256 = $version->getAttribute('sha256');
+
+        // Find the most recently seen server that was hosting this specific version.
+        $history = ServerHistory::where('map_version_id', $version->getAttribute('id'))
+            ->orderByDesc('updated_at')
+            ->with(['server.addresses'])
+            ->first();
+
+        if ($history === null) {
+            return null;
+        }
+
+        $server = $history->server;
+        if ($server === null) {
+            return null;
+        }
+
+        $flavor = $server->getAttribute('flavor') ?? FlavorClassifier::FLAVOR_VANILLA_06;
+
+        $preferredProtocol = $flavor === FlavorClassifier::FLAVOR_VANILLA_07 ? 7 : 6;
+        $address = $server->addresses->where('protocol', $preferredProtocol)->first()
+            ?? $server->addresses->first();
+
+        if ($address === null) {
+            return null;
+        }
+
+        $ip   = $address->ip;
+        $port = $address->port;
+
+        $expectedCrc = null;
+        if ($crcHex !== null) {
+            $c = (int) hexdec($crcHex);
+            if ($c & 0x80000000) {
+                $c -= 0x100000000;
+            }
+            $expectedCrc = $c;
+        }
+
+        $factory = $this->connectionFactory ?? $this->defaultFactory();
+        $conn    = ($factory)($ip, $port, $flavor);
+
+        $result = MapDownloadSessionFactory::for($conn, $flavor)->downloadWithIdentity(
+            expectedSha256: $sha256,
+            expectedCrc: $expectedCrc,
+            timeoutMs: $this->timeoutMs,
+        );
+
+        $mapName = (string) $version->map->getAttribute('name');
+        if (trim($result->name) !== trim($mapName)) {
+            return null;
+        }
+
+        if (!$this->looksLikeMapDatafile($result->bytes)) {
+            return null;
+        }
+
+        return $result->bytes;
     }
 
     private function doFetch(Map $map): ?string

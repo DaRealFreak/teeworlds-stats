@@ -3,6 +3,7 @@
 namespace App\Service;
 
 use App\Models\Map;
+use App\Models\MapVersion;
 use Illuminate\Support\Facades\Storage;
 
 /**
@@ -10,6 +11,10 @@ use Illuminate\Support\Facades\Storage;
  * disk) of a cached file, downloading it via the first MapSource that can serve it. Files are
  * keyed by content identity (sha256, or crc for the future UDP path), so identical maps share a
  * cache entry and a re-download only happens after a cache miss.
+ *
+ * Both map-keyed (ensure) and version-keyed (ensureVersion) acquisition paths are supported;
+ * they share a common pathForIdentity() naming convention so a file cached via either path is
+ * found by the other.
  */
 final class MapFileStore
 {
@@ -19,6 +24,7 @@ final class MapFileStore
     public function __construct(
         private readonly array $sources = [new DdnetHttpMapSource(), new GameServerMapSource()],
         public readonly string $disk = 'local',
+        private readonly MapVersionRecorder $versionRecorder = new MapVersionRecorder(),
     ) {
     }
 
@@ -63,6 +69,120 @@ final class MapFileStore
     }
 
     /**
+     * Version-keyed acquisition path: fetch and cache the .map file for a specific MapVersion.
+     * Cache hit returns the relative path immediately; on a miss the sources' fetchVersion() are
+     * tried in order. On success the version's identity is backfilled via MapVersionRecorder and
+     * the file is written under the version key.
+     *
+     * @return string path of the cached .map relative to $this->disk
+     * @throws MapFileUnavailable when no source can produce verified bytes
+     */
+    public function ensureVersion(MapVersion $version): string
+    {
+        $storage = Storage::disk($this->disk);
+
+        $relative = $this->relativePathForVersion($version);
+        if ($relative !== null && $storage->exists($relative)) {
+            return $relative;
+        }
+
+        foreach ($this->sources as $source) {
+            $bytes = $source->fetchVersion($version);
+            if ($bytes === null) {
+                continue;
+            }
+
+            // Backfill the version's identity from the verified bytes and reload so
+            // relativePathForVersion() can compute the canonical path.
+            $this->versionRecorder->record(
+                $version->map,
+                hash('sha256', $bytes),
+                sprintf('%08x', crc32($bytes) & 0xFFFFFFFF),
+                strlen($bytes),
+            );
+            $version->refresh();
+
+            $relative = $this->relativePathForVersion($version);
+            if ($relative === null) {
+                continue;
+            }
+
+            $storage->put($relative, $bytes);
+
+            return $relative;
+        }
+
+        throw new MapFileUnavailable();
+    }
+
+    /**
+     * Path (relative to $this->disk) where this map's .map file is or would be cached, or null when
+     * the map has no usable content key. The filename is <sanitized-name>_<sha256|crc>.map: the hash
+     * keeps uniqueness and is the path-traversal guard (it must be pure hex); the name is a
+     * best-effort, filesystem-safe prefix so the archive is browsable on disk. Lookup never parses
+     * the filename back — callers always hold the Map — so a lossy slug is harmless.
+     */
+    public function relativePathFor(Map $map): ?string
+    {
+        return $this->pathForIdentity(
+            name: (string) $map->getAttribute('name'),
+            sha256: $map->getAttribute('sha256'),
+            crc: $map->getAttribute('crc'),
+        );
+    }
+
+    /**
+     * Path (relative to $this->disk) where this version's .map file is or would be cached,
+     * or null when the version has no usable content key.
+     */
+    public function relativePathForVersion(MapVersion $version): ?string
+    {
+        return $this->pathForIdentity(
+            name: (string) $version->map->getAttribute('name'),
+            sha256: $version->getAttribute('sha256'),
+            crc: $version->getAttribute('crc'),
+        );
+    }
+
+    /**
+     * Shared path-computation logic for both map-keyed and version-keyed callers.
+     * The key is sha256 if available, else crc. Returns null when no key exists or the key
+     * contains non-hex characters (path-traversal guard).
+     */
+    private function pathForIdentity(string $name, ?string $sha256, ?string $crc): ?string
+    {
+        $key = $sha256 ?? $crc;
+        if ($key === null || !ctype_xdigit($key)) {
+            return null;
+        }
+
+        $slug = $this->nameSlug($name);
+        $prefix = $slug === '' ? '' : $slug . '_';
+
+        return 'maps/' . $prefix . $key . '.map';
+    }
+
+    /**
+     * Whether this map's .map file is already cached on disk.
+     */
+    public function isCached(Map $map): bool
+    {
+        $relative = $this->relativePathFor($map);
+
+        return $relative !== null && Storage::disk($this->disk)->exists($relative);
+    }
+
+    /**
+     * Whether this version's .map file is already cached on disk.
+     */
+    public function isCachedVersion(MapVersion $version): bool
+    {
+        $relative = $this->relativePathForVersion($version);
+
+        return $relative !== null && Storage::disk($this->disk)->exists($relative);
+    }
+
+    /**
      * Record a freshly-downloaded keyless map's content identity, setting only the columns that are
      * still null (no-clobber, parallel to the no-clobber refresh in UpdateData::recordServerMap). The derived sha256 is the true
      * content hash of the verified bytes, so it is a valid cache key even for maps DDNet never mirrors.
@@ -84,36 +204,6 @@ final class MapFileStore
         if ($updates !== []) {
             $map->update($updates);
         }
-    }
-
-    /**
-     * Path (relative to $this->disk) where this map's .map file is or would be cached, or null when
-     * the map has no usable content key. The filename is <sanitized-name>_<sha256|crc>.map: the hash
-     * keeps uniqueness and is the path-traversal guard (it must be pure hex); the name is a
-     * best-effort, filesystem-safe prefix so the archive is browsable on disk. Lookup never parses
-     * the filename back — callers always hold the Map — so a lossy slug is harmless.
-     */
-    public function relativePathFor(Map $map): ?string
-    {
-        $key = $map->getAttribute('sha256') ?? $map->getAttribute('crc');
-        if ($key === null || !ctype_xdigit($key)) {
-            return null;
-        }
-
-        $slug = $this->nameSlug((string) $map->getAttribute('name'));
-        $prefix = $slug === '' ? '' : $slug . '_';
-
-        return 'maps/' . $prefix . $key . '.map';
-    }
-
-    /**
-     * Whether this map's .map file is already cached on disk.
-     */
-    public function isCached(Map $map): bool
-    {
-        $relative = $this->relativePathFor($map);
-
-        return $relative !== null && Storage::disk($this->disk)->exists($relative);
     }
 
     /**
