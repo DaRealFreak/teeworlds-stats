@@ -148,6 +148,14 @@
                 </ul>
             @endif
 
+            @auth
+                <!-- Admin (only shown to logged-in admins) -->
+                <span class="heading">Admin</span>
+                <ul class="list-unstyled">
+                    <li><a href="{{ route('admin.dashboard') }}"> <i class="fa fa-line-chart"></i>Map Archive </a></li>
+                </ul>
+            @endauth
+
             <span class="heading">Extras</span>
             <ul class="list-unstyled">
                 <li><a href="{{ url('about') }}"> <i class="icon-padnote"></i>About </a></li>

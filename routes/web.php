@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\Admin\DashboardController;
 use App\Http\Controllers\AjaxSearchController;
 use App\Http\Controllers\InformationController;
 use App\Http\Controllers\MainController;
@@ -59,6 +60,11 @@ Route::get('/search/mod', [AjaxSearchController::class, 'searchMod'])->name('sea
 Route::get('/search/map', [AjaxSearchController::class, 'searchMap'])->name('searchMapAjax');
 // Unified search for the navbar global-search box (grouped, URL-carrying results)
 Route::get('/search/global', [AjaxSearchController::class, 'searchGlobal'])->name('searchGlobalAjax');
+
+// Admin area (auth-gated; the app is admin-only, so any authenticated user is an admin).
+Route::middleware('auth')->prefix('admin')->group(function () {
+    Route::get('/', [DashboardController::class, 'index'])->name('admin.dashboard');
+});
 
 // Authentication routes (laravel/ui) — registration is closed; this is an admin-only app.
 // Admins are provisioned with `php artisan admin:create`.
