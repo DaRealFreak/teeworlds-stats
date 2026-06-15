@@ -24,11 +24,12 @@ use App\TwStats\Discovery\FlavorClassifier;
  * is needed in production. Tests inject a factory that returns a scripted FakeConnection,
  * avoiding any real UDP traffic.
  *
- * Host selection: we query the most-recently-updated server_histories row for this map,
- * resolve the server's address by preferred protocol (7 for vanilla_07, 6 otherwise), and
- * route to the correct download session via MapDownloadSessionFactory — SevenMapDownloadSession
- * for native sixup hosts (MAP_DATA streams without per-chunk requests), MapDownloadSession for
- * 0.6/DDNet hosts (MAP_DATA includes per-chunk framing).
+ * Host selection: we query server_histories for all hosts that recently served this map (or
+ * specific version), ordered newest-first, deduplicated by (ip, port), capped at
+ * MAP_UDP_MAX_HOSTS. Each host is dialled in turn via downloadFromHost() until one returns
+ * verified bytes. Targeting hosts known to have served the exact identity avoids wasting
+ * connects on hosts that have moved to a different map/version. downloadFromHost() is public so
+ * inline acquisition (scraper) can target the exact host it just saw serving the version.
  */
 final class GameServerMapSource implements MapSource
 {
@@ -44,159 +45,133 @@ final class GameServerMapSource implements MapSource
 
     public function fetch(Map $map): ?string
     {
+        return $this->downloadFromCandidates(
+            ServerHistory::where('map_id', $map->getAttribute('id')),
+            $map->getAttribute('sha256'),
+            $this->crcToInt32($map->getAttribute('crc')),
+            (string) $map->getAttribute('name'),
+        );
+    }
+
+    /**
+     * Version-keyed acquisition path: resolve candidate hosts from server_histories filtered by
+     * map_version_id (newest first, deduped, capped), then try each until one serves verified
+     * bytes. Returns null on any failure so the store can try the next source.
+     */
+    public function fetchVersion(MapVersion $version): ?string
+    {
+        return $this->downloadFromCandidates(
+            ServerHistory::where('map_version_id', $version->getAttribute('id')),
+            $version->getAttribute('sha256'),
+            $this->crcToInt32($version->getAttribute('crc')),
+            (string) $version->map->getAttribute('name'),
+        );
+    }
+
+    /**
+     * Download + verify a map from ONE explicit host. Returns the verified .map bytes, or null on any
+     * failure (connect, download, name mismatch, non-datafile). Public so inline acquisition can target
+     * the exact host it just saw serving the version.
+     */
+    public function downloadFromHost(string $ip, int $port, string $flavor, ?string $expectedSha256, ?int $expectedCrc, string $expectedName, int $timeoutMs): ?string
+    {
         try {
-            return $this->doFetch($map);
+            $factory = $this->connectionFactory ?? $this->defaultFactory();
+            $conn    = ($factory)($ip, $port, $flavor);
+
+            $result = MapDownloadSessionFactory::for($conn, $flavor)->downloadWithIdentity(
+                expectedSha256: $expectedSha256,
+                expectedCrc: $expectedCrc,
+                timeoutMs: $timeoutMs,
+            );
+
+            // Name-match gate: a host that has since switched maps answers with a different name;
+            // archiving its bytes here would mislabel them. Trim both sides (the stored name may come
+            // from the DDNet HTTP feed, the wire name off the UDP MAP_CHANGE).
+            if (trim($result->name) !== trim($expectedName)) {
+                return null;
+            }
+            if (!$this->looksLikeMapDatafile($result->bytes)) {
+                return null;
+            }
+
+            return $result->bytes;
         } catch (\Throwable) {
             return null;
         }
     }
 
     /**
-     * Version-keyed acquisition path: resolve the most-recently-seen host from server_histories
-     * filtered by map_version_id, then verify bytes against the version's known identity
-     * (sha256/crc) and name. Returns null on any failure so the store can try the next source.
+     * Walk the distinct recent hosts from $historyQuery (newest first, capped at MAP_UDP_MAX_HOSTS),
+     * trying each until one serves verified bytes. Targeting the hosts known to have served this exact
+     * identity avoids wasting connects on hosts that have moved to a different map/version.
      */
-    public function fetchVersion(MapVersion $version): ?string
+    private function downloadFromCandidates(\Illuminate\Database\Eloquent\Builder $historyQuery, ?string $sha256, ?int $crc, string $name): ?string
     {
-        try {
-            return $this->doFetchVersion($version);
-        } catch (\Throwable) {
-            return null;
+        $histories = $historyQuery->orderByDesc('updated_at')->with(['server.addresses'])->limit(50)->get();
+
+        foreach ($this->candidateHosts($histories) as $host) {
+            $bytes = $this->downloadFromHost($host['ip'], $host['port'], $host['flavor'], $sha256, $crc, $name, $this->timeoutMs);
+            if ($bytes !== null) {
+                return $bytes;
+            }
         }
+
+        return null;
     }
 
-    private function doFetchVersion(MapVersion $version): ?string
+    /**
+     * Distinct (ip, port, flavor) hosts from the histories, most-recent first, capped. Each server's
+     * dialled address matches its flavour's wire (protocol 7 for native sixup, else 0.6).
+     *
+     * @param \Illuminate\Support\Collection<int, ServerHistory> $histories
+     * @return array<int, array{ip: string, port: int, flavor: string}>
+     */
+    private function candidateHosts($histories): array
     {
-        $crcHex = $version->getAttribute('crc');
-        $sha256 = $version->getAttribute('sha256');
-
-        // Find the most recently seen server that was hosting this specific version.
-        $history = ServerHistory::where('map_version_id', $version->getAttribute('id'))
-            ->orderByDesc('updated_at')
-            ->with(['server.addresses'])
-            ->first();
-
-        if ($history === null) {
-            return null;
-        }
-
-        $server = $history->server;
-        if ($server === null) {
-            return null;
-        }
-
-        $flavor = $server->getAttribute('flavor') ?? FlavorClassifier::FLAVOR_VANILLA_06;
-
-        $preferredProtocol = $flavor === FlavorClassifier::FLAVOR_VANILLA_07 ? 7 : 6;
-        $address = $server->addresses->where('protocol', $preferredProtocol)->first()
-            ?? $server->addresses->first();
-
-        if ($address === null) {
-            return null;
-        }
-
-        $ip   = $address->ip;
-        $port = $address->port;
-
-        $expectedCrc = null;
-        if ($crcHex !== null) {
-            $c = (int) hexdec($crcHex);
-            if ($c & 0x80000000) {
-                $c -= 0x100000000;
+        $hosts = [];
+        foreach ($histories as $history) {
+            $server = $history->server;
+            if ($server === null) {
+                continue;
             }
-            $expectedCrc = $c;
+            $flavor = $server->getAttribute('flavor') ?? FlavorClassifier::FLAVOR_VANILLA_06;
+            $preferredProtocol = $flavor === FlavorClassifier::FLAVOR_VANILLA_07 ? 7 : 6;
+            $address = $server->addresses->where('protocol', $preferredProtocol)->first()
+                ?? $server->addresses->first();
+            if ($address === null) {
+                continue;
+            }
+            $key = $address->ip . ':' . $address->port;
+            if (isset($hosts[$key])) {
+                continue;
+            }
+            $hosts[$key] = ['ip' => (string) $address->ip, 'port' => (int) $address->port, 'flavor' => $flavor];
+            if (count($hosts) >= $this->maxHosts()) {
+                break;
+            }
         }
 
-        $factory = $this->connectionFactory ?? $this->defaultFactory();
-        $conn    = ($factory)($ip, $port, $flavor);
-
-        $result = MapDownloadSessionFactory::for($conn, $flavor)->downloadWithIdentity(
-            expectedSha256: $sha256,
-            expectedCrc: $expectedCrc,
-            timeoutMs: $this->timeoutMs,
-        );
-
-        $mapName = (string) $version->map->getAttribute('name');
-        if (trim($result->name) !== trim($mapName)) {
-            return null;
-        }
-
-        if (!$this->looksLikeMapDatafile($result->bytes)) {
-            return null;
-        }
-
-        return $result->bytes;
+        return array_values($hosts);
     }
 
-    private function doFetch(Map $map): ?string
+    /** Convert an 8-hex crc string to a signed int32 for the download session, or null. */
+    private function crcToInt32(?string $crcHex): ?int
     {
-        $crcHex = $map->getAttribute('crc');
-        $sha256 = $map->getAttribute('sha256');
-
-        // Find the most recently seen server that was hosting this map.
-        $history = ServerHistory::where('map_id', $map->getAttribute('id'))
-            ->orderByDesc('updated_at')
-            ->with(['server.addresses'])
-            ->first();
-
-        if ($history === null) {
+        if ($crcHex === null) {
             return null;
         }
-
-        $server = $history->server;
-        if ($server === null) {
-            return null;
+        $c = (int) hexdec($crcHex);
+        if ($c & 0x80000000) {
+            $c -= 0x100000000;
         }
 
-        $flavor = $server->getAttribute('flavor') ?? FlavorClassifier::FLAVOR_VANILLA_06;
+        return $c;
+    }
 
-        // Dial the address that matches the flavour's wire: protocol 7 for native sixup, else 0.6.
-        $preferredProtocol = $flavor === FlavorClassifier::FLAVOR_VANILLA_07 ? 7 : 6;
-        $address = $server->addresses->where('protocol', $preferredProtocol)->first()
-            ?? $server->addresses->first();
-
-        if ($address === null) {
-            return null;
-        }
-
-        $ip   = $address->ip;
-        $port = $address->port;
-
-        // Convert the 8-hex crc string to a signed int32 for the session.
-        $expectedCrc = null;
-        if ($crcHex !== null) {
-            $c = (int) hexdec($crcHex);
-            if ($c & 0x80000000) {
-                $c -= 0x100000000;
-            }
-            $expectedCrc = $c;
-        }
-
-        $factory = $this->connectionFactory ?? $this->defaultFactory();
-        $conn    = ($factory)($ip, $port, $flavor);
-
-        $result = MapDownloadSessionFactory::for($conn, $flavor)->downloadWithIdentity(
-            expectedSha256: $sha256,
-            expectedCrc: $expectedCrc,
-            timeoutMs: $this->timeoutMs,
-        );
-
-        // Name-match gate: the source picked a host from server_histories; if that host has since
-        // switched maps it answers with a different name, and archiving its bytes as this map would
-        // mislabel them. Reject the mismatch (the map is retried after the cooldown). Both sides are
-        // trimmed because the stored name may have been recorded from the DDNet HTTP feed while this
-        // name comes off the UDP MAP_CHANGE — tolerate that cross-source whitespace, not a real diff.
-        if (trim($result->name) !== trim((string) $map->getAttribute('name'))) {
-            return null;
-        }
-
-        // Datafile sanity: reject placeholder/troll content that is not a real Teeworlds map
-        // (mirrors resources/assets/js/map/datafile.ts: 'DATA'/'ATAD' magic, ≥36 bytes).
-        if (!$this->looksLikeMapDatafile($result->bytes)) {
-            return null;
-        }
-
-        return $result->bytes;
+    private function maxHosts(): int
+    {
+        return (int) env('MAP_UDP_MAX_HOSTS', 5);
     }
 
     /**

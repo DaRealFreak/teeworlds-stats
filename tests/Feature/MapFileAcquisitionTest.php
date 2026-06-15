@@ -3,6 +3,7 @@
 namespace Tests\Feature;
 
 use App\Models\Map;
+use App\Models\MapVersion;
 use App\Models\Mod;
 use App\Models\Server;
 use App\Models\ServerAddress;
@@ -15,6 +16,7 @@ use App\TwStats\Connection\ConnectionInterface;
 use App\TwStats\Connection\MapDownloadFailed;
 use App\TwStats\Protocol\Seven\VariableInt;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Storage;
 use Tests\TestCase;
@@ -474,6 +476,56 @@ class MapFileAcquisitionTest extends TestCase
         (new MapFileStore([$source]))->ensure($map);
 
         $this->assertSame(99999, $map->fresh()->size, 'a preset size must not be overwritten');
+    }
+
+    public function test_download_from_host_returns_verified_bytes(): void
+    {
+        $payload = 'DATA' . str_repeat('H', 40);
+        $crc = crc32($payload);
+        $conn = new FakeGameConnection();
+        $conn->enqueue([$this->buildMapChange('dm1', $crc, strlen($payload))]);
+        $conn->enqueue([$this->buildMapData(1, $crc, 0, $payload)]);
+
+        $source = new GameServerMapSource(connectionFactory: static fn () => $conn);
+        $crcSigned = ($crc & 0x80000000) ? $crc - 0x100000000 : $crc;
+
+        $this->assertSame($payload, $source->downloadFromHost('1.2.3.4', 8303, 'vanilla_06', null, $crcSigned, 'dm1', 20000));
+    }
+
+    public function test_fetch_version_falls_through_to_a_second_host(): void
+    {
+        $payload = 'DATA' . str_repeat('V', 40);
+        $crc = crc32($payload);
+        $crcHex = sprintf('%08x', $crc & 0xFFFFFFFF);
+
+        $map = Map::create(['name' => 'multi']);
+        $version = MapVersion::create(['map_id' => $map->id, 'crc' => $crcHex, 'first_seen_at' => now(), 'last_seen_at' => now()]);
+        $mod = Mod::create(['name' => 'dm']);
+
+        // hostA is most-recent but has switched maps; hostB still serves 'multi'
+        $hostA = Server::factory()->create(['flavor' => 'vanilla_06']);
+        ServerAddress::factory()->create(['server_id' => $hostA->id, 'ip' => '10.0.0.1', 'port' => 8303, 'protocol' => 6, 'is_canonical' => true]);
+        $histA = ServerHistory::create(['weekday' => 1, 'hour' => 12, 'continuous' => true, 'server_id' => $hostA->id, 'map_id' => $map->id, 'map_version_id' => $version->id, 'mod_id' => $mod->id, 'minutes' => 10]);
+
+        $hostB = Server::factory()->create(['flavor' => 'vanilla_06']);
+        ServerAddress::factory()->create(['server_id' => $hostB->id, 'ip' => '10.0.0.2', 'port' => 8303, 'protocol' => 6, 'is_canonical' => true]);
+        $histB = ServerHistory::create(['weekday' => 1, 'hour' => 12, 'continuous' => true, 'server_id' => $hostB->id, 'map_id' => $map->id, 'map_version_id' => $version->id, 'mod_id' => $mod->id, 'minutes' => 10]);
+
+        // force deterministic ordering: hostA tried first (updated_at is guarded, so set via the query builder)
+        DB::table('server_histories')->where('id', $histA->id)->update(['updated_at' => now()]);
+        DB::table('server_histories')->where('id', $histB->id)->update(['updated_at' => now()->subHour()]);
+
+        $connA = new FakeGameConnection();
+        $connA->enqueue([$this->buildMapChange('OTHER', $crc, strlen($payload))]);
+        $connA->enqueue([$this->buildMapData(1, $crc, 0, $payload)]);
+        $connB = new FakeGameConnection();
+        $connB->enqueue([$this->buildMapChange('multi', $crc, strlen($payload))]);
+        $connB->enqueue([$this->buildMapData(1, $crc, 0, $payload)]);
+
+        $byIp = ['10.0.0.1' => $connA, '10.0.0.2' => $connB];
+        $source = new GameServerMapSource(connectionFactory: fn (string $ip, int $port, string $flavor) => $byIp[$ip]);
+
+        $this->assertSame($payload, $source->fetchVersion($version->fresh()));
     }
 
     private function buildMapChange07(string $name, int $crc, int $size, int $chunksPerRequest, int $chunkSize, string $sha256Raw): string
