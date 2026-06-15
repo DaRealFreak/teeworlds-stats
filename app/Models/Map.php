@@ -13,6 +13,8 @@ use Illuminate\Database\Eloquent\Model;
  *
  * @property-read \Illuminate\Database\Eloquent\Collection|\App\Models\PlayerHistory[] $playerRecords
  * @property-read \Illuminate\Database\Eloquent\Collection|\App\Models\ServerHistory[] $serverRecords
+ * @property-read \Illuminate\Database\Eloquent\Collection|\App\Models\MapVersion[] $versions
+ * @property-read \App\Models\MapVersion|null $currentVersion
  * @mixin \Eloquent
  * @property int $id
  * @property \Carbon\Carbon|null $created_at

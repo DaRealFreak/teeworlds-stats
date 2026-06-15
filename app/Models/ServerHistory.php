@@ -8,6 +8,7 @@ use Illuminate\Database\Eloquent\Model;
  * App\Models\ServerHistory
  *
  * @property-read \App\Models\Map $map
+ * @property-read \App\Models\MapVersion|null $mapVersion
  * @property-read \App\Models\Mod $mod
  * @property-read \App\Models\Mod $modOriginal
  * @property-read \App\Models\Server $server
@@ -20,6 +21,7 @@ use Illuminate\Database\Eloquent\Model;
  * @property int $continuous
  * @property int $server_id
  * @property int $map_id
+ * @property int|null $map_version_id
  * @property int $mod_id
  * @property int|null $mod_original_id
  * @property int $minutes
