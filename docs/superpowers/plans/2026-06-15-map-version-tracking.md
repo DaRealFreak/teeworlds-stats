@@ -706,9 +706,9 @@ Replace the existing `updateServerMapAndMod(...)` and `updateMapIdentity(...)` m
     }
 
     /**
-     * Resolve the map for a sighting and record its content version: upsert the map_versions row,
-     * and repoint maps.sha256/crc/size at that (current) version so the default viewer/download and
-     * hasDownloadableFile() track the latest file.
+     * Resolve the map for a sighting and record its content version (upsert the map_versions row).
+     * maps.sha256/crc/size keep the existing no-clobber identity cache for legacy readers; the
+     * "current version" is read via Map::currentVersion(), not from maps.*.
      *
      * @return array{0: Map, 1: ?MapVersion}
      */
@@ -723,14 +723,18 @@ Replace the existing `updateServerMapAndMod(...)` and `updateMapIdentity(...)` m
             $server->mapSize,
         );
 
-        // maps.* is a denormalized pointer to the current version (not no-clobber): it mirrors one
-        // version's full identity, never a mix of two. Keyless sightings leave it unchanged.
+        // Refresh maps.* no-clobber from the recorded version: write only the fields it knows, so a
+        // crc-only version never nulls a sha256 a prior DDNet sighting set (the existing afk/skin
+        // no-clobber rule). Keyless sightings (no version) leave it unchanged.
         if ($version !== null) {
-            $mapModel->update([
+            $updates = array_filter([
                 'sha256' => $version->getAttribute('sha256'),
                 'crc' => $version->getAttribute('crc'),
                 'size' => $version->getAttribute('size'),
-            ]);
+            ], static fn ($v) => $v !== null);
+            if ($updates !== []) {
+                $mapModel->update($updates);
+            }
         }
 
         return [$mapModel, $version];

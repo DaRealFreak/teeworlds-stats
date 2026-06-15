@@ -73,12 +73,16 @@ Indexes: `(map_id, sha256)`, `(map_id, crc)` for match-by-either upserts and OR-
 was serving at that sighting. Enables version-targeted multi-host fallback and the per-version
 "N servers" count. Stats still group by `map_id`; this column does not split stats.
 
-`maps` **keeps `sha256/crc/size`** as a **denormalized pointer to the current (newest-seen)
-version**. Rationale: zero churn to existing readers (`hasDownloadableFile`, default viewer/
-download, `/maps` badge) — they keep meaning "the current version". `last_archive_attempt_at`
-is **removed** from `maps` (moves to `map_versions.last_acquire_attempt_at`). (Alternative
-considered: a `current_version_id` FK with the three columns removed — cleaner but churns every
-reader; rejected for this lightweight change. Revisit later if the denormalization drifts.)
+`maps` **keeps its existing `sha256/crc/size` with the existing no-clobber rule** — a best-effort
+"is there any downloadable identity" cache for the legacy readers (`hasDownloadableFile`, the
+`/maps` badge, `MapFileStore::ensure(Map)`). It is intentionally *not* repointed to the current
+version: the project's no-clobber identity rule (mirroring the afk/skin rule) is deliberate and
+encoded in existing tests, and nulling a known `sha256` because the newest sighting was crc-only
+would regress the HTTP-download path. The **current version is the `currentVersion()` relation**
+(newest `map_versions` row by `last_seen_at`); Phase 3's default (no-version) route/viewer resolves
+to it. `last_archive_attempt_at` is **removed** from `maps` (moves to
+`map_versions.last_acquire_attempt_at`). (Alternative considered: a `current_version_id` FK — more
+churn; rejected for this lightweight change.)
 
 ### 2. Scraper: version upsert + identity normalization
 
@@ -91,8 +95,9 @@ upserts a `map_versions` row whenever the sighting carries an identity (`sha256`
   listed on both masters, so such sightings exist.
 - Matched → bump `last_seen_at`; unmatched → create (`first_seen_at = last_seen_at = now`).
 - Stamp `server_histories.map_version_id` with the resolved version.
-- `maps.sha256/crc/size` switch from **no-clobber** to tracking the **current** (newest) version.
-  The old identity is not lost — it persists as a `map_versions` row.
+- `maps.sha256/crc/size` keep their **existing no-clobber** behavior (a per-field best-effort
+  identity cache for legacy readers). Each distinct identity also persists as a `map_versions` row;
+  "current version" is read via the `currentVersion()` relation, not from `maps.*`.
 - Keyless sightings (no `sha256`/`crc`) create no version row, exactly as today.
 
 **Merge pass** (normalization): when a version gains a second identity it didn't have (always the
