@@ -122,12 +122,14 @@ final class MapDownloadSession implements MapDownloadSessionInterface
     // -----------------------------------------------------------------------
 
     /**
-     * Stall window: if no new chunk is accepted within this many milliseconds
-     * the download is considered hung and a MapDownloadFailed is thrown.  This
-     * lets large maps download as long as the server keeps sending progress,
-     * while still failing fast when the peer goes silent.
+     * Stall window: if no new chunk is accepted within this many milliseconds the download is
+     * considered hung and a MapDownloadFailed is thrown. Paired with the overall deadline
+     * (GameServerMapSource::$timeoutMs, 120s by default), this lets a slow-but-progressing map keep
+     * downloading right up to the overall cap, while still failing fast when the peer goes silent.
+     * 20s tolerates the bursty, per-round-trip serving of vanilla 0.6 servers (KoG et al.) without
+     * mistaking a lull for a dead transfer.
      */
-    private const STALL_WINDOW_MS = 8000;
+    private const STALL_WINDOW_MS = 20000;
 
     /**
      * Download and return only the raw map bytes. Thin wrapper over downloadWithIdentity() for

@@ -144,6 +144,22 @@ class GameServerMapSourceHttpTest extends TestCase
         self::assertSame($payload, $result, 'a blocked HTTP mirror must fall back to the UDP map stream');
     }
 
+    public function test_default_overall_timeout_is_120s_and_honours_the_env(): void
+    {
+        $timeoutMs = new \ReflectionProperty(GameServerMapSource::class, 'timeoutMs');
+
+        self::assertSame(120000, $timeoutMs->getValue(new GameServerMapSource()), 'default overall deadline is 120s');
+
+        putenv('MAP_UDP_TIMEOUT_S=45');
+        $_ENV['MAP_UDP_TIMEOUT_S'] = '45';
+        try {
+            self::assertSame(45000, $timeoutMs->getValue(new GameServerMapSource()), 'MAP_UDP_TIMEOUT_S (seconds) overrides the default');
+        } finally {
+            putenv('MAP_UDP_TIMEOUT_S');
+            unset($_ENV['MAP_UDP_TIMEOUT_S']);
+        }
+    }
+
     public function test_skips_the_udp_fallback_when_the_server_has_cycled_to_another_map(): void
     {
         Event::fake([MapAcquisitionAttempted::class]);

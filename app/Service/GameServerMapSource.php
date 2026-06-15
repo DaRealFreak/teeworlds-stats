@@ -43,14 +43,21 @@ final class GameServerMapSource implements MapSource
     /** Hard cap on a map fetched from a server-advertised HTTP mirror (real maps are a few MB). */
     private const MAX_MAP_BYTES = 64 * 1024 * 1024;
 
+    /** Overall map-download deadline. The transfer may run this long as long as it keeps making
+     *  progress (a chunk at least every MapDownloadSession::STALL_WINDOW_MS); generous because vanilla
+     *  0.6 servers serve one ~900-byte chunk per round-trip, so distant/large maps are slow but real. */
+    private readonly int $timeoutMs;
+
     /**
      * @param callable|null $connectionFactory fn(string $ip, int $port, string $flavor): ConnectionInterface
      *                                          Must return an ALREADY CONNECTED connection.
+     * @param int|null $timeoutMs explicit overall deadline in ms; null reads MAP_UDP_TIMEOUT_S (seconds, default 120).
      */
     public function __construct(
         private readonly mixed $connectionFactory = null,
-        private readonly int $timeoutMs = 20000,
+        ?int $timeoutMs = null,
     ) {
+        $this->timeoutMs = $timeoutMs ?? ((int) env('MAP_UDP_TIMEOUT_S', 120)) * 1000;
     }
 
     public function fetch(Map $map): ?string

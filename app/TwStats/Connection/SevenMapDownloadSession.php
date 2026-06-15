@@ -34,7 +34,8 @@ final class SevenMapDownloadSession implements MapDownloadSessionInterface
 
     private const SHA256_BYTES = 32;
 
-    private const STALL_WINDOW_MS = 8000;
+    /** No-progress window; paired with the overall deadline. See MapDownloadSession::STALL_WINDOW_MS. */
+    private const STALL_WINDOW_MS = 20000;
 
     public function __construct(private readonly ConnectionInterface $conn)
     {
