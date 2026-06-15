@@ -41,15 +41,22 @@
                     <span class="text-muted">Map file not available.</span>
                 @endif
             </div>
-            @if($map->versions->count() >= 2)
+            @if($map->versions->isNotEmpty())
                 <div class="block" id="mapVersions">
                     <h2 class="h5">Versions ({{ $map->versions->count() }})</h2>
-                    <p class="text-muted small mb-2">This name exists as several distinct map files. View or download a specific one.</p>
+                    <p class="text-muted small mb-2">
+                        @if($map->versions->count() >= 2)
+                            This name exists as several distinct map files. View or download a specific one.
+                        @else
+                            The known version of this map file.
+                        @endif
+                    </p>
                     <div class="table-responsive">
                         <table class="table table-sm align-middle mb-0">
                             <thead>
                                 <tr>
                                     <th scope="col">Version</th>
+                                    <th scope="col">File</th>
                                     <th scope="col">Size</th>
                                     <th scope="col">Last seen</th>
                                     <th scope="col">Servers</th>
@@ -61,12 +68,14 @@
                                     @php($key = $version->contentKey())
                                     @php($isSelected = $selected && $selected->is($version))
                                     @php($isCurrent = $version->is($map->versions->first()))
+                                    @php($avail = $versionAvailability[$version->id])
                                     <tr @class(['table-active' => $isSelected])>
                                         <td>
                                             <code>{{ \Illuminate\Support\Str::substr($key, 0, 12) }}</code>
                                             @if($isCurrent)<span class="badge bg-secondary">current</span>@endif
                                             @if($isSelected)<span class="badge bg-info">viewing</span>@endif
                                         </td>
+                                        <td><span class="badge {{ $avail->badgeClass() }}">{{ $avail->label() }}</span></td>
                                         <td>{{ $version->size ? number_format($version->size / 1024) . ' KB' : '—' }}</td>
                                         <td>{{ $version->last_seen_at?->diffForHumans() ?? '—' }}</td>
                                         <td>{{ $serverCounts[$version->id] ?? 0 }}</td>

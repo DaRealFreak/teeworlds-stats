@@ -3,6 +3,7 @@
 namespace App\Service;
 
 use App\Models\Map;
+use App\Models\MapVersion;
 
 /**
  * A map's file availability, surfaced as a badge on the map list and the map detail page. Cached
@@ -28,6 +29,18 @@ enum MapAvailability: string
         }
 
         return self::Unavailable;
+    }
+
+    /** Resolve a single version's availability: cached on disk, else downloadable if it carries a key. */
+    public static function forVersion(MapVersion $version, MapFileStore $store): self
+    {
+        if ($store->isCachedVersion($version)) {
+            return self::Cached;
+        }
+
+        // a version row only exists for a sighting that carried an identity, so it is always at least
+        // downloadable; the null guard is defensive for a hand-built keyless row.
+        return $version->contentKey() !== null ? self::Downloadable : self::Unavailable;
     }
 
     public function label(): string

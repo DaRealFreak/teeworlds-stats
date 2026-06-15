@@ -277,9 +277,14 @@ class SearchController extends Controller
             ->selectRaw('map_version_id, COUNT(DISTINCT server_id) as servers')
             ->pluck('servers', 'map_version_id');
 
-        // file-availability badge, mirroring the /maps list
+        // file-availability badge, mirroring the /maps list (whole-map, for the download button)
         $availability = MapAvailability::for($map, $store);
 
-        return view('detail.map', compact('map', 'selected', 'serverCounts', 'availability'));
+        // per-version availability for the versions panel (cached vs downloadable per row)
+        $versionAvailability = $map->versions->mapWithKeys(
+            fn ($v) => [$v->getAttribute('id') => MapAvailability::forVersion($v, $store)]
+        );
+
+        return view('detail.map', compact('map', 'selected', 'serverCounts', 'availability', 'versionAvailability'));
     }
 }
