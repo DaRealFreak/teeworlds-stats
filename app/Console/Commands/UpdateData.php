@@ -119,10 +119,11 @@ class UpdateData extends Command
             $server->mapSize,
         );
 
-        // maps.* is a denormalized pointer to the current version (not no-clobber): it mirrors one
-        // version's full identity, never a mix of two. Only non-null version fields are written so a
-        // crc-only version does not clear a sha256 that a prior DDNet sighting recorded on the row.
-        // Keyless sightings leave it unchanged.
+        // maps.sha256/crc/size are denormalized for the legacy readers (hasDownloadableFile, the
+        // /maps badge, MapFileStore::ensure(Map)). Written no-clobber (array_filter drops nulls) so a
+        // crc-only version never clears a sha256 a prior DDNet sighting set. The authoritative
+        // current-version pointer is Map::currentVersion(), not maps.*. Keyless sightings (null
+        // version) leave maps.* unchanged.
         if ($version !== null) {
             $updates = array_filter(
                 [

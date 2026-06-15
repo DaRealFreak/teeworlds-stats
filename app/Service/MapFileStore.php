@@ -64,7 +64,7 @@ final class MapFileStore
 
     /**
      * Record a freshly-downloaded keyless map's content identity, setting only the columns that are
-     * still null (no-clobber, mirroring UpdateData::updateMapIdentity). The derived sha256 is the true
+     * still null (no-clobber, parallel to the no-clobber refresh in UpdateData::recordServerMap). The derived sha256 is the true
      * content hash of the verified bytes, so it is a valid cache key even for maps DDNet never mirrors.
      * Only the changed columns are written, so a concurrently-stamped last_archive_attempt_at survives.
      */

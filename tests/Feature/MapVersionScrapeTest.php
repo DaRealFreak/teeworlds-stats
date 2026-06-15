@@ -38,6 +38,7 @@ class MapVersionScrapeTest extends TestCase
         $map = Map::where('name', 'FlipLipp30')->firstOrFail();
         $this->assertSame('3421b577', $map->crc, 'maps.* points at the current version');
         $this->assertSame(335351, $map->size);
+        $this->assertNull($map->sha256, 'a crc-only sighting must not write sha256');
 
         $version = $map->currentVersion;
         $this->assertSame('3421b577', $version->crc);
