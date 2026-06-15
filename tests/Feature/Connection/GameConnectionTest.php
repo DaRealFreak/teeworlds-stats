@@ -227,6 +227,46 @@ class GameConnectionTest extends TestCase
     }
 
     // -----------------------------------------------------------------------
+    // Test 1c — initial 0.6 CONNECT appends the UNKNOWN security-token suffix
+    //
+    // Regression: the real DDNet client appends the 4-byte security token to EVERY
+    // 0.6 packet that is not UNSUPPORTED — including the very first CONNECT, where the
+    // token is still UNKNOWN and it writes 0xFFFFFFFF "hoping to negotiate it"
+    // (network.cpp:201-205). Strict 0.6 servers (e.g. KoG-class Gores hosts) silently
+    // DROP a CONNECT that lacks the suffix, so the map-download handshake timed out
+    // against them while lenient DDNet servers accepted the short form.
+    // -----------------------------------------------------------------------
+
+    public function test_06_initial_connect_appends_unknown_security_token_suffix(): void
+    {
+        $transport  = new FakeUdpTransport();
+        $serverIp   = '127.0.0.1';
+        $serverPort = 8303;
+
+        // No CONNECTACCEPT scripted — we only inspect the very first datagram (the CONNECT),
+        // which is sent before the receive loop, so connect() times out right after.
+        $conn = new GameConnection($transport, $serverIp, $serverPort, 'vanilla_06');
+        try {
+            $conn->connect(0);
+        } catch (ConnectionFailed) {
+            // expected: nothing answers, so the handshake times out after the CONNECT is sent
+        }
+
+        $this->assertNotEmpty($transport->sent, 'CONNECT must be sent');
+
+        $expected = $this->make06ControlPacket(
+            chr(ControlMessages::CONNECT)
+            . ControlMessages::SECURITY_TOKEN_MAGIC
+            . pack('N', 0xFFFFFFFF),
+        );
+        $this->assertSame(
+            bin2hex($expected),
+            bin2hex($transport->sent[0]['data']),
+            'Initial 0.6 CONNECT must be [CONNECT]["TKEN"][0xFFFFFFFF] (real-client byte layout)',
+        );
+    }
+
+    // -----------------------------------------------------------------------
     // Test 2 — 0.7 handshake
     // -----------------------------------------------------------------------
 

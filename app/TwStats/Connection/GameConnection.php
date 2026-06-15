@@ -634,18 +634,32 @@ final class GameConnection implements ConnectionInterface
      */
     private function sendControl06(string $controlPayload): void
     {
-        // Pass the token only when it has a real positive negotiated value.
-        // securityToken = -1 (UNKNOWN) or 0 (UNSUPPORTED) means no suffix.
-        $token06 = ($this->securityToken > 0) ? $this->securityToken : null;
-
         $wireBytes = $this->codec->pack([
             'flags'   => PacketCodec::FLAG_CONTROL,
             'ack'     => $this->ack,
             'chunks'  => [],
             'control' => $controlPayload,
-        ], false, null, $token06);
+        ], false, null, $this->securityTokenSuffix06());
 
         $this->transport->send($this->ip, $this->port, $wireBytes);
+    }
+
+    /**
+     * The 0.6 security-token value to append to an outgoing packet, or null for none.
+     *
+     * Mirrors SendPacket (network.cpp:201-205): append the token whenever it is NOT
+     * UNSUPPORTED — crucially including while it is still UNKNOWN, where the real client
+     * writes 0xFFFFFFFF "hoping to negotiate it". Strict 0.6 servers (KoG-class Gores
+     * hosts) silently drop a CONNECT that lacks the suffix; lenient DDNet servers accept
+     * either, which is why the omission only surfaced against some hosts.
+     */
+    private function securityTokenSuffix06(): ?int
+    {
+        return match (true) {
+            $this->securityToken > 0 => $this->securityToken, // negotiated token
+            $this->securityToken < 0 => 0xFFFFFFFF,           // UNKNOWN → append 0xFFFFFFFF
+            default                  => null,                 // UNSUPPORTED (0) → no suffix
+        };
     }
 
     /**
