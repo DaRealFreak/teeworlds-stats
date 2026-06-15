@@ -22,7 +22,7 @@
                                     <th>Played by players</th>
                                     <th>Played on servers</th>
                                     <th>Total time played(players)</th>
-                                    <th>Archive</th>
+                                    <th>Availability</th>
                                 </tr>
                                 </thead>
                                 <tbody>

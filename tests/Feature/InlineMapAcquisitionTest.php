@@ -44,6 +44,7 @@ class InlineMapAcquisitionTest extends TestCase
         $acquirer->consider($version);
         $acquirer->run();
 
+        $this->assertNotNull($version->fresh()->sha256, 'acquisition backfills the computed sha256');
         $this->assertTrue($store->isCachedVersion($version->fresh()));
         $this->assertNotNull($version->fresh()->last_acquire_attempt_at);
     }
