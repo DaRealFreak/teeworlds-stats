@@ -44,14 +44,29 @@ class Map extends Model
 
     /**
      * Whether a downloadable .map file can potentially be acquired for this map: it has a content key
-     * (sha256/crc → DDNet HTTP or verified UDP), or it is keyless but was seen on a server we can
-     * connect to and download it from over UDP, backfilling the key from the bytes.
+     * (sha256/crc — on the map row itself for legacy maps, or on any MapVersion row for versioned maps),
+     * or it is keyless but was seen on a server we can connect to and download it from over UDP,
+     * backfilling the key from the bytes.
      */
     public function hasDownloadableFile(): bool
     {
-        return $this->getAttribute('sha256') !== null
-            || $this->getAttribute('crc') !== null
-            || $this->hasRecordedHost();
+        if ($this->getAttribute('sha256') !== null || $this->getAttribute('crc') !== null) {
+            return true;
+        }
+        // Versioned maps: at least one version with a known content key is sufficient.
+        if ($this->relationLoaded('versions')) {
+            if ($this->versions->contains(fn ($v) => $v->contentKey() !== null)) {
+                return true;
+            }
+        } else {
+            if (MapVersion::where('map_id', $this->getAttribute('id'))
+                ->where(fn ($q) => $q->whereNotNull('sha256')->orWhereNotNull('crc'))
+                ->exists()) {
+                return true;
+            }
+        }
+
+        return $this->hasRecordedHost();
     }
 
     /**

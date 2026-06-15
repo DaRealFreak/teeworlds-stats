@@ -33,13 +33,55 @@
             @endif
             <div class="block">
                 @if($map->hasDownloadableFile())
-                    <a href="{{ route('mapDownload', ['map_name' => $map->name]) }}" class="btn btn-primary">
+                    <a href="{{ $selected ? route('mapDownload', ['map_name' => $map->name, 'version' => $selected->contentKey()]) : route('mapDownload', ['map_name' => $map->name]) }}" class="btn btn-primary">
                         <i class="fa fa-download" aria-hidden="true"></i> Download .map
                     </a>
                 @else
                     <p class="text-muted mb-0">Map file not available.</p>
                 @endif
             </div>
+            @if($map->versions->count() >= 2)
+                <div class="block" id="mapVersions">
+                    <h2 class="h5">Versions ({{ $map->versions->count() }})</h2>
+                    <p class="text-muted small mb-2">This name exists as several distinct map files. View or download a specific one.</p>
+                    <div class="table-responsive">
+                        <table class="table table-sm align-middle mb-0">
+                            <thead>
+                                <tr>
+                                    <th scope="col">Version</th>
+                                    <th scope="col">Size</th>
+                                    <th scope="col">Last seen</th>
+                                    <th scope="col">Servers</th>
+                                    <th scope="col"></th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach($map->versions as $version)
+                                    @php($key = $version->contentKey())
+                                    @php($isSelected = $selected && $selected->is($version))
+                                    @php($isCurrent = $version->is($map->versions->first()))
+                                    <tr @class(['table-active' => $isSelected])>
+                                        <td>
+                                            <code>{{ \Illuminate\Support\Str::substr($key, 0, 12) }}</code>
+                                            @if($isCurrent)<span class="badge bg-secondary">current</span>@endif
+                                            @if($isSelected)<span class="badge bg-info">viewing</span>@endif
+                                        </td>
+                                        <td>{{ $version->size ? number_format($version->size / 1024) . ' KB' : '—' }}</td>
+                                        <td>{{ $version->last_seen_at?->diffForHumans() ?? '—' }}</td>
+                                        <td>{{ $serverCounts[$version->id] ?? 0 }}</td>
+                                        <td class="text-end">
+                                            @unless($isSelected)
+                                                <a href="{{ route('searchMapByName', ['map_name' => $map->name, 'version' => $key]) }}" class="btn btn-sm btn-outline-secondary">View</a>
+                                            @endunless
+                                            <a href="{{ route('mapDownload', ['map_name' => $map->name, 'version' => $key]) }}" class="btn btn-sm btn-outline-primary">Download</a>
+                                        </td>
+                                    </tr>
+                                @endforeach
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            @endif
         </div>
     </section>
     @include('partials.play-stats')
@@ -54,7 +96,7 @@
             var overlay = document.getElementById('mapOverlay');
             if (!canvas || !overlay || !window.MapViewer) return;
             window.MapViewer.init(canvas, {
-                mapUrl: {!! json_encode(route('mapFile', ['map_name' => $map->name])) !!},
+                mapUrl: {!! json_encode($selected ? route('mapFile', ['map_name' => $map->name, 'version' => $selected->contentKey()]) : route('mapFile', ['map_name' => $map->name]), JSON_UNESCAPED_SLASHES) !!},
                 mapresBase: {!! json_encode(asset('mapres')) !!},
                 entitiesUrl: {!! json_encode(asset('entities/DDNet.png')) !!},
                 overlayCanvas: overlay

@@ -7,6 +7,7 @@ use App\Models\Map;
 use App\Models\Mod;
 use App\Models\Player;
 use App\Models\Server;
+use App\Models\ServerHistory;
 use App\Service\FuzzySearch;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Redirect;
@@ -255,6 +256,25 @@ class SearchController extends Controller
                 ->with('mapSuggestions', $mapSuggestions);
         }
 
-        return view('detail.map')->with('map', $map);
+        $map->load('versions');
+
+        // selected version for the viewer + main download button: ?version=<sha256|crc>, default = current (newest)
+        $selected = null;
+        if ($request->filled('version')) {
+            $key = $request->query('version');
+            $selected = $map->versions->first(
+                fn ($v) => $v->getAttribute('sha256') === $key || $v->getAttribute('crc') === $key
+            );
+        }
+        $selected ??= $map->versions->first(); // newest = current (null for legacy maps with no version rows)
+
+        // distinct servers seen serving each version, for the panel
+        $serverCounts = ServerHistory::where('map_id', $map->getAttribute('id'))
+            ->whereNotNull('map_version_id')
+            ->groupBy('map_version_id')
+            ->selectRaw('map_version_id, COUNT(DISTINCT server_id) as servers')
+            ->pluck('servers', 'map_version_id');
+
+        return view('detail.map', compact('map', 'selected', 'serverCounts'));
     }
 }
