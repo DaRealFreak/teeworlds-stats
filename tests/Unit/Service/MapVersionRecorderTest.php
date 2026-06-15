@@ -82,6 +82,17 @@ class MapVersionRecorderTest extends TestCase
         $this->assertDatabaseCount('map_versions', 1);
     }
 
+    public function test_backfills_crc_onto_a_sha256_only_row(): void
+    {
+        $sha = str_repeat('e', 64);
+        $row = $this->recorder->record($this->map, $sha, null, 300);
+        $same = $this->recorder->record($this->map, $sha, 'feed1234', 300);
+
+        $this->assertTrue($same->is($row));
+        $this->assertSame('feed1234', $same->fresh()->crc);
+        $this->assertDatabaseCount('map_versions', 1);
+    }
+
     public function test_distinct_crcs_are_distinct_versions(): void
     {
         $this->recorder->record($this->map, null, '3421b577', 335351);
@@ -98,6 +109,7 @@ class MapVersionRecorderTest extends TestCase
         $crcRow->update(['first_seen_at' => now()->subDays(3)]);
 
         $merged = $this->recorder->record($this->map, $sha, 'cafef00d', 400);
+        $this->assertTrue($merged->is($shaRow), 'the sha-row survives the merge');
 
         $this->assertDatabaseCount('map_versions', 1);
         $this->assertSame($sha, $merged->fresh()->sha256);
@@ -112,15 +124,19 @@ class MapVersionRecorderTest extends TestCase
         $crcRow = $this->recorder->record($this->map, null, 'beadfeed', 500);
 
         $server = \App\Models\Server::factory()->create();
-        \App\Models\ServerHistory::create([
+        $mod = \App\Models\Mod::create(['name' => 'x']);
+        $make = fn (int $versionId) => \App\Models\ServerHistory::create([
             'weekday' => 0, 'hour' => 0, 'continuous' => 0,
             'server_id' => $server->id, 'map_id' => $this->map->id,
-            'map_version_id' => $crcRow->id, 'mod_id' => \App\Models\Mod::create(['name' => 'x'])->id,
+            'map_version_id' => $versionId, 'mod_id' => $mod->id,
         ]);
+        $loserHistory = $make($crcRow->id);
+        $winnerHistory = $make($shaRow->id);
 
         $merged = $this->recorder->record($this->map, $sha, 'beadfeed', 500);
 
-        $this->assertDatabaseHas('server_histories', ['map_version_id' => $merged->id]);
+        $this->assertSame($merged->id, $loserHistory->fresh()->map_version_id, 'loser history re-pointed');
+        $this->assertSame($merged->id, $winnerHistory->fresh()->map_version_id, 'winner history unchanged');
         $this->assertDatabaseMissing('server_histories', ['map_version_id' => $crcRow->id]);
     }
 }

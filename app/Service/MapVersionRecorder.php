@@ -34,6 +34,8 @@ class MapVersionRecorder
             : null;
 
         // Both keys resolve to two different rows → this sighting proves they are the same file; merge.
+        // The sha-row wins: it is the DDNet-authoritative identity and the more likely to already have
+        // server_histories pointing at it, which minimises re-pointing.
         if ($bySha !== null && $byCrc !== null && $bySha->isNot($byCrc)) {
             $version = $this->merge($bySha, $byCrc);
         } else {
