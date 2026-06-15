@@ -58,8 +58,13 @@ Four units, each independently testable:
 
 FKs use `nullOnDelete` (server) / `cascadeOnDelete` (version) so the log never blocks a parent delete.
 `reason` vocabulary (closed set, documented in the model): `not_mirrored_404`, `timeout`,
-`connect_failed`, `name_mismatch`, `not_datafile`, `sha_mismatch`, `no_hosts`, `http_error`,
-`download_failed` (generic fallback).
+`connect_failed`, `name_mismatch`, `not_datafile`, `sha_mismatch`, `crc_mismatch`, `size_mismatch`,
+`no_hosts`, `http_error`, `download_failed` (generic fallback). A download exception is classified into
+`timeout` / `crc_mismatch` / `sha_mismatch` / `size_mismatch` (else `download_failed`) so the dashboard
+separates a host that has cycled to a different map (integrity mismatch — benign, transient) from one
+that is genuinely slow or unreachable (`timeout`). When a fast-download host advertises HTTP for a
+*different* map than requested, it has cycled: we record `name_mismatch` and skip the UDP fallback
+rather than re-dial and download the wrong map only to reject it.
 
 The `udp_fallback` source records a recovery after a blocked HTTP mirror: when a fast-download server
 advertises an HTTP URL that our server-side client cannot fetch (commonly a Cloudflare/WAF block that
@@ -119,6 +124,9 @@ view. All time-windowed methods take a `$days = 30` argument.
   `date(created_at)`, zero-filled across the window (for the chart).
 - `recentDownloads(int $limit = 25)` — latest successes joined to map name + version key + source + bytes.
 - `recentFailures(int $limit = 25)` — latest `outcome=failure` with map name, source, reason, server.
+  Excludes `not_mirrored_404`: that is the expected first-source miss (the map simply is not on the
+  DDNet mirror), retried over UDP in the same scrape pass, so it is an intermediate step rather than a
+  dead end and would otherwise dominate the list.
 - `failingServers(int $days, int $limit = 20)` — group failures by `server_id` (UDP sources only),
   with `fails`, `lastReason`, `lastTriedAt`, and a success-rate (`success/(success+failure)` for that
   server in the window). Ordered by `fails` desc.

@@ -4,10 +4,12 @@ declare(strict_types=1);
 
 namespace Tests\Feature\Connection;
 
+use App\Events\MapAcquisitionAttempted;
 use App\Service\GameServerMapSource;
 use App\TwStats\Connection\ConnectionInterface;
 use App\TwStats\Connection\DdnetUuid;
 use App\TwStats\Protocol\Seven\VariableInt;
+use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\Http;
 use Tests\TestCase;
 
@@ -140,6 +142,62 @@ class GameServerMapSourceHttpTest extends TestCase
             ->downloadFromHost('9.9.9.9', 8303, 'ddnet', null, null, 'Custom', 5000);
 
         self::assertSame($payload, $result, 'a blocked HTTP mirror must fall back to the UDP map stream');
+    }
+
+    public function test_skips_the_udp_fallback_when_the_server_has_cycled_to_another_map(): void
+    {
+        Event::fake([MapAcquisitionAttempted::class]);
+
+        // The host now advertises a DIFFERENT map (BlueSky) than the one we asked for (RaiNyMore): it
+        // has cycled. We must NOT re-dial to download the wrong map — record a clean name_mismatch.
+        $sha = hash('sha256', 'BlueSky bytes');
+        $url = 'https://1.1.1.1/BlueSky_' . $sha . '.map';
+        Http::fake(); // the mirror must never be hit either
+
+        // Only one connection is supplied; a wrongful UDP fallback would dial a second time, which
+        // sourceDialling answers with a ConnectionFailed — so a single name_mismatch event proves the skip.
+        $details = $this->fakeConnection($this->mapDetails('BlueSky', $sha, 4096, $url));
+
+        $result = $this->sourceDialling($details)
+            ->downloadFromHost('9.9.9.9', 8303, 'ddnet', null, null, 'RaiNyMore', 5000);
+
+        self::assertNull($result);
+        Http::assertNothingSent();
+        Event::assertDispatchedTimes(MapAcquisitionAttempted::class, 1);
+        Event::assertDispatched(MapAcquisitionAttempted::class, fn ($e) => $e->source === 'udp' && $e->outcome === 'failure' && $e->reason === 'name_mismatch');
+    }
+
+    public function test_classifies_a_caller_crc_mismatch_as_crc_mismatch(): void
+    {
+        Event::fake([MapAcquisitionAttempted::class]);
+
+        // The host serves a self-consistent map, but its CRC is not the one we expected (the classic
+        // cycled-server-with-a-crc case) → the session raises a caller-expectation CRC mismatch.
+        $payload = 'DATA' . str_repeat("\x00", 40);
+        $crc     = crc32($payload);
+        $wrongExpectedCrc = $this->toInt32($crc ^ 0x1234);
+        $udp = $this->connectionYielding($this->mapChange('RaiNyMore', $crc, strlen($payload)), $this->mapData(1, $crc, 0, $payload));
+
+        $result = $this->sourceDialling($udp)
+            ->downloadFromHost('9.9.9.9', 8303, 'ddnet', null, $wrongExpectedCrc, 'RaiNyMore', 5000);
+
+        self::assertNull($result);
+        Event::assertDispatched(MapAcquisitionAttempted::class, fn ($e) => $e->source === 'udp' && $e->reason === 'crc_mismatch');
+    }
+
+    public function test_classifies_a_transfer_timeout_as_timeout(): void
+    {
+        Event::fake([MapAcquisitionAttempted::class]);
+
+        // The host never sends MAP_CHANGE → the session times out; the reason must be 'timeout', not the
+        // generic 'download_failed', so the dashboard separates slow/broken hosts from cycled ones.
+        $silent = $this->connectionYielding(); // no scripted messages
+
+        $result = $this->sourceDialling($silent)
+            ->downloadFromHost('9.9.9.9', 8303, 'ddnet', null, null, 'RaiNyMore', 1);
+
+        self::assertNull($result);
+        Event::assertDispatched(MapAcquisitionAttempted::class, fn ($e) => $e->source === 'udp' && $e->reason === 'timeout');
     }
 
     public function test_fetches_the_map_from_the_servers_advertised_https_url(): void

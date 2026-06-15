@@ -13,6 +13,7 @@ use App\TwStats\Connection\GameConnection;
 use App\Events\MapAcquisitionAttempted;
 use App\TwStats\Connection\ConnectionFailed;
 use App\TwStats\Connection\MapAvailableViaHttp;
+use App\TwStats\Connection\MapDownloadFailed;
 use App\TwStats\Connection\MapDownloadSessionFactory;
 use App\TwStats\Net\SocketUdpTransport;
 use App\TwStats\Discovery\FlavorClassifier;
@@ -93,7 +94,17 @@ final class GameServerMapSource implements MapSource
         try {
             return $this->runSession($ip, $port, $flavor, $expectedSha256, $expectedCrc, $expectedName, $timeoutMs, $serverId, $mapVersionId, false, 'udp');
         } catch (MapAvailableViaHttp $http) {
-            // The server serves this map from its own HTTP mirror, not over UDP — fetch it there.
+            // The host advertises HTTP for a *different* map than we asked for: it has cycled since
+            // server_histories last saw it serving our version (Gores servers rotate maps every few
+            // minutes). Our map isn't here — a UDP fallback would only re-dial and download the wrong
+            // map to reject it on a CRC/name check (up to a full timeout on a slow link). Record the
+            // cycle and let the next candidate try, matching the pure-UDP name_mismatch signal.
+            if (trim($http->name) !== trim($expectedName)) {
+                MapAcquisitionAttempted::dispatch($mapVersionId, $serverId, 'udp', 'failure', 'name_mismatch', null);
+                return null;
+            }
+
+            // Same map, served from the host's own HTTP mirror rather than over UDP — fetch it there.
             $bytes = $this->fetchAdvertisedUrl($http, $expectedSha256, $expectedName);
             if ($bytes !== null) {
                 MapAcquisitionAttempted::dispatch($mapVersionId, $serverId, 'http_fastdl', 'success', null, strlen($bytes));
@@ -110,8 +121,8 @@ final class GameServerMapSource implements MapSource
         } catch (ConnectionFailed) {
             MapAcquisitionAttempted::dispatch($mapVersionId, $serverId, 'udp', 'failure', 'connect_failed', null);
             return null;
-        } catch (\Throwable) {
-            MapAcquisitionAttempted::dispatch($mapVersionId, $serverId, 'udp', 'failure', 'download_failed', null);
+        } catch (\Throwable $e) {
+            MapAcquisitionAttempted::dispatch($mapVersionId, $serverId, 'udp', 'failure', $this->classifyDownloadFailure($e), null);
             return null;
         }
     }
@@ -127,10 +138,33 @@ final class GameServerMapSource implements MapSource
         } catch (ConnectionFailed) {
             MapAcquisitionAttempted::dispatch($mapVersionId, $serverId, 'udp_fallback', 'failure', 'connect_failed', null);
             return null;
-        } catch (\Throwable) {
-            MapAcquisitionAttempted::dispatch($mapVersionId, $serverId, 'udp_fallback', 'failure', 'download_failed', null);
+        } catch (\Throwable $e) {
+            MapAcquisitionAttempted::dispatch($mapVersionId, $serverId, 'udp_fallback', 'failure', $this->classifyDownloadFailure($e), null);
             return null;
         }
+    }
+
+    /**
+     * Map a download exception to a specific failure reason for the telemetry, so the dashboard can
+     * tell "server cycled to a different map" (crc/sha/size mismatch) apart from "genuinely slow or
+     * unreachable" (timeout). The messages are our own (MapDownloadVerification / the session loops),
+     * so matching their stable tokens is safe. Anything unrecognised stays the generic download_failed.
+     */
+    private function classifyDownloadFailure(\Throwable $e): string
+    {
+        if (!$e instanceof MapDownloadFailed) {
+            return 'download_failed';
+        }
+
+        $message = $e->getMessage();
+
+        return match (true) {
+            str_contains($message, 'Timeout') => 'timeout',
+            str_contains($message, 'CRC32 mismatch') => 'crc_mismatch',
+            str_contains($message, 'SHA-256') => 'sha_mismatch',
+            str_contains($message, 'size mismatch') => 'size_mismatch',
+            default => 'download_failed',
+        };
     }
 
     /**

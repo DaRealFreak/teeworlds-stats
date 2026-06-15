@@ -117,7 +117,10 @@
                 {{-- Recent failures --}}
                 <div class="col-lg-6">
                     <div class="block">
-                        <div class="title"><strong class="d-block px-3 pt-3">Recent failures</strong></div>
+                        <div class="title">
+                            <strong class="d-block px-3 pt-3">Recent failures</strong>
+                            <small class="d-block px-3 pb-2 text-muted">Mirror-only 404s are omitted — those maps aren't on maps.ddnet.org but are retried over UDP in the same pass.</small>
+                        </div>
                         <div class="block-body table-responsive">
                             <table class="table table-striped">
                                 <thead><tr><th>Map</th><th>Source</th><th>Reason</th><th>Server</th><th>When</th></tr></thead>

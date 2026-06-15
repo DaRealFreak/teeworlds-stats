@@ -68,11 +68,19 @@ final class MapArchiveStats
             ->get();
     }
 
-    /** @return \Illuminate\Support\Collection<int, MapAcquisitionAttempt> latest failures with map+server loaded */
+    /**
+     * Latest genuine failures with map+server loaded. Excludes not_mirrored_404: that is the expected
+     * first-source miss (the DDNet HTTP mirror simply does not carry the map), which the same scrape
+     * pass then retries over UDP — so it is an intermediate step, not a dead end, and it would
+     * otherwise dominate the list and bury the real failures.
+     *
+     * @return \Illuminate\Support\Collection<int, MapAcquisitionAttempt>
+     */
     public function recentFailures(int $limit = 25): \Illuminate\Database\Eloquent\Collection
     {
         return MapAcquisitionAttempt::with(['mapVersion.map', 'server'])
             ->where('outcome', 'failure')
+            ->where('reason', '!=', 'not_mirrored_404')
             ->latest('created_at')
             ->limit($limit)
             ->get();

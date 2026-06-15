@@ -74,6 +74,21 @@ class MapArchiveStatsTest extends TestCase
         $this->assertSame(50, (int) round($servers[1]['successRate']));
     }
 
+    public function test_recent_failures_excludes_mirror_only_404s(): void
+    {
+        $map = Map::create(['name' => 'M']);
+        $v = MapVersion::create(['map_id' => $map->id, 'crc' => 'deadbeef']);
+        // The expected first-source miss (retried over UDP in the same pass) must be hidden…
+        $this->attempt(['map_version_id' => $v->id, 'source' => 'http_mirror', 'reason' => 'not_mirrored_404', 'created_at' => now()]);
+        // …while a genuine server-download failure is shown.
+        $this->attempt(['map_version_id' => $v->id, 'source' => 'udp', 'reason' => 'timeout', 'created_at' => now()]);
+
+        $failures = (new MapArchiveStats('local'))->recentFailures(25);
+
+        $this->assertCount(1, $failures);
+        $this->assertSame('timeout', $failures->first()->reason);
+    }
+
     public function test_source_breakdown_counts_per_source(): void
     {
         $this->attempt(['source' => 'http_mirror', 'outcome' => 'success', 'created_at' => now()]);
