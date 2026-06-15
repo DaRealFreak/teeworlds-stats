@@ -89,4 +89,38 @@ class MapVersionRecorderTest extends TestCase
 
         $this->assertDatabaseCount('map_versions', 2);
     }
+
+    public function test_merges_two_rows_when_a_sighting_carries_both_keys(): void
+    {
+        $sha = str_repeat('c', 64);
+        $shaRow = $this->recorder->record($this->map, $sha, null, 400);
+        $crcRow = $this->recorder->record($this->map, null, 'cafef00d', 400);
+        $crcRow->update(['first_seen_at' => now()->subDays(3)]);
+
+        $merged = $this->recorder->record($this->map, $sha, 'cafef00d', 400);
+
+        $this->assertDatabaseCount('map_versions', 1);
+        $this->assertSame($sha, $merged->fresh()->sha256);
+        $this->assertSame('cafef00d', $merged->fresh()->crc);
+        $this->assertTrue($merged->fresh()->first_seen_at->equalTo(now()->subDays(3)));
+    }
+
+    public function test_merge_repoints_server_histories(): void
+    {
+        $sha = str_repeat('d', 64);
+        $shaRow = $this->recorder->record($this->map, $sha, null, 500);
+        $crcRow = $this->recorder->record($this->map, null, 'beadfeed', 500);
+
+        $server = \App\Models\Server::factory()->create();
+        \App\Models\ServerHistory::create([
+            'weekday' => 0, 'hour' => 0, 'continuous' => 0,
+            'server_id' => $server->id, 'map_id' => $this->map->id,
+            'map_version_id' => $crcRow->id, 'mod_id' => \App\Models\Mod::create(['name' => 'x'])->id,
+        ]);
+
+        $merged = $this->recorder->record($this->map, $sha, 'beadfeed', 500);
+
+        $this->assertDatabaseHas('server_histories', ['map_version_id' => $merged->id]);
+        $this->assertDatabaseMissing('server_histories', ['map_version_id' => $crcRow->id]);
+    }
 }

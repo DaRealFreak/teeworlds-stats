@@ -4,6 +4,7 @@ namespace App\Service;
 
 use App\Models\Map;
 use App\Models\MapVersion;
+use App\Models\ServerHistory;
 use Carbon\Carbon;
 
 /**
@@ -32,7 +33,12 @@ class MapVersionRecorder
             ? MapVersion::where('map_id', $map->getAttribute('id'))->where('crc', $crc)->first()
             : null;
 
-        $version = $bySha ?? $byCrc;
+        // Both keys resolve to two different rows → this sighting proves they are the same file; merge.
+        if ($bySha !== null && $byCrc !== null && $bySha->isNot($byCrc)) {
+            $version = $this->merge($bySha, $byCrc);
+        } else {
+            $version = $bySha ?? $byCrc;
+        }
 
         if ($version === null) {
             return MapVersion::create([
@@ -58,5 +64,40 @@ class MapVersionRecorder
         $version->update($updates);
 
         return $version;
+    }
+
+    /**
+     * Fold $loser into $winner: keep the earliest first_seen / latest last_seen, fill any missing
+     * keys, re-point server_histories, and delete the loser. Returns the surviving row.
+     *
+     * Order matters: the (map_id, sha256) and (map_id, crc) unique indexes mean the loser's key must
+     * leave the table BEFORE the winner adopts it — re-point histories and delete the loser first,
+     * then update the winner — otherwise the key briefly sits on two rows and the update fails.
+     */
+    private function merge(MapVersion $winner, MapVersion $loser): MapVersion
+    {
+        $firstSeen = $winner->getAttribute('first_seen_at')->lessThanOrEqualTo($loser->getAttribute('first_seen_at'))
+            ? $winner->getAttribute('first_seen_at')
+            : $loser->getAttribute('first_seen_at');
+        $lastSeen = $winner->getAttribute('last_seen_at')->greaterThanOrEqualTo($loser->getAttribute('last_seen_at'))
+            ? $winner->getAttribute('last_seen_at')
+            : $loser->getAttribute('last_seen_at');
+        $sha256 = $winner->getAttribute('sha256') ?? $loser->getAttribute('sha256');
+        $crc = $winner->getAttribute('crc') ?? $loser->getAttribute('crc');
+        $size = $winner->getAttribute('size') ?? $loser->getAttribute('size');
+
+        ServerHistory::where('map_version_id', $loser->getAttribute('id'))
+            ->update(['map_version_id' => $winner->getAttribute('id')]);
+        $loser->delete();
+
+        $winner->update([
+            'first_seen_at' => $firstSeen,
+            'last_seen_at' => $lastSeen,
+            'sha256' => $sha256,
+            'crc' => $crc,
+            'size' => $size,
+        ]);
+
+        return $winner;
     }
 }
