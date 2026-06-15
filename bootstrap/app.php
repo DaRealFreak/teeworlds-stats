@@ -2,6 +2,7 @@
 
 use App\Console\Commands\UpdateData;
 use App\Console\Commands\UpdateDailySummary;
+use App\Models\MapAcquisitionAttempt;
 use Illuminate\Console\Scheduling\Schedule;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
@@ -41,6 +42,9 @@ return Application::configure(basePath: dirname(__DIR__))
             ->appendOutputTo(storage_path('logs/map_backfill.log'));
 
         $schedule->command('queue:prune-failed --hours=168')->weekly();
+
+        // Keep the acquisition telemetry bounded (the model prunes rows older than 30 days).
+        $schedule->command('model:prune', ['--model' => [MapAcquisitionAttempt::class]])->daily();
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         //
