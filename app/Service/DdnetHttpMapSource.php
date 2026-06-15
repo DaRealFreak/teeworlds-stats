@@ -2,6 +2,7 @@
 
 namespace App\Service;
 
+use App\Events\MapAcquisitionAttempted;
 use App\Models\Map;
 use App\Models\MapVersion;
 use Illuminate\Support\Facades\Http;
@@ -30,6 +31,7 @@ final class DdnetHttpMapSource implements MapSource
             name: (string) $map->getAttribute('name'),
             sha256: $map->getAttribute('sha256'),
             size: $map->getAttribute('size'),
+            mapVersionId: null,
         );
     }
 
@@ -39,6 +41,7 @@ final class DdnetHttpMapSource implements MapSource
             name: (string) $version->map->getAttribute('name'),
             sha256: $version->getAttribute('sha256'),
             size: $version->getAttribute('size'),
+            mapVersionId: (int) $version->getAttribute('id'),
         );
     }
 
@@ -46,7 +49,7 @@ final class DdnetHttpMapSource implements MapSource
      * Fetch and verify a map file by name and sha256. Returns null when sha256 is absent (not
      * eligible for DDNet HTTP delivery), the server is unreachable, or the bytes fail verification.
      */
-    private function download(string $name, ?string $sha256, ?int $size): ?string
+    private function download(string $name, ?string $sha256, ?int $size, ?int $mapVersionId): ?string
     {
         if ($sha256 === null) {
             return null;
@@ -57,21 +60,30 @@ final class DdnetHttpMapSource implements MapSource
         try {
             $response = Http::timeout(20)->get($url);
         } catch (\Throwable) {
-            // network failure — return null so the store can fall through to the next source
+            $this->record($mapVersionId, 'failure', 'http_error', null);
             return null;
         }
         if (!$response->successful()) {
+            $reason = $response->status() === 404 ? 'not_mirrored_404' : 'http_error';
+            $this->record($mapVersionId, 'failure', $reason, null);
             return null;
         }
 
         $body = $response->body();
-        if ($size !== null && strlen($body) !== $size) {
-            return null;
-        }
-        if (hash('sha256', $body) !== strtolower($sha256)) {
+        // both a wrong length and a wrong hash mean "the bytes did not verify" — one reason code
+        if (($size !== null && strlen($body) !== $size) || hash('sha256', $body) !== strtolower($sha256)) {
+            $this->record($mapVersionId, 'failure', 'sha_mismatch', null);
             return null;
         }
 
+        $this->record($mapVersionId, 'success', null, strlen($body));
+
         return $body;
+    }
+
+    /** Fire one http_mirror telemetry event (server is always null — the mirror is not a game server). */
+    private function record(?int $mapVersionId, string $outcome, ?string $reason, ?int $bytes): void
+    {
+        MapAcquisitionAttempted::dispatch($mapVersionId, null, 'http_mirror', $outcome, $reason, $bytes);
     }
 }
