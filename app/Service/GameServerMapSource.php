@@ -10,6 +10,8 @@ use App\Models\Server;
 use App\Models\ServerHistory;
 use App\TwStats\Connection\ConnectionInterface;
 use App\TwStats\Connection\GameConnection;
+use App\Events\MapAcquisitionAttempted;
+use App\TwStats\Connection\ConnectionFailed;
 use App\TwStats\Connection\MapAvailableViaHttp;
 use App\TwStats\Connection\MapDownloadSessionFactory;
 use App\TwStats\Net\SocketUdpTransport;
@@ -57,6 +59,7 @@ final class GameServerMapSource implements MapSource
             $map->getAttribute('sha256'),
             $this->crcToInt32($map->getAttribute('crc')),
             (string) $map->getAttribute('name'),
+            null,
         );
     }
 
@@ -72,6 +75,7 @@ final class GameServerMapSource implements MapSource
             $version->getAttribute('sha256'),
             $this->crcToInt32($version->getAttribute('crc')),
             (string) $version->map->getAttribute('name'),
+            (int) $version->getAttribute('id'),
         );
     }
 
@@ -79,8 +83,12 @@ final class GameServerMapSource implements MapSource
      * Download + verify a map from ONE explicit host. Returns the verified .map bytes, or null on any
      * failure (connect, download, name mismatch, non-datafile). Public so inline acquisition can target
      * the exact host it just saw serving the version.
+     *
+     * The trailing $serverId and $mapVersionId args are optional so existing direct-call sites (inline
+     * acquisition, tests) continue to compile with the original 7-arg form — they fire null-context
+     * events which the listener stores with null FKs (harmless for auditing purposes).
      */
-    public function downloadFromHost(string $ip, int $port, string $flavor, ?string $expectedSha256, ?int $expectedCrc, string $expectedName, int $timeoutMs): ?string
+    public function downloadFromHost(string $ip, int $port, string $flavor, ?string $expectedSha256, ?int $expectedCrc, string $expectedName, int $timeoutMs, ?int $serverId = null, ?int $mapVersionId = null): ?string
     {
         try {
             $factory = $this->connectionFactory ?? $this->defaultFactory();
@@ -96,17 +104,32 @@ final class GameServerMapSource implements MapSource
             // archiving its bytes here would mislabel them. Trim both sides (the stored name may come
             // from the DDNet HTTP feed, the wire name off the UDP MAP_CHANGE).
             if (trim($result->name) !== trim($expectedName)) {
+                MapAcquisitionAttempted::dispatch($mapVersionId, $serverId, 'udp', 'failure', 'name_mismatch', null);
                 return null;
             }
             if (!$this->looksLikeMapDatafile($result->bytes)) {
+                MapAcquisitionAttempted::dispatch($mapVersionId, $serverId, 'udp', 'failure', 'not_datafile', null);
                 return null;
             }
+
+            MapAcquisitionAttempted::dispatch($mapVersionId, $serverId, 'udp', 'success', null, strlen($result->bytes));
 
             return $result->bytes;
         } catch (MapAvailableViaHttp $http) {
             // The server serves this map from its own HTTP mirror, not over UDP — fetch it there.
-            return $this->fetchAdvertisedUrl($http, $expectedSha256, $expectedName);
+            $bytes = $this->fetchAdvertisedUrl($http, $expectedSha256, $expectedName);
+            MapAcquisitionAttempted::dispatch(
+                $mapVersionId, $serverId, 'http_fastdl',
+                $bytes !== null ? 'success' : 'failure',
+                $bytes !== null ? null : 'http_error',
+                $bytes !== null ? strlen($bytes) : null,
+            );
+            return $bytes;
+        } catch (ConnectionFailed) {
+            MapAcquisitionAttempted::dispatch($mapVersionId, $serverId, 'udp', 'failure', 'connect_failed', null);
+            return null;
         } catch (\Throwable) {
+            MapAcquisitionAttempted::dispatch($mapVersionId, $serverId, 'udp', 'failure', 'download_failed', null);
             return null;
         }
     }
@@ -194,7 +217,7 @@ final class GameServerMapSource implements MapSource
      * per server/weekday/hour, so one server owns many rows) guarantees we surface up to N *different*
      * hosts rather than many rows of a single busy server — which is the whole point of the fallback.
      */
-    private function downloadFromCandidates(Builder $historyQuery, ?string $sha256, ?int $crc, string $name): ?string
+    private function downloadFromCandidates(Builder $historyQuery, ?string $sha256, ?int $crc, string $name, ?int $mapVersionId): ?string
     {
         $serverIds = $historyQuery->getQuery()
             ->select('server_id')
@@ -205,6 +228,8 @@ final class GameServerMapSource implements MapSource
             ->pluck('server_id');
 
         if ($serverIds->isEmpty()) {
+            // surface "we couldn't even find a host that serves this" as a distinct failure
+            MapAcquisitionAttempted::dispatch($mapVersionId, null, 'udp', 'failure', 'no_hosts', null);
             return null;
         }
 
@@ -219,7 +244,7 @@ final class GameServerMapSource implements MapSource
             if ($host === null) {
                 continue;
             }
-            $bytes = $this->downloadFromHost($host['ip'], $host['port'], $host['flavor'], $sha256, $crc, $name, $this->timeoutMs);
+            $bytes = $this->downloadFromHost($host['ip'], $host['port'], $host['flavor'], $sha256, $crc, $name, $this->timeoutMs, (int) $serverId, $mapVersionId);
             if ($bytes !== null) {
                 return $bytes;
             }
