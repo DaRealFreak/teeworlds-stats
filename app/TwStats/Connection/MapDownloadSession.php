@@ -160,6 +160,7 @@ final class MapDownloadSession implements MapDownloadSessionInterface
         ?string $expectedSha256 = null,
         ?int $expectedCrc = null,
         int $timeoutMs = 120000,
+        bool $ignoreAdvertisedHttp = false,
     ): MapDownloadResult {
         $now      = hrtime(true) / 1_000_000;
         $deadline = $now + $timeoutMs;
@@ -212,11 +213,19 @@ final class MapDownloadSession implements MapDownloadSessionInterface
                     // sent just before MAP_CHANGE. Fast-download servers serve their (often custom) maps
                     // from that mirror instead of streaming MAP_DATA over UDP, so when a non-empty URL is
                     // offered we abandon the UDP transfer and let the caller fetch + verify it over HTTP.
-                    $details = $this->parseMapDetails($msg);
-                    if ($details !== null && $details['url'] !== '') {
-                        $this->conn->disconnect();
+                    // $ignoreAdvertisedHttp is the caller's fallback after that HTTP fetch failed (e.g. a
+                    // Cloudflare-blocked mirror): mirror the real client's "http failed, falling back to
+                    // gameserver" path and keep streaming MAP_DATA over UDP instead of bailing here.
+                    if (!$ignoreAdvertisedHttp) {
+                        $details = $this->parseMapDetails($msg);
+                        if ($details !== null && $details['url'] !== '') {
+                            $this->conn->disconnect();
 
-                        throw new MapAvailableViaHttp($details['url'], $details['sha256'], $details['size'], $details['name']);
+                            throw new MapAvailableViaHttp($details['url'], $details['sha256'], $details['size'], $details['name']);
+                        }
+                    } elseif ($this->parseMapDetails($msg) !== null) {
+                        // MAP_DETAILS carries no MAP_CHANGE payload; skip it and wait for MAP_CHANGE.
+                        continue;
                     }
 
                     $parsed = $this->parseMapChange($msg);

@@ -51,7 +51,95 @@ class GameServerMapSourceHttpTest extends TestCase
 
     private function sourceReturning(ConnectionInterface $conn): GameServerMapSource
     {
-        return new GameServerMapSource(connectionFactory: fn (string $ip, int $port, string $flavor) => $conn);
+        $dial = 0;
+
+        // The first dial returns the scripted MAP_DETAILS connection. A second dial means the UDP
+        // fallback fired after the HTTP fetch failed; these fixtures script no UDP transfer, so fail it
+        // fast instead of letting an exhausted fake spin to the deadline.
+        return new GameServerMapSource(connectionFactory: function () use ($conn, &$dial) {
+            return $dial++ === 0 ? $conn : throw new \App\TwStats\Connection\ConnectionFailed('no udp fallback in this fixture');
+        });
+    }
+
+    /** A source that hands out the given connections in order, one per dial (for HTTP→UDP fallback). */
+    private function sourceDialling(ConnectionInterface ...$conns): GameServerMapSource
+    {
+        $dial = 0;
+
+        return new GameServerMapSource(connectionFactory: function () use ($conns, &$dial) {
+            return $conns[$dial++] ?? throw new \App\TwStats\Connection\ConnectionFailed('no more scripted dials');
+        });
+    }
+
+    /** A connection whose single receive() batch carries the given pre-built messages (e.g. a UDP transfer). */
+    private function connectionYielding(string ...$messages): ConnectionInterface
+    {
+        return new class($messages) implements ConnectionInterface {
+            public bool $disconnected = false;
+            /** @var array<int, string[]> */
+            private array $inbox;
+
+            /** @param string[] $batch */
+            public function __construct(array $batch)
+            {
+                $this->inbox = [$batch];
+            }
+
+            public function sendVital(string $message): void {}
+            public function flush(): void {}
+            public function receive(int $timeoutMs): array { return $this->inbox === [] ? [] : array_shift($this->inbox); }
+            public function disconnect(): void { $this->disconnected = true; }
+            public function isOnline(): bool { return !$this->disconnected; }
+        };
+    }
+
+    /** Normalise to signed int32 — the wire representation the server packs CRCs in. */
+    private function toInt32(int $v): int
+    {
+        $v &= 0xFFFFFFFF;
+        if ($v & 0x80000000) {
+            $v -= 0x100000000;
+        }
+
+        return $v;
+    }
+
+    private function mapChange(string $name, int $crc, int $size): string
+    {
+        return VariableInt::pack((2 << 1) | 1)          // NETMSG_MAP_CHANGE = 2
+            . $name . "\x00"
+            . VariableInt::pack($this->toInt32($crc))
+            . VariableInt::pack($size);
+    }
+
+    private function mapData(int $last, int $crc, int $chunk, string $data): string
+    {
+        return VariableInt::pack((3 << 1) | 1)          // NETMSG_MAP_DATA = 3
+            . VariableInt::pack($last)
+            . VariableInt::pack($this->toInt32($crc))
+            . VariableInt::pack($chunk)
+            . VariableInt::pack(strlen($data))
+            . $data;
+    }
+
+    public function test_falls_back_to_udp_when_the_advertised_http_mirror_is_blocked(): void
+    {
+        $payload = 'DATA' . str_repeat("\x00", 40); // a valid map datafile (DATA magic + header)
+        $crc     = crc32($payload);
+        $sha     = hash('sha256', 'whatever the mirror announces'); // mirror's announced hash; HTTP never succeeds
+        $url     = 'https://1.1.1.1/Custom_' . $sha . '.map';
+
+        // Cloudflare-style block: the advertised mirror 403s our server-side client (the in-game
+        // client, which downloads over UDP, never trips this).
+        Http::fake([$url => Http::response('<!DOCTYPE html>forbidden', 403)]);
+
+        $details = $this->fakeConnection($this->mapDetails('Custom', $sha, strlen($payload), $url));
+        $udp     = $this->connectionYielding($this->mapChange('Custom', $crc, strlen($payload)), $this->mapData(1, $crc, 0, $payload));
+
+        $result = $this->sourceDialling($details, $udp)
+            ->downloadFromHost('9.9.9.9', 8303, 'ddnet', null, null, 'Custom', 5000);
+
+        self::assertSame($payload, $result, 'a blocked HTTP mirror must fall back to the UDP map stream');
     }
 
     public function test_fetches_the_map_from_the_servers_advertised_https_url(): void

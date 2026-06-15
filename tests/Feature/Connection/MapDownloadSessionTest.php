@@ -554,6 +554,34 @@ class MapDownloadSessionTest extends TestCase
     }
 
     // -----------------------------------------------------------------------
+    // Test 14b — ignoreAdvertisedHttp keeps streaming over UDP instead of throwing
+    //
+    // The caller's fallback after a blocked HTTP mirror: when ignoreAdvertisedHttp
+    // is set, a MAP_DETAILS URL must NOT raise MapAvailableViaHttp — the session
+    // skips the advertisement and downloads the map over UDP, exactly as the real
+    // client does on "http failed, falling back to gameserver".
+    // -----------------------------------------------------------------------
+
+    public function testIgnoreAdvertisedHttpContinuesOverUdp(): void
+    {
+        $payload   = $this->makePayload(24);
+        $crc       = crc32($payload);
+        $sha256Raw = hex2bin(hash('sha256', $payload));
+        $url       = 'https://maps.example.org/Custom_' . bin2hex($sha256Raw) . '.map';
+
+        $conn = new FakeConnection();
+        // The exact server burst that normally aborts to HTTP: MAP_DETAILS (with URL) then the UDP map.
+        $conn->enqueue([$this->buildMapDetails('Custom', $sha256Raw, $crc, strlen($payload), $url)]);
+        $conn->enqueue([$this->buildMapChange('Custom', $crc, strlen($payload))]);
+        $conn->enqueue([$this->buildMapData(1, $crc, 0, $payload)]);
+
+        $result = (new MapDownloadSession($conn))->downloadWithIdentity(timeoutMs: 5000, ignoreAdvertisedHttp: true);
+
+        self::assertSame($payload, $result->bytes, 'with ignoreAdvertisedHttp the map must come over UDP, not HTTP');
+        self::assertSame('Custom', $result->name);
+    }
+
+    // -----------------------------------------------------------------------
     // Test 15 — MAP_DETAILS with an empty URL is ignored; UDP download proceeds
     // -----------------------------------------------------------------------
 

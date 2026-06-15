@@ -44,6 +44,9 @@ final class SevenMapDownloadSession implements MapDownloadSessionInterface
         ?string $expectedSha256 = null,
         ?int $expectedCrc = null,
         int $timeoutMs = 120000,
+        // 0.7/sixup servers stream raw MAP_DATA and never advertise an HTTP mirror, so there is no
+        // MapAvailableViaHttp to suppress here — the flag exists only for interface parity with 0.6.
+        bool $ignoreAdvertisedHttp = false,
     ): MapDownloadResult {
         $now      = hrtime(true) / 1_000_000;
         $deadline = $now + $timeoutMs;

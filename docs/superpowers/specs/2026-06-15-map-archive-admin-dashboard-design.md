@@ -50,7 +50,7 @@ Four units, each independently testable:
 | `id`             | big increments                         | |
 | `map_version_id` | unsigned int, FK → `map_versions`, idx | the version we tried to acquire |
 | `server_id`      | unsigned int **nullable**, FK → `servers`, idx | the host dialled; **null** for HTTP-mirror fetches |
-| `source`         | string(16), idx                        | `http_mirror` \| `udp` \| `http_fastdl` |
+| `source`         | string(16), idx                        | `http_mirror` \| `udp` \| `http_fastdl` \| `udp_fallback` |
 | `outcome`        | string(8)                              | `success` \| `failure` |
 | `reason`         | string(32) nullable                    | short failure code (null on success) |
 | `bytes`          | unsigned int nullable                  | size on success |
@@ -60,6 +60,15 @@ FKs use `nullOnDelete` (server) / `cascadeOnDelete` (version) so the log never b
 `reason` vocabulary (closed set, documented in the model): `not_mirrored_404`, `timeout`,
 `connect_failed`, `name_mismatch`, `not_datafile`, `sha_mismatch`, `no_hosts`, `http_error`,
 `download_failed` (generic fallback).
+
+The `udp_fallback` source records a recovery after a blocked HTTP mirror: when a fast-download server
+advertises an HTTP URL that our server-side client cannot fetch (commonly a Cloudflare/WAF block that
+fingerprints the client — the in-game client, which downloads over UDP, never trips it), the source
+mirrors the real DDNet client's "http failed, falling back to gameserver" path and re-dials the host to
+stream the map over UDP. A `udp_fallback` row therefore implies HTTP was offered but unusable; on
+failure it carries the same UDP reasons (`connect_failed`, `download_failed`, `name_mismatch`,
+`not_datafile`). This keeps a clean UDP serve (`udp`) distinct from a post-block recovery, and a server
+that recovers via UDP is not flagged as failing (the row is a success).
 
 **Model** `App\Models\MapAcquisitionAttempt`: `$guarded = ['id']`, casts `bytes` int, `belongsTo`
 `MapVersion` and `Server`, `public const UPDATED_AT = null` (append-only, created_at only). Uses

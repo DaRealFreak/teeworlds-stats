@@ -91,40 +91,22 @@ final class GameServerMapSource implements MapSource
     public function downloadFromHost(string $ip, int $port, string $flavor, ?string $expectedSha256, ?int $expectedCrc, string $expectedName, int $timeoutMs, ?int $serverId = null, ?int $mapVersionId = null): ?string
     {
         try {
-            $factory = $this->connectionFactory ?? $this->defaultFactory();
-            $conn    = ($factory)($ip, $port, $flavor);
-
-            $result = MapDownloadSessionFactory::for($conn, $flavor)->downloadWithIdentity(
-                expectedSha256: $expectedSha256,
-                expectedCrc: $expectedCrc,
-                timeoutMs: $timeoutMs,
-            );
-
-            // Name-match gate: a host that has since switched maps answers with a different name;
-            // archiving its bytes here would mislabel them. Trim both sides (the stored name may come
-            // from the DDNet HTTP feed, the wire name off the UDP MAP_CHANGE).
-            if (trim($result->name) !== trim($expectedName)) {
-                MapAcquisitionAttempted::dispatch($mapVersionId, $serverId, 'udp', 'failure', 'name_mismatch', null);
-                return null;
-            }
-            if (!$this->looksLikeMapDatafile($result->bytes)) {
-                MapAcquisitionAttempted::dispatch($mapVersionId, $serverId, 'udp', 'failure', 'not_datafile', null);
-                return null;
-            }
-
-            MapAcquisitionAttempted::dispatch($mapVersionId, $serverId, 'udp', 'success', null, strlen($result->bytes));
-
-            return $result->bytes;
+            return $this->runSession($ip, $port, $flavor, $expectedSha256, $expectedCrc, $expectedName, $timeoutMs, $serverId, $mapVersionId, false, 'udp');
         } catch (MapAvailableViaHttp $http) {
             // The server serves this map from its own HTTP mirror, not over UDP — fetch it there.
             $bytes = $this->fetchAdvertisedUrl($http, $expectedSha256, $expectedName);
-            MapAcquisitionAttempted::dispatch(
-                $mapVersionId, $serverId, 'http_fastdl',
-                $bytes !== null ? 'success' : 'failure',
-                $bytes !== null ? null : 'http_error',
-                $bytes !== null ? strlen($bytes) : null,
-            );
-            return $bytes;
+            if ($bytes !== null) {
+                MapAcquisitionAttempted::dispatch($mapVersionId, $serverId, 'http_fastdl', 'success', null, strlen($bytes));
+                return $bytes;
+            }
+
+            // The advertised mirror refused us — almost always a Cloudflare/WAF block that fingerprints
+            // our server-side HTTP client, which the in-game client never trips because it downloads
+            // over UDP. Mirror the real DDNet client's "http failed, falling back to gameserver" path:
+            // reconnect and stream the map over UDP, this time ignoring the advertised URL. Recorded
+            // under the 'udp_fallback' source so the dashboard tells a clean UDP serve apart from a
+            // recovery after an unusable mirror (a udp_fallback row implies HTTP was offered but failed).
+            return $this->udpFallback($ip, $port, $flavor, $expectedSha256, $expectedCrc, $expectedName, $timeoutMs, $serverId, $mapVersionId);
         } catch (ConnectionFailed) {
             MapAcquisitionAttempted::dispatch($mapVersionId, $serverId, 'udp', 'failure', 'connect_failed', null);
             return null;
@@ -132,6 +114,58 @@ final class GameServerMapSource implements MapSource
             MapAcquisitionAttempted::dispatch($mapVersionId, $serverId, 'udp', 'failure', 'download_failed', null);
             return null;
         }
+    }
+
+    /**
+     * Re-dial the host and stream the map over UDP, ignoring any advertised HTTP mirror. The caller
+     * invokes this only after the advertised mirror failed; outcomes are recorded under 'udp_fallback'.
+     */
+    private function udpFallback(string $ip, int $port, string $flavor, ?string $expectedSha256, ?int $expectedCrc, string $expectedName, int $timeoutMs, ?int $serverId, ?int $mapVersionId): ?string
+    {
+        try {
+            return $this->runSession($ip, $port, $flavor, $expectedSha256, $expectedCrc, $expectedName, $timeoutMs, $serverId, $mapVersionId, true, 'udp_fallback');
+        } catch (ConnectionFailed) {
+            MapAcquisitionAttempted::dispatch($mapVersionId, $serverId, 'udp_fallback', 'failure', 'connect_failed', null);
+            return null;
+        } catch (\Throwable) {
+            MapAcquisitionAttempted::dispatch($mapVersionId, $serverId, 'udp_fallback', 'failure', 'download_failed', null);
+            return null;
+        }
+    }
+
+    /**
+     * One connect + UDP map-download attempt against a host, with the name/datafile gates and the
+     * success/mismatch telemetry. $udpSource labels the rows ('udp' for the primary attempt,
+     * 'udp_fallback' for a retry after a blocked HTTP mirror). Lets MapAvailableViaHttp, ConnectionFailed
+     * and other throwables propagate so the caller decides how to record and whether to fall back.
+     */
+    private function runSession(string $ip, int $port, string $flavor, ?string $expectedSha256, ?int $expectedCrc, string $expectedName, int $timeoutMs, ?int $serverId, ?int $mapVersionId, bool $ignoreAdvertisedHttp, string $udpSource): ?string
+    {
+        $factory = $this->connectionFactory ?? $this->defaultFactory();
+        $conn    = ($factory)($ip, $port, $flavor);
+
+        $result = MapDownloadSessionFactory::for($conn, $flavor)->downloadWithIdentity(
+            expectedSha256: $expectedSha256,
+            expectedCrc: $expectedCrc,
+            timeoutMs: $timeoutMs,
+            ignoreAdvertisedHttp: $ignoreAdvertisedHttp,
+        );
+
+        // Name-match gate: a host that has since switched maps answers with a different name;
+        // archiving its bytes here would mislabel them. Trim both sides (the stored name may come
+        // from the DDNet HTTP feed, the wire name off the UDP MAP_CHANGE).
+        if (trim($result->name) !== trim($expectedName)) {
+            MapAcquisitionAttempted::dispatch($mapVersionId, $serverId, $udpSource, 'failure', 'name_mismatch', null);
+            return null;
+        }
+        if (!$this->looksLikeMapDatafile($result->bytes)) {
+            MapAcquisitionAttempted::dispatch($mapVersionId, $serverId, $udpSource, 'failure', 'not_datafile', null);
+            return null;
+        }
+
+        MapAcquisitionAttempted::dispatch($mapVersionId, $serverId, $udpSource, 'success', null, strlen($result->bytes));
+
+        return $result->bytes;
     }
 
     /**

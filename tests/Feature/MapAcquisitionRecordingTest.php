@@ -13,6 +13,8 @@ use App\Models\ServerHistory;
 use App\Service\DdnetHttpMapSource;
 use App\Service\GameServerMapSource;
 use App\TwStats\Connection\ConnectionInterface;
+use App\TwStats\Connection\DdnetUuid;
+use App\TwStats\Protocol\Seven\VariableInt;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
@@ -113,5 +115,104 @@ class MapAcquisitionRecordingTest extends TestCase
             'map_version_id' => $version->id, 'server_id' => null,
             'source' => 'udp', 'outcome' => 'failure', 'reason' => 'no_hosts',
         ]);
+    }
+
+    public function test_udp_fallback_after_a_blocked_http_mirror_is_recorded(): void
+    {
+        // A Cloudflare-fronted fast-download server: it advertises an HTTP mirror that 403s our
+        // server-side client, but still streams the map over UDP. The recovery must be recorded under
+        // the 'udp_fallback' source so a clean UDP serve and a post-block recovery stay distinguishable.
+        $payload = 'DATA' . str_repeat("\x00", 40);
+        $crc     = crc32($payload);
+        $crcHex  = sprintf('%08x', $crc);
+        $sha     = hash('sha256', $payload);
+        $url     = 'https://1.1.1.1/Custom_' . $sha . '.map';
+
+        $map = Map::create(['name' => 'Custom']);
+        $version = MapVersion::create(['map_id' => $map->id, 'sha256' => $sha, 'crc' => $crcHex, 'size' => strlen($payload)]);
+        $server = Server::factory()->create(['flavor' => 'vanilla_06']);
+        ServerAddress::factory()->create(['server_id' => $server->id, 'ip' => '10.0.0.9', 'port' => 8303, 'protocol' => 6, 'is_canonical' => true]);
+        $mod = Mod::firstOrCreate(['name' => 'DM']);
+        $hist = ServerHistory::create(['weekday' => 1, 'hour' => 12, 'continuous' => true, 'server_id' => $server->id, 'map_id' => $map->id, 'map_version_id' => $version->id, 'mod_id' => $mod->id, 'minutes' => 10]);
+        DB::table('server_histories')->where('id', $hist->id)->update(['updated_at' => now()]);
+
+        Http::fake([$url => Http::response('<!DOCTYPE html>forbidden', 403)]);
+
+        // First dial advertises HTTP (which is blocked); the second dial — the UDP fallback — streams it.
+        $details = $this->connectionYielding($this->mapDetails('Custom', $sha, strlen($payload), $url));
+        $udp     = $this->connectionYielding($this->mapChange('Custom', $crc, strlen($payload)), $this->mapData(1, $crc, 0, $payload));
+        $dial    = 0;
+        $source  = new GameServerMapSource(connectionFactory: function () use ($details, $udp, &$dial) {
+            return [$details, $udp][$dial++] ?? throw new \App\TwStats\Connection\ConnectionFailed('no more dials');
+        });
+
+        $bytes = $source->fetchVersion($version);
+
+        self::assertSame($payload, $bytes, 'the map must be recovered over UDP after the HTTP block');
+        $this->assertDatabaseHas('map_acquisition_attempts', [
+            'map_version_id' => $version->id, 'server_id' => $server->id,
+            'source' => 'udp_fallback', 'outcome' => 'success', 'bytes' => strlen($payload),
+        ]);
+    }
+
+    /** A connection whose single receive() batch carries the given pre-built messages. */
+    private function connectionYielding(string ...$messages): ConnectionInterface
+    {
+        return new class($messages) implements ConnectionInterface {
+            public bool $disconnected = false;
+            /** @var array<int, string[]> */
+            private array $inbox;
+
+            /** @param string[] $batch */
+            public function __construct(array $batch)
+            {
+                $this->inbox = [$batch];
+            }
+
+            public function sendVital(string $message): void {}
+            public function flush(): void {}
+            public function receive(int $timeoutMs): array { return $this->inbox === [] ? [] : array_shift($this->inbox); }
+            public function disconnect(): void { $this->disconnected = true; }
+            public function isOnline(): bool { return !$this->disconnected; }
+        };
+    }
+
+    private function toInt32(int $v): int
+    {
+        $v &= 0xFFFFFFFF;
+        if ($v & 0x80000000) {
+            $v -= 0x100000000;
+        }
+
+        return $v;
+    }
+
+    private function mapDetails(string $name, string $sha256Hex, int $size, string $url): string
+    {
+        return VariableInt::pack((0 << 1) | 1)
+            . DdnetUuid::compute('map-details@ddnet.tw')
+            . $name . "\x00"
+            . hex2bin($sha256Hex)
+            . VariableInt::pack(123)
+            . VariableInt::pack($size)
+            . $url . "\x00";
+    }
+
+    private function mapChange(string $name, int $crc, int $size): string
+    {
+        return VariableInt::pack((2 << 1) | 1)
+            . $name . "\x00"
+            . VariableInt::pack($this->toInt32($crc))
+            . VariableInt::pack($size);
+    }
+
+    private function mapData(int $last, int $crc, int $chunk, string $data): string
+    {
+        return VariableInt::pack((3 << 1) | 1)
+            . VariableInt::pack($last)
+            . VariableInt::pack($this->toInt32($crc))
+            . VariableInt::pack($chunk)
+            . VariableInt::pack(strlen($data))
+            . $data;
     }
 }
