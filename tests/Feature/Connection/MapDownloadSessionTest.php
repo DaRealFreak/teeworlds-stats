@@ -83,6 +83,21 @@ class MapDownloadSessionTest extends TestCase
     }
 
     /**
+     * Build a NETMSG_MAP_DETAILS (DDNet extended) message: NETMSG_EX envelope + the map-details
+     * UUID, then name, raw sha256[32], crc, size, and the HTTP download url ("" when none).
+     */
+    private function buildMapDetails(string $name, string $sha256Raw, int $crc, int $size, string $url): string
+    {
+        return VariableInt::pack((0 << 1) | 1)                                  // NETMSG_EX, system
+            . \App\TwStats\Connection\DdnetUuid::compute('map-details@ddnet.tw') // 16-byte message uuid
+            . $name . "\x00"
+            . $sha256Raw                                                         // 32 raw bytes
+            . VariableInt::pack($this->toInt32($crc))
+            . VariableInt::pack($size)
+            . $url . "\x00";
+    }
+
+    /**
      * Build a NETMSG_MAP_DATA chunk.
      * Fields (0.6): last, crc, chunk, size, raw data.
      * crc is normalised to signed int32 to match the server wire representation.
@@ -136,19 +151,14 @@ class MapDownloadSessionTest extends TestCase
         // Verify the connection was disconnected after success.
         self::assertTrue($conn->disconnected, 'disconnect() must be called after success');
 
-        // Verify sent messages.
+        // Verify sent messages. CLIENTVER (id=0, NETMSG_EX) precedes INFO, mirroring the real client.
         $sent = $conn->sent;
-        self::assertGreaterThanOrEqual(2, count($sent), 'At least INFO + one REQUEST_MAP_DATA must be sent');
+        self::assertGreaterThanOrEqual(4, count($sent), 'At least CLIENTVER + INFO + two REQUEST_MAP_DATA must be sent');
 
-        // First sent message must be NETMSG_INFO (msgId=1).
-        $this->assertSentMsgId($sent[0], 1, 'First sent message must be NETMSG_INFO (id=1)');
-
-        // Second sent message must be NETMSG_REQUEST_MAP_DATA (msgId=19) for chunk 0.
-        $this->assertSentMsgId($sent[1], 19, 'Second sent message must be NETMSG_REQUEST_MAP_DATA (id=19)');
-
-        // Third: REQUEST_MAP_DATA for chunk 1.
-        self::assertArrayHasKey(2, $sent, 'Must send a third vital message for chunk 1');
-        $this->assertSentMsgId($sent[2], 19, 'Third sent message must be NETMSG_REQUEST_MAP_DATA (id=19)');
+        $this->assertSentMsgId($sent[0], 0, 'First sent message must be NETMSG_EX/CLIENTVER (id=0)');
+        $this->assertSentMsgId($sent[1], 1, 'Second sent message must be NETMSG_INFO (id=1)');
+        $this->assertSentMsgId($sent[2], 19, 'Third sent message must be NETMSG_REQUEST_MAP_DATA (id=19) for chunk 0');
+        $this->assertSentMsgId($sent[3], 19, 'Fourth sent message must be NETMSG_REQUEST_MAP_DATA (id=19) for chunk 1');
     }
 
     // -----------------------------------------------------------------------
@@ -351,11 +361,12 @@ class MapDownloadSessionTest extends TestCase
         // The session must have sent REQUEST_MAP_DATA for every chunk (0..39).
         // INFO is sent[0]; REQUEST_MAP_DATA(0) is sent[1]; REQUEST_MAP_DATA(n) follows each accepted chunk.
         $sent = $conn->sent;
-        // sent[0] = INFO, sent[1..40] = REQUEST_MAP_DATA(0..39)
-        self::assertCount(41, $sent, 'Must send INFO + 40 REQUEST_MAP_DATA messages (one per accepted chunk)');
-        $this->assertSentMsgId($sent[0], 1, 'sent[0] must be NETMSG_INFO');
+        // sent[0] = CLIENTVER, sent[1] = INFO, sent[2..41] = REQUEST_MAP_DATA(0..39)
+        self::assertCount(42, $sent, 'Must send CLIENTVER + INFO + 40 REQUEST_MAP_DATA messages (one per accepted chunk)');
+        $this->assertSentMsgId($sent[0], 0, 'sent[0] must be NETMSG_EX/CLIENTVER');
+        $this->assertSentMsgId($sent[1], 1, 'sent[1] must be NETMSG_INFO');
         for ($i = 0; $i < $numChunks; $i++) {
-            $this->assertSentMsgId($sent[$i + 1], 19, "sent[{$i}+1] must be REQUEST_MAP_DATA");
+            $this->assertSentMsgId($sent[$i + 2], 19, "sent[{$i}+2] must be REQUEST_MAP_DATA");
         }
     }
 
@@ -486,6 +497,80 @@ class MapDownloadSessionTest extends TestCase
         self::assertSame($this->toInt32($crc), $result->crc);
         self::assertSame(strlen($payload), $result->size);
         self::assertNull($result->sha256, 'vanilla 0.6 MAP_CHANGE announces no sha256');
+    }
+
+    // -----------------------------------------------------------------------
+    // Test 13 — CLIENTVER is sent before INFO (look like a real DDNet client)
+    // -----------------------------------------------------------------------
+
+    public function testSendsClientVerBeforeInfo(): void
+    {
+        $payload = $this->makePayload(8);
+        $crc     = crc32($payload);
+
+        $conn = new FakeConnection();
+        $conn->enqueue([$this->buildMapChange('dm1', $crc, strlen($payload))]);
+        $conn->enqueue([$this->buildMapData(1, $crc, 0, $payload)]);
+
+        (new MapDownloadSession($conn))->download(timeoutMs: 5000);
+
+        // sent[0] = CLIENTVER: NETMSG_EX (id 0, system) carrying the clientver@ddnet.tw UUID.
+        $clientVer = $conn->sent[0];
+        [$typeInt] = VariableInt::unpack($clientVer, 0);
+        self::assertSame(0, $typeInt >> 1, 'CLIENTVER is a NETMSG_EX message (id 0)');
+        self::assertSame(1, $typeInt & 1, 'CLIENTVER is a system message');
+        self::assertSame(
+            \App\TwStats\Connection\DdnetUuid::compute('clientver@ddnet.tw'),
+            substr($clientVer, 1, 16),
+            'CLIENTVER must carry the clientver@ddnet.tw UUID',
+        );
+        // sent[1] = INFO
+        $this->assertSentMsgId($conn->sent[1], 1, 'INFO must follow CLIENTVER');
+    }
+
+    // -----------------------------------------------------------------------
+    // Test 14 — MAP_DETAILS with a download URL → MapAvailableViaHttp
+    // -----------------------------------------------------------------------
+
+    public function testMapDetailsWithUrlThrowsMapAvailableViaHttp(): void
+    {
+        $sha256Raw = hex2bin(hash('sha256', 'the map'));
+        $url       = 'https://maps.example.org/Custom_' . bin2hex($sha256Raw) . '.map';
+
+        $conn = new FakeConnection();
+        // MAP_DETAILS (with URL) arrives just before MAP_CHANGE, as the real server sends it.
+        $conn->enqueue([$this->buildMapDetails('Custom', $sha256Raw, 123, 4096, $url)]);
+
+        try {
+            (new MapDownloadSession($conn))->download(timeoutMs: 5000);
+            self::fail('Expected MapAvailableViaHttp');
+        } catch (\App\TwStats\Connection\MapAvailableViaHttp $e) {
+            self::assertSame($url, $e->url);
+            self::assertSame('Custom', $e->name);
+            self::assertSame(bin2hex($sha256Raw), $e->sha256);
+            self::assertSame(4096, $e->size);
+        }
+        self::assertTrue($conn->disconnected, 'session must disconnect before handing off to HTTP');
+    }
+
+    // -----------------------------------------------------------------------
+    // Test 15 — MAP_DETAILS with an empty URL is ignored; UDP download proceeds
+    // -----------------------------------------------------------------------
+
+    public function testMapDetailsWithEmptyUrlIsIgnored(): void
+    {
+        $payload   = $this->makePayload(16);
+        $crc       = crc32($payload);
+        $sha256Raw = hex2bin(hash('sha256', $payload));
+
+        $conn = new FakeConnection();
+        $conn->enqueue([$this->buildMapDetails('dm1', $sha256Raw, $crc, strlen($payload), '')]); // empty url
+        $conn->enqueue([$this->buildMapChange('dm1', $crc, strlen($payload))]);
+        $conn->enqueue([$this->buildMapData(1, $crc, 0, $payload)]);
+
+        $result = (new MapDownloadSession($conn))->download(timeoutMs: 5000);
+
+        self::assertSame($payload, $result, 'an empty download URL must not abort the UDP transfer');
     }
 
     // -----------------------------------------------------------------------

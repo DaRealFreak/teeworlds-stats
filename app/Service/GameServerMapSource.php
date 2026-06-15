@@ -10,10 +10,12 @@ use App\Models\Server;
 use App\Models\ServerHistory;
 use App\TwStats\Connection\ConnectionInterface;
 use App\TwStats\Connection\GameConnection;
+use App\TwStats\Connection\MapAvailableViaHttp;
 use App\TwStats\Connection\MapDownloadSessionFactory;
 use App\TwStats\Net\SocketUdpTransport;
 use App\TwStats\Discovery\FlavorClassifier;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Support\Facades\Http;
 
 /**
  * Downloads a .map file directly from a live Teeworlds game server over UDP using the in-game
@@ -35,6 +37,9 @@ use Illuminate\Database\Eloquent\Builder;
  */
 final class GameServerMapSource implements MapSource
 {
+    /** Hard cap on a map fetched from a server-advertised HTTP mirror (real maps are a few MB). */
+    private const MAX_MAP_BYTES = 64 * 1024 * 1024;
+
     /**
      * @param callable|null $connectionFactory fn(string $ip, int $port, string $flavor): ConnectionInterface
      *                                          Must return an ALREADY CONNECTED connection.
@@ -98,9 +103,89 @@ final class GameServerMapSource implements MapSource
             }
 
             return $result->bytes;
+        } catch (MapAvailableViaHttp $http) {
+            // The server serves this map from its own HTTP mirror, not over UDP — fetch it there.
+            return $this->fetchAdvertisedUrl($http, $expectedSha256, $expectedName);
         } catch (\Throwable) {
             return null;
         }
+    }
+
+    /**
+     * Fetch a map from the HTTP URL a fast-download server advertised in MAP_DETAILS. The URL is
+     * server-controlled, so this is locked down against SSRF: https only, no redirects, public hosts
+     * only, a size cap, and the bytes must be a Teeworlds map datafile whose sha256 matches what we
+     * expected (or, lacking an expectation, the hash the server itself announced). Returns null on any
+     * failure so acquisition falls through.
+     */
+    private function fetchAdvertisedUrl(MapAvailableViaHttp $http, ?string $expectedSha256, string $expectedName): ?string
+    {
+        // The host must still be advertising the map we asked for (it may have changed maps).
+        if (trim($http->name) !== trim($expectedName) || !$this->isFetchableUrl($http->url)) {
+            return null;
+        }
+
+        try {
+            $response = Http::withOptions(['allow_redirects' => false])->timeout(20)->get($http->url);
+        } catch (\Throwable) {
+            return null;
+        }
+        if (!$response->successful()) {
+            return null;
+        }
+
+        $body = $response->body();
+        if (strlen($body) > self::MAX_MAP_BYTES || !$this->looksLikeMapDatafile($body)) {
+            return null;
+        }
+
+        // Content integrity: prefer the sha256 we expected, else the one the server announced.
+        $want = $expectedSha256 ?? $http->sha256;
+        if ($want !== null && hash('sha256', $body) !== strtolower($want)) {
+            return null;
+        }
+
+        return $body;
+    }
+
+    /**
+     * Whether a server-advertised URL is safe to fetch: https scheme and a host that resolves only to
+     * PUBLIC addresses (no loopback/private/link-local/reserved). A blunt SSRF guard so a malicious
+     * server cannot point us at an internal service; redirects are disabled separately by the caller.
+     */
+    private function isFetchableUrl(string $url): bool
+    {
+        $parts = parse_url($url);
+        if (($parts['scheme'] ?? '') !== 'https' || empty($parts['host'])) {
+            return false;
+        }
+
+        $ips = $this->resolveHost((string) $parts['host']);
+        if ($ips === []) {
+            return false; // unresolvable → refuse
+        }
+        foreach ($ips as $ip) {
+            if (filter_var($ip, FILTER_VALIDATE_IP, FILTER_FLAG_NO_PRIV_RANGE | FILTER_FLAG_NO_RES_RANGE) === false) {
+                return false; // any private/reserved address → refuse
+            }
+        }
+
+        return true;
+    }
+
+    /**
+     * Resolve a host to its IP addresses (a literal IP resolves to itself), or [] on failure.
+     *
+     * @return string[]
+     */
+    private function resolveHost(string $host): array
+    {
+        $literal = trim($host, '[]'); // strip IPv6 brackets
+        if (filter_var($literal, FILTER_VALIDATE_IP) !== false) {
+            return [$literal];
+        }
+
+        return gethostbynamel($host) ?: [];
     }
 
     /**

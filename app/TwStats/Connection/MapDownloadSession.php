@@ -84,6 +84,16 @@ final class MapDownloadSession implements MapDownloadSessionInterface
     /** NETMSG_REQUEST_MAP_DATA = 19 */
     private const NETMSG_REQUEST_MAP_DATA = 19;
 
+    /** NETMSG_EX = 0 — the envelope for DDNet UUID-extended messages (CLIENTVER, MAP_DETAILS). */
+    private const NETMSG_EX = 0;
+
+    /**
+     * DDNET_VERSION_NUMBER / GAME_RELEASE_VERSION from ddnet/src/game/version.h. Sent in NETMSG_CLIENTVER
+     * so we present as a current, real DDNet client — anti-bot servers gate the in-game session on this.
+     */
+    private const DDNET_VERSION = 20000;
+    private const DDNET_VERSION_STR = 'DDNet 20.0';
+
     /**
      * 0.6 GAME_NETVERSION from ddnet/src/game/version.h.
      * Confirmed: "0.6 626fce9a778df4d4" (not the string in the task spec).
@@ -99,8 +109,12 @@ final class MapDownloadSession implements MapDownloadSessionInterface
     // Constructor
     // -----------------------------------------------------------------------
 
-    public function __construct(private readonly ConnectionInterface $conn)
+    /** m_ConnectionId in CClient::SendInfo: a random per-connection UUID echoed in CLIENTVER. */
+    private readonly string $connectionId;
+
+    public function __construct(private readonly ConnectionInterface $conn, ?string $connectionId = null)
     {
+        $this->connectionId = $connectionId ?? self::randomUuidBytes();
     }
 
     // -----------------------------------------------------------------------
@@ -150,7 +164,10 @@ final class MapDownloadSession implements MapDownloadSessionInterface
         $now      = hrtime(true) / 1_000_000;
         $deadline = $now + $timeoutMs;
 
-        // Step 1 — Send NETMSG_INFO.
+        // Step 1 — Identify as a real DDNet client (NETMSG_CLIENTVER), then send NETMSG_INFO.
+        // Many DDNet servers gate the in-game session on a valid clientver (an anti-bot "known
+        // client" check) and stay silent on INFO otherwise; the real client always sends it first.
+        $this->conn->sendVital($this->buildClientVer());
         $this->conn->sendVital($this->buildInfo());
         $this->conn->flush();
 
@@ -191,6 +208,17 @@ final class MapDownloadSession implements MapDownloadSessionInterface
 
             foreach ($messages as $msg) {
                 if (!$haveMapChange) {
+                    // A DDNet server announces an HTTP download URL for the map in NETMSG_MAP_DETAILS,
+                    // sent just before MAP_CHANGE. Fast-download servers serve their (often custom) maps
+                    // from that mirror instead of streaming MAP_DATA over UDP, so when a non-empty URL is
+                    // offered we abandon the UDP transfer and let the caller fetch + verify it over HTTP.
+                    $details = $this->parseMapDetails($msg);
+                    if ($details !== null && $details['url'] !== '') {
+                        $this->conn->disconnect();
+
+                        throw new MapAvailableViaHttp($details['url'], $details['sha256'], $details['size'], $details['name']);
+                    }
+
                     $parsed = $this->parseMapChange($msg);
                     if ($parsed === null) {
                         // Before MAP_CHANGE, ignore everything else.  We cannot
@@ -262,6 +290,66 @@ final class MapDownloadSession implements MapDownloadSessionInterface
         $password = "\x00"; // empty string NUL-terminated
 
         return $header . $version . $password;
+    }
+
+    /**
+     * Build a NETMSG_CLIENTVER ("clientver@ddnet.tw") payload — a system extended (UUID) message:
+     * (NETMSG_EX<<1)|1, the 16-byte message UUID, then the body the real client sends in
+     * CClient::SendInfo: connection id (16 bytes), DDNet version int, NUL-terminated version string.
+     */
+    private function buildClientVer(): string
+    {
+        return VariableInt::pack((self::NETMSG_EX << 1) | 1)
+            . DdnetUuid::compute('clientver@ddnet.tw')
+            . $this->connectionId
+            . VariableInt::pack(self::DDNET_VERSION)
+            . self::DDNET_VERSION_STR . "\x00";
+    }
+
+    /**
+     * Try to parse msg as NETMSG_MAP_DETAILS ("map-details@ddnet.tw"). Returns null if it is not that
+     * extended message or is malformed.
+     *
+     * Field order (server.cpp SendMap): packed NETMSG_EX, 16-byte uuid, string name, raw sha256[32],
+     * int crc, int size, string url ("" when the server has no HTTP mirror).
+     *
+     * @return array{name: string, sha256: string, size: int, url: string}|null
+     */
+    private function parseMapDetails(string $msg): ?array
+    {
+        $u = new Unpacker($msg);
+
+        $typeInt = $u->getInt();
+        // a system extended message is NETMSG_EX (id 0) with the system flag set.
+        if ($u->error() || ($typeInt >> 1) !== self::NETMSG_EX || ($typeInt & 1) !== 1) {
+            return null;
+        }
+
+        $uuid = $u->getRaw(16);
+        if ($u->error() || $uuid !== DdnetUuid::compute('map-details@ddnet.tw')) {
+            return null;
+        }
+
+        $name = $u->getString();
+        $sha  = $u->getRaw(self::SHA256_BYTES);
+        $u->getInt();  // crc (already known from MAP_CHANGE / our request)
+        $size = $u->getInt();
+        $url  = $u->getString();
+        if ($u->error()) {
+            return null;
+        }
+
+        return ['name' => $name, 'sha256' => bin2hex($sha), 'size' => $size, 'url' => $url];
+    }
+
+    /** A random 16-byte v4 UUID for the per-connection client id (mirrors RandomUuid()). */
+    private static function randomUuidBytes(): string
+    {
+        $u = random_bytes(16);
+        $u[6] = chr((ord($u[6]) & 0x0f) | 0x40); // version 4
+        $u[8] = chr((ord($u[8]) & 0x3f) | 0x80); // variant 1
+
+        return $u;
     }
 
     /**
