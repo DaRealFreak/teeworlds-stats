@@ -39,15 +39,17 @@ class TeeSkinTest extends TestCase
         $this->assertNull($tee['colorFeet']);
     }
 
-    public function test_an_unshipped_skin_fetches_from_the_ddnet_db_with_a_default_fallback(): void
+    public function test_an_unshipped_skin_routes_through_the_same_origin_proxy_with_a_default_fallback(): void
     {
         $tee = TeeSkin::describe('SomeCustomCommunitySkin', 100, 200, null);
 
         $this->assertSame('06', $tee['mode']);
         $this->assertSame('SomeCustomCommunitySkin', $tee['name']);
-        $this->assertTrue($tee['external']);
-        $this->assertStringContainsString('skins.ddnet.org/skin/SomeCustomCommunitySkin.png', $tee['url']);
-        // local default tee is the fallback when the DDNet DB doesn't have it
+        // same-origin proxy (not a cross-origin DDNet fetch), so no crossOrigin and no 404 console noise
+        $this->assertFalse($tee['external']);
+        $this->assertStringContainsString('/skin/06/SomeCustomCommunitySkin', $tee['url']);
+        $this->assertStringNotContainsString('skins.ddnet.org', $tee['url']);
+        // local default tee is the fallback should the proxy itself ever fail to load
         $this->assertStringContainsString('skins/06/default.png', $tee['fallbackUrl']);
         // colors are preserved
         $this->assertSame(100, $tee['colorBody']);
@@ -58,12 +60,12 @@ class TeeSkinTest extends TestCase
     {
         $tee = TeeSkin::describe('../../../../etc/passwd', null, null, null);
 
-        // rawurlencode escapes the slashes (../ -> ..%2F), so the name can only ever 404, never
-        // traverse — there is no real path-separator sequence left in the URL
-        $this->assertTrue($tee['external']);
+        // A name with path separators can't address the same-origin proxy (route() leaves '/' literal
+        // and the browser would normalize it away), so it resolves straight to the local default tee —
+        // the descriptor never carries a real path-separator sequence.
+        $this->assertFalse($tee['external']);
         $this->assertStringNotContainsString('../', $tee['url']);
-        $this->assertStringContainsString('skins.ddnet.org', $tee['url']);
-        $this->assertStringContainsString('skins/06/default.png', $tee['fallbackUrl']);
+        $this->assertStringContainsString('skins/06/default.png', $tee['url']);
     }
 
     public function test_describes_a_07_six_part_skin(): void

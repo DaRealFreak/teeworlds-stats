@@ -14,9 +14,6 @@ final class TeeSkin
     private const SIX_DIR = 'skins/06';
     private const SEVEN_DIR = 'skins/07';
 
-    /** the DDNet skin database the game client downloads from (cl_skin_download_url); CORS-enabled */
-    private const DDNET_SKIN_DB = 'https://skins.ddnet.org/skin/';
-
     /** part order is not significant here; the renderer composites in its own order */
     public const SEVEN_PARTS = ['body', 'marking', 'decoration', 'hands', 'feet', 'eyes'];
 
@@ -66,12 +63,22 @@ final class TeeSkin
             ];
         }
 
-        // fetch: ask the DDNet skin database on the fly (as the game client does); the renderer
-        // falls back to the default tee if the skin isn't published there. rawurlencode keeps a
-        // hostile name from doing anything but 404 (it can't escape the path).
+        // A name that isn't a safe single URL segment (path separators / traversal) can't address the
+        // proxy — route() leaves '/' literal and the browser would normalize it away — so point
+        // straight at the local default and never emit a doomed request.
+        if (preg_match('#[/\\\\\x00]#', $effective) || str_contains($effective, '..')) {
+            return $descriptor + [
+                'url' => asset(self::SIX_DIR . '/default.png'),
+                'external' => false,
+            ];
+        }
+
+        // fetch: route through our same-origin skin proxy, which fetches+caches from the DDNet DB and
+        // always answers 200 (the default tee on a miss). Same-origin means no CORS preflight and no
+        // 404 console noise, and getImageData (the colored path) works without a CORS-clean image.
         return $descriptor + [
-            'url' => self::DDNET_SKIN_DB . rawurlencode($effective) . '.png',
-            'external' => true,
+            'url' => route('skinProxy', ['name' => $effective]),
+            'external' => false,
             'fallbackUrl' => asset(self::SIX_DIR . '/default.png'),
         ];
     }

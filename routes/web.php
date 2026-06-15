@@ -5,6 +5,7 @@ use App\Http\Controllers\InformationController;
 use App\Http\Controllers\MainController;
 use App\Http\Controllers\MapFileController;
 use App\Http\Controllers\SearchController;
+use App\Http\Controllers\SkinController;
 use Illuminate\Support\Facades\Route;
 use Spatie\ResponseCache\Middlewares\CacheResponse;
 
@@ -34,6 +35,10 @@ Route::get('/map/{map_name}/', [SearchController::class, 'searchMapByName'])->na
 // Map file acquisition: inline bytes for the viewer + an attachment download. Not cached.
 Route::get('/map/{map_name}/file', [MapFileController::class, 'file'])->name('mapFile');
 Route::get('/map/{map_name}/download', [MapFileController::class, 'download'])->name('mapDownload');
+
+// Same-origin proxy for 0.6 tee skins (fetches+caches from the DDNet DB, default on miss): keeps the
+// tee renderer from making cross-origin requests to skins.ddnet.org, whose 404s spam the console.
+Route::get('/skin/06/{name}', [SkinController::class, 'six'])->name('skinProxy');
 
 // List routes
 Route::get('/tees', [MainController::class, 'players'])->name('players');
