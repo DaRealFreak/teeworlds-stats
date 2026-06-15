@@ -106,6 +106,18 @@ class Map extends Model
         return $this->hasMany(ServerHistory::class);
     }
 
+    /** Every distinct content version observed for this map name (newest-first when ordered). */
+    public function versions()
+    {
+        return $this->hasMany(MapVersion::class);
+    }
+
+    /** The current version = the most-recently-seen one; default for the viewer/download. */
+    public function currentVersion()
+    {
+        return $this->hasOne(MapVersion::class)->latestOfMany('last_seen_at');
+    }
+
     /**
      * get the PlayerHistory records of the players who played the map
      *

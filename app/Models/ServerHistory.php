@@ -59,6 +59,12 @@ class ServerHistory extends Model
         return $this->belongsTo(Map::class, 'map_id');
     }
 
+    /** The map version this host was serving at this sighting (nullable for keyless/legacy rows). */
+    public function mapVersion()
+    {
+        return $this->belongsTo(MapVersion::class);
+    }
+
     /**
      * Get the mod record associated with this record
      *
