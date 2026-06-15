@@ -28,14 +28,6 @@ return Application::configure(basePath: dirname(__DIR__))
                 Artisan::call('responsecache:clear');
             });
 
-        $schedule->command('maps:archive-enqueue')->everyTenMinutes()->withoutOverlapping();
-
-        $schedule->command('queue:work --queue=maps --stop-when-empty --max-time=240')
-            ->everyFiveMinutes()
-            ->withoutOverlapping()
-            ->before(fn () => \Illuminate\Support\Facades\File::ensureDirectoryExists(storage_path('logs/maps_worker')))
-            ->sendOutputTo(storage_path('logs/maps_worker/'.now()->timestamp.'.log'));
-
         $schedule->command('queue:prune-failed --hours=168')->weekly();
     })
     ->withExceptions(function (Exceptions $exceptions): void {

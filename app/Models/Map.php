@@ -39,27 +39,7 @@ class Map extends Model
 
     protected function casts(): array
     {
-        return [
-            'last_archive_attempt_at' => 'datetime',
-        ];
-    }
-
-    /**
-     * Maps that may still need a .map file fetched: those with a content key (sha256/crc), plus keyless
-     * maps seen on a server we can connect to (a server_histories row) and download from over UDP. Ordered
-     * so never-attempted maps come first and the rest by oldest attempt. The cooldown threshold excludes
-     * maps attempted too recently (a failed download is parked for the cooldown window). This is a
-     * SQL-only filter — it cannot see the filesystem, so callers skip already-cached maps separately.
-     */
-    public function scopeNeedsArchiving(Builder $query, Carbon $cooldownThreshold): Builder
-    {
-        return $query
-            ->where(fn (Builder $q) => $q->whereNotNull('sha256')
-                ->orWhereNotNull('crc')
-                ->orWhereHas('serverRecords'))
-            ->where(fn (Builder $q) => $q->whereNull('last_archive_attempt_at')
-                ->orWhere('last_archive_attempt_at', '<', $cooldownThreshold))
-            ->orderByRaw('last_archive_attempt_at IS NOT NULL, last_archive_attempt_at');
+        return [];
     }
 
     /**
