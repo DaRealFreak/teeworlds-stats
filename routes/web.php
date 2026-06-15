@@ -33,8 +33,8 @@ Route::get('/mod/{mod_name}/', [SearchController::class, 'searchModByName'])->na
 Route::get('/map', [SearchController::class, 'searchMap'])->name('map');
 Route::get('/map/{map_name}/', [SearchController::class, 'searchMapByName'])->name('searchMapByName');
 // Map file acquisition: inline bytes for the viewer + an attachment download. Not cached.
-Route::get('/map/{map_name}/file', [MapFileController::class, 'file'])->name('mapFile');
-Route::get('/map/{map_name}/download', [MapFileController::class, 'download'])->name('mapDownload');
+Route::get('/map/{map_name}/file/{version?}', [MapFileController::class, 'file'])->name('mapFile');
+Route::get('/map/{map_name}/download/{version?}', [MapFileController::class, 'download'])->name('mapDownload');
 
 // Same-origin proxy for 0.6 tee skins (fetches+caches from the DDNet DB, default on miss): keeps the
 // tee renderer from making cross-origin requests to skins.ddnet.org, whose 404s spam the console.
