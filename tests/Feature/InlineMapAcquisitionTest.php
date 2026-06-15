@@ -21,11 +21,20 @@ class InlineMapAcquisitionTest extends TestCase
         Storage::fake('local');
     }
 
+    /** The fixed bytes the fake source serves; a valid-looking datafile so verification passes. */
+    private function fakeBytes(): string
+    {
+        return 'DATA' . str_repeat("\x00", 64);
+    }
+
     private function bytesSource(): MapSource
     {
-        return new class implements MapSource {
+        $bytes = $this->fakeBytes();
+
+        return new class($bytes) implements MapSource {
+            public function __construct(private readonly string $bytes) {}
             public function fetch(Map $map): ?string { return null; }
-            public function fetchVersion(MapVersion $version): ?string { return 'DATA' . str_repeat("\x00", 64); }
+            public function fetchVersion(MapVersion $version): ?string { return $this->bytes; }
         };
     }
 
@@ -49,18 +58,26 @@ class InlineMapAcquisitionTest extends TestCase
         $this->assertNotNull($version->fresh()->last_acquire_attempt_at);
     }
 
-    public function test_skips_http_acquirable_versions(): void
+    public function test_archives_http_acquirable_versions_too(): void
     {
+        // A server-reported sha256 does not prove the map is mirrored on maps.ddnet.org (custom maps on
+        // DDNet-flavoured servers carry a hash yet 404), so versions with a sha256 are archived inline
+        // too — not left for on-demand. The version's sha256 matches the fake bytes, mirroring production.
         $store = new MapFileStore(sources: [$this->bytesSource()]);
         $map = Map::create(['name' => 'Aim']);
-        $httpVersion = MapVersion::create(['map_id' => $map->id, 'sha256' => str_repeat('a', 64), 'first_seen_at' => now(), 'last_seen_at' => now()]);
+        $httpVersion = MapVersion::create([
+            'map_id' => $map->id,
+            'sha256' => hash('sha256', $this->fakeBytes()),
+            'first_seen_at' => now(),
+            'last_seen_at' => now(),
+        ]);
 
         $acquirer = new InlineMapAcquirer($store);
         $acquirer->consider($httpVersion);
         $acquirer->run();
 
-        $this->assertFalse($store->isCachedVersion($httpVersion->fresh()));
-        $this->assertNull($httpVersion->fresh()->last_acquire_attempt_at);
+        $this->assertTrue($store->isCachedVersion($httpVersion->fresh()));
+        $this->assertNotNull($httpVersion->fresh()->last_acquire_attempt_at);
     }
 
     public function test_skips_versions_in_cooldown(): void

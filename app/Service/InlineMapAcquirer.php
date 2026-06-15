@@ -5,11 +5,15 @@ namespace App\Service;
 use App\Models\MapVersion;
 
 /**
- * Grabs UDP-only map versions inline during the scrape, from the host just seen serving them — the
- * only reliable window (a vanilla 0.6/0.7 map has no HTTP mirror, and the host switches maps before
- * any deferred job could run). Candidates are collected during the server loop and downloaded in a
- * bounded, best-effort pass after stats are written, so the scrape never waits on a download.
- * HTTP-acquirable versions (those with a sha256, mirrored on maps.ddnet.org) are left for on-demand.
+ * Archives every uncached map version inline during the scrape, from the host just seen serving it.
+ * Most versions resolve instantly over HTTP (maps.ddnet.org); for the rest the live host is the only
+ * reliable window — a vanilla 0.6/0.7 map has no HTTP mirror, and the host switches maps before any
+ * deferred job could run. We archive HTTP-acquirable versions inline too, rather than leaving them for
+ * on-demand, because a server-reported sha256 does NOT prove the map is mirrored: custom maps on
+ * DDNet-flavoured servers (e.g. fng) advertise a content hash yet 404 on maps.ddnet.org, so there is
+ * no cheap way to pre-classify them. Archiving everything builds a complete local mirror and keeps the
+ * on-demand routes serving cache hits. Candidates are collected during the server loop and downloaded
+ * in a bounded, best-effort pass after stats are written, so the scrape never waits on a download.
  */
 final class InlineMapAcquirer
 {
@@ -21,15 +25,12 @@ final class InlineMapAcquirer
     ) {
     }
 
-    /** Register a version for inline acquisition when it is UDP-only, not cooling down, and uncached. */
+    /** Register a version for inline acquisition when it is uncached and not cooling down. */
     public function consider(MapVersion $version): void
     {
         $id = (int) $version->getAttribute('id');
         if (isset($this->candidates[$id])) {
             return;
-        }
-        if ($version->getAttribute('sha256') !== null) {
-            return; // HTTP-acquirable → fetched on demand, not inline
         }
         if ($this->inCooldown($version)) {
             return;

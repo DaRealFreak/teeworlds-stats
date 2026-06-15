@@ -50,6 +50,21 @@ The deferred queue is racy precisely for UDP-only maps (the host has switched ma
 the job runs) and pointless for HTTP maps (HTTP works anytime). So acquisition moves to where the
 information is: the scrape.
 
+### Update (2026-06-15): archive *every* version inline, not just UDP-only
+
+The "leave HTTP maps for on-demand" half of the table above proved too coarse. A server-reported
+`sha256` does **not** mean the map is mirrored on maps.ddnet.org: custom maps on DDNet-flavoured
+servers (e.g. `fng` maps like `AliveFNG`) advertise a content hash yet **404** on the HTTP mirror.
+Such versions were skipped by inline acquisition (gated on `sha256 === null`) *and* unservable over
+HTTP, so they were never cached — the detail-page viewer fell back to a confusing "Map file not
+available". There is no cheap way to pre-classify "has a hash but isn't mirrored", so
+`InlineMapAcquirer::consider()` now drops the `sha256` gate and archives **every uncached, not-cooling-down
+version** (HTTP first, UDP fallback), building a complete local mirror. The bounded run
+(`MAP_ACQUIRE_MAX_PER_RUN` / `MAP_ACQUIRE_TIME_BUDGET_S`) still keeps the scrape from waiting on
+downloads, and the per-version cooldown still parks stubborn hosts (e.g. datacenter IPs that filter
+CONNECT). On-demand acquisition on the file routes is unchanged. The availability badge
+(`MapAvailability`) is now shown on the **map detail page** as well as the `/maps` list.
+
 ## Design
 
 ### 1. Data model

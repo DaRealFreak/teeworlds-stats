@@ -9,6 +9,8 @@ use App\Models\Player;
 use App\Models\Server;
 use App\Models\ServerHistory;
 use App\Service\FuzzySearch;
+use App\Service\MapAvailability;
+use App\Service\MapFileStore;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Redirect;
 
@@ -239,7 +241,7 @@ class SearchController extends Controller
      * @param $map_name
      * @return \Illuminate\Contracts\View\Factory|\Illuminate\Http\RedirectResponse|\Illuminate\View\View
      */
-    public function searchMapByName(Request $request, $map_name)
+    public function searchMapByName(Request $request, MapFileStore $store, $map_name)
     {
         $map_name = urldecode($map_name);
 
@@ -275,6 +277,9 @@ class SearchController extends Controller
             ->selectRaw('map_version_id, COUNT(DISTINCT server_id) as servers')
             ->pluck('servers', 'map_version_id');
 
-        return view('detail.map', compact('map', 'selected', 'serverCounts'));
+        // file-availability badge, mirroring the /maps list
+        $availability = MapAvailability::for($map, $store);
+
+        return view('detail.map', compact('map', 'selected', 'serverCounts', 'availability'));
     }
 }

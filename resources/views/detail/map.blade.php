@@ -31,13 +31,14 @@
                     <p class="map-viewer__hint text-muted">Drag to pan, scroll to zoom. With Entities up, click a teleport to jump to its destination.</p>
                 </div>
             @endif
-            <div class="block">
+            <div class="block d-flex align-items-center gap-2">
+                <span class="badge {{ $availability->badgeClass() }}" title="{{ $availability->label() }} map file">{{ $availability->label() }}</span>
                 @if($map->hasDownloadableFile())
                     <a href="{{ $selected ? route('mapDownload', ['map_name' => $map->name, 'version' => $selected->contentKey()]) : route('mapDownload', ['map_name' => $map->name]) }}" class="btn btn-primary">
                         <i class="fa fa-download" aria-hidden="true"></i> Download .map
                     </a>
                 @else
-                    <p class="text-muted mb-0">Map file not available.</p>
+                    <span class="text-muted">Map file not available.</span>
                 @endif
             </div>
             @if($map->versions->count() >= 2)
