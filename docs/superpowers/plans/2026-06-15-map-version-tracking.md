@@ -553,6 +553,10 @@ Then add the private method:
     /**
      * Fold $loser into $winner: keep the earliest first_seen / latest last_seen, fill any missing
      * keys, re-point server_histories, and delete the loser. Returns the surviving row.
+     *
+     * Order matters: the (map_id, sha256) and (map_id, crc) unique indexes mean the loser's key must
+     * leave the table BEFORE the winner adopts it — re-point histories and delete the loser first,
+     * then update the winner — otherwise the key briefly sits on two rows and the insert/update fails.
      */
     private function merge(MapVersion $winner, MapVersion $loser): MapVersion
     {
@@ -562,18 +566,21 @@ Then add the private method:
         $lastSeen = $winner->getAttribute('last_seen_at')->greaterThanOrEqualTo($loser->getAttribute('last_seen_at'))
             ? $winner->getAttribute('last_seen_at')
             : $loser->getAttribute('last_seen_at');
-
-        $winner->update([
-            'first_seen_at' => $firstSeen,
-            'last_seen_at' => $lastSeen,
-            'sha256' => $winner->getAttribute('sha256') ?? $loser->getAttribute('sha256'),
-            'crc' => $winner->getAttribute('crc') ?? $loser->getAttribute('crc'),
-            'size' => $winner->getAttribute('size') ?? $loser->getAttribute('size'),
-        ]);
+        $sha256 = $winner->getAttribute('sha256') ?? $loser->getAttribute('sha256');
+        $crc = $winner->getAttribute('crc') ?? $loser->getAttribute('crc');
+        $size = $winner->getAttribute('size') ?? $loser->getAttribute('size');
 
         \App\Models\ServerHistory::where('map_version_id', $loser->getAttribute('id'))
             ->update(['map_version_id' => $winner->getAttribute('id')]);
         $loser->delete();
+
+        $winner->update([
+            'first_seen_at' => $firstSeen,
+            'last_seen_at' => $lastSeen,
+            'sha256' => $sha256,
+            'crc' => $crc,
+            'size' => $size,
+        ]);
 
         return $winner;
     }
