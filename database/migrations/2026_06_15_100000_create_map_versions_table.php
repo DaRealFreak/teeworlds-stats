@@ -22,8 +22,10 @@ return new class extends Migration
             $table->timestamp('last_acquire_attempt_at')->nullable();
             $table->timestamps();
 
-            $table->index(['map_id', 'sha256']);
-            $table->index(['map_id', 'crc']);
+            // One row per content identity per map. NULLs are distinct on both MySQL and SQLite, so
+            // crc-only and sha256-only rows still coexist; only a repeated non-null key is rejected.
+            $table->unique(['map_id', 'sha256']);
+            $table->unique(['map_id', 'crc']);
             $table->foreign('map_id')->references('id')->on('maps')->cascadeOnDelete();
         });
 

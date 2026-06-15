@@ -106,10 +106,10 @@ class Map extends Model
         return $this->hasMany(ServerHistory::class);
     }
 
-    /** Every distinct content version observed for this map name (newest-first when ordered). */
+    /** Every distinct content version observed for this map name, newest-first. */
     public function versions()
     {
-        return $this->hasMany(MapVersion::class);
+        return $this->hasMany(MapVersion::class)->latest('last_seen_at');
     }
 
     /** The current version = the most-recently-seen one; default for the viewer/download. */
