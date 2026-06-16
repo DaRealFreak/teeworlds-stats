@@ -23,6 +23,7 @@ class DashboardController extends Controller
             'recentFailures' => $stats->recentFailures(),
             'failingServers' => $stats->failingServers($days),
             'sourceBreakdown' => $stats->sourceBreakdown($days),
+            'statusBreakdown' => $stats->statusBreakdown(),
             'days' => $days,
         ]);
     }

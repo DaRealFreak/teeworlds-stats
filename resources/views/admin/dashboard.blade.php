@@ -32,13 +32,30 @@
                 @endforeach
             </div>
 
-            {{-- Downloads over time --}}
             <div class="row">
-                <div class="col-lg-12">
+                {{-- Downloads over time --}}
+                <div class="col-lg-8">
                     <div class="block">
                         <div class="title"><strong class="d-block px-3 pt-3">Downloads over time (last {{ $days }} days)</strong></div>
                         <div class="block-body">
-                            <canvas id="downloadsChart" height="80"></canvas>
+                            <canvas id="downloadsChart" height="100"></canvas>
+                        </div>
+                    </div>
+                </div>
+
+                {{-- Version status breakdown: counts per acquisition_status, so the backlog drain is observable --}}
+                <div class="col-lg-4">
+                    <div class="block">
+                        <div class="title"><strong class="d-block px-3 pt-3">Version status</strong></div>
+                        <div class="block-body table-responsive">
+                            <table class="table table-striped">
+                                <thead><tr><th>Status</th><th>Versions</th></tr></thead>
+                                <tbody>
+                                @foreach ($statusBreakdown as $status => $count)
+                                    <tr><td>{{ $status }}</td><td>{{ number_format($count) }}</td></tr>
+                                @endforeach
+                                </tbody>
+                            </table>
                         </div>
                     </div>
                 </div>

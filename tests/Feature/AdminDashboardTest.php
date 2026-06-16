@@ -40,6 +40,9 @@ class AdminDashboardTest extends TestCase
             ->assertSee('Failing servers')
             ->assertSee('Downloads over time')
             ->assertSee('BadHost')
-            ->assertSee('downloadsChart');
+            ->assertSee('downloadsChart')
+            // status breakdown card lists every acquisition_status (zero-filled), so all four rows render
+            ->assertSee('Version status')
+            ->assertSeeInOrder([MapVersion::STATUS_PENDING, MapVersion::STATUS_CACHED, MapVersion::STATUS_UDP_ONLY, MapVersion::STATUS_UNAVAILABLE]);
     }
 }

@@ -4,9 +4,6 @@ namespace Tests\Feature;
 
 use App\Models\Map;
 use App\Models\MapVersion;
-use App\Models\Mod;
-use App\Models\Server;
-use App\Models\ServerHistory;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Storage;
 use Tests\TestCase;
@@ -30,30 +27,31 @@ class MapListBadgeTest extends TestCase
         Map::create(['name' => 'legacy-cached-map', 'sha256' => $legacySha]);
         Storage::disk('local')->put('maps/legacy-cached-map_' . $legacySha . '.map', 'BYTES');
 
-        // Downloadable: has an identity but no cached file
-        Map::create(['name' => 'downloadable-map', 'sha256' => str_repeat('b', 64)]);
+        // Queued: a recorded version still pending acquisition (the default status)
+        $queued = Map::create(['name' => 'queued-map', 'sha256' => str_repeat('b', 64)]);
+        MapVersion::create(['map_id' => $queued->id, 'sha256' => str_repeat('b', 64), 'first_seen_at' => now(), 'last_seen_at' => now()]);
 
-        // Unavailable: no identity, no host
-        Map::create(['name' => 'unavailable-map']);
+        // Server-only: a version only a live host serves (not mirrored)
+        $serverOnly = Map::create(['name' => 'server-only-map', 'crc' => '0000ffff']);
+        MapVersion::create(['map_id' => $serverOnly->id, 'crc' => '0000ffff', 'first_seen_at' => now(), 'last_seen_at' => now()])
+            ->markStatus(MapVersion::STATUS_UDP_ONLY);
 
-        // Downloadable via a recorded host (keyless but hosted)
-        $hosted = Map::create(['name' => 'hosted-keyless-map']);
-        $mod = Mod::create(['name' => 'dm']);
-        $server = Server::factory()->create(['flavor' => 'vanilla_06']);
-        ServerHistory::create([
-            'weekday' => 1, 'hour' => 12, 'continuous' => true,
-            'server_id' => $server->id, 'map_id' => $hosted->id, 'mod_id' => $mod->id, 'minutes' => 5,
-        ]);
+        // Unavailable: a version whose acquisition gave up
+        $gone = Map::create(['name' => 'unavailable-map', 'crc' => 'ffff0000']);
+        MapVersion::create(['map_id' => $gone->id, 'crc' => 'ffff0000', 'first_seen_at' => now(), 'last_seen_at' => now()])
+            ->markStatus(MapVersion::STATUS_UNAVAILABLE);
 
         $response = $this->get('/maps')->assertOk()
             ->assertSee('Cached')
-            ->assertSee('Downloadable')
+            ->assertSee('Queued')
+            ->assertSee('Server-only')
             ->assertSee('Unavailable');
 
-        // Maps render alphabetically (cached-map, downloadable-map, hosted-keyless-map, legacy-cached-map,
+        // Maps render alphabetically (cached-map, legacy-cached-map, queued-map, server-only-map,
         // unavailable-map); each map's badge follows its name and the next map differs, so an
         // "<badge> between this name and the next name" check pins the specific state and is regression-proof.
-        $response->assertSeeInOrder(['hosted-keyless-map', 'Downloadable', 'legacy-cached-map']); // hosted keyless → Downloadable
-        $response->assertSeeInOrder(['legacy-cached-map', 'Cached', 'unavailable-map']);          // legacy cache path → Cached
+        $response->assertSeeInOrder(['legacy-cached-map', 'Cached', 'queued-map']);          // legacy cache path → Cached
+        $response->assertSeeInOrder(['queued-map', 'Queued', 'server-only-map']);            // pending version → Queued
+        $response->assertSeeInOrder(['server-only-map', 'Server-only', 'unavailable-map']);  // udp_only version → Server-only
     }
 }

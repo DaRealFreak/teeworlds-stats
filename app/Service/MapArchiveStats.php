@@ -127,6 +127,34 @@ final class MapArchiveStats
         })->all();
     }
 
+    /**
+     * Version count per acquisition_status, zero-filled across all four statuses so the dashboard always
+     * renders every row even before any rows reach a given state. groupBy + COUNT(*) is portable to
+     * both SQLite and MySQL.
+     *
+     * @return array<string,int>
+     */
+    public function statusBreakdown(): array
+    {
+        $counts = MapVersion::query()
+            ->groupBy('acquisition_status')
+            ->selectRaw('acquisition_status, COUNT(*) as c')
+            ->pluck('c', 'acquisition_status')
+            ->toArray();
+
+        $out = [];
+        foreach ([
+            MapVersion::STATUS_PENDING,
+            MapVersion::STATUS_CACHED,
+            MapVersion::STATUS_UDP_ONLY,
+            MapVersion::STATUS_UNAVAILABLE,
+        ] as $status) {
+            $out[$status] = (int) ($counts[$status] ?? 0);
+        }
+
+        return $out;
+    }
+
     /** @return array<string, array{success:int, failure:int}> per-source success/failure tally in the window */
     public function sourceBreakdown(int $days = 30): array
     {

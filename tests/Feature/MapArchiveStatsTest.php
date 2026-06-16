@@ -89,6 +89,27 @@ class MapArchiveStatsTest extends TestCase
         $this->assertSame('timeout', $failures->first()->reason);
     }
 
+    public function test_status_breakdown_counts_versions_per_status_zero_filled(): void
+    {
+        $map = Map::create(['name' => 'M']);
+        // two pending, one udp_only, none unavailable, none cached
+        MapVersion::create(['map_id' => $map->id, 'crc' => 'aaaaaaaa'])->markStatus(MapVersion::STATUS_PENDING);
+        MapVersion::create(['map_id' => $map->id, 'crc' => 'bbbbbbbb'])->markStatus(MapVersion::STATUS_PENDING);
+        MapVersion::create(['map_id' => $map->id, 'crc' => 'cccccccc'])->markStatus(MapVersion::STATUS_UDP_ONLY);
+
+        $b = (new MapArchiveStats('local'))->statusBreakdown();
+
+        // all four statuses present, zero-filled
+        $this->assertSame(
+            [MapVersion::STATUS_PENDING, MapVersion::STATUS_CACHED, MapVersion::STATUS_UDP_ONLY, MapVersion::STATUS_UNAVAILABLE],
+            array_keys($b)
+        );
+        $this->assertSame(2, $b[MapVersion::STATUS_PENDING]);
+        $this->assertSame(1, $b[MapVersion::STATUS_UDP_ONLY]);
+        $this->assertSame(0, $b[MapVersion::STATUS_CACHED]);
+        $this->assertSame(0, $b[MapVersion::STATUS_UNAVAILABLE]);
+    }
+
     public function test_source_breakdown_counts_per_source(): void
     {
         $this->attempt(['source' => 'http_mirror', 'outcome' => 'success', 'created_at' => now()]);

@@ -17,7 +17,7 @@ class MapVersionsPanelTest extends TestCase
         Storage::fake('local');
 
         $map = Map::create(['name' => 'mix', 'crc' => '22222222']);
-        // an uncached version → Downloadable
+        // an uncached version, still pending acquisition → Queued
         MapVersion::create(['map_id' => $map->id, 'crc' => '11111111', 'first_seen_at' => now()->subDay(), 'last_seen_at' => now()->subDay()]);
         // a cached version → Cached (its .map file is on disk under the name_<crc> key)
         MapVersion::create(['map_id' => $map->id, 'crc' => '22222222', 'first_seen_at' => now(), 'last_seen_at' => now()]);
@@ -25,8 +25,8 @@ class MapVersionsPanelTest extends TestCase
 
         $this->get('/map/mix/')
             ->assertOk()
-            ->assertSeeInOrder(['22222222', 'Cached'])      // current (cached) row
-            ->assertSeeInOrder(['11111111', 'Downloadable']); // older (uncached) row
+            ->assertSeeInOrder(['22222222', 'Cached'])  // current (cached) row
+            ->assertSeeInOrder(['11111111', 'Queued']); // older (uncached, pending) row
     }
 
     public function test_panel_lists_versions_when_there_are_multiple(): void
