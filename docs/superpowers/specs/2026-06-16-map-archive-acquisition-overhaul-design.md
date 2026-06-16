@@ -46,6 +46,10 @@ Pain points:
 - **Status granularity:** lean 4-state enum — `pending` / `cached` / `udp_only` / `unavailable`.
 - **Fill bounds:** no per-run count cap; a generous configurable wall-clock budget (default 60 min) as a
   safety valve. `withoutOverlapping` resumes the drain on the next tick.
+- **Per-(host, map) UDP backoff:** a host-health UDP failure (connect / timeout / transfer) backs off that
+  `(host, map)` pair, immediately on the first failure, with escalating backoff (30m → 1h → 2h → 4h, capped
+  at 24h) cleared on success. Keying on (host, map) means a host that moves to a *different* map earns a
+  fresh attempt; map-specific failures (a cycled host) impose no backoff.
 
 ## Architecture
 
@@ -111,23 +115,31 @@ and observes each outcome, so both the filler and the on-demand routes keep stat
 exposes enough of the outcome (cached / mirror-404 / udp-success / udp-real-failure / no-live-host) to set
 the right status and to decide whether to stamp the cooldown.
 
-### C. Event-driven cooldown
+### C. Two cooldowns: per-map vs per-(host, map)
 
-`last_acquire_attempt_at` (6h, `MAP_ACQUIRE_RETRY_HOURS`) is stamped **only on a failed download attempt
-from a reachable source** — an HTTP fetch that errored or failed verification, or a UDP transfer to a live
-host that failed mid-stream. Its sole job is to avoid immediately re-hammering a flaky source.
+Failures route to whichever entity actually owns the problem:
 
-It is explicitly **not** stamped on the two *classification* outcomes, which are governed by status instead:
+**Per-map cooldown** — `last_acquire_attempt_at` (6h, `MAP_ACQUIRE_RETRY_HOURS`) — stamped only when the
+*bytes we can obtain don't verify*, which is map-specific and host-independent: an HTTP `200` whose content
+fails the size/sha check, a non-datafile, or a transient HTTP error from the mirror. Its job is to avoid
+re-fetching a map whose available bytes are bad.
 
-- **HTTP 404** — a classification result, not a download failure. It sets `status=udp_only` +
-  `status_checked_at=now`; its re-probe cadence is the 30-day recheck (`status_checked_at`), **not** the 6h
-  cooldown. Stamping the cooldown here would hide the version from the filler for 6h and block the UDP
-  retry when a host appears.
-- **No live host** — nothing was attempted; sets `status=unavailable` and touches neither the cooldown nor
-  the network.
+**Per-(host, map) backoff** — a `server_map_backoffs` row (escalating, see F) — stamped on a *host-health*
+UDP failure (`connect_failed` / `timeout` / `download_failed`). It throttles only that `(host, map)` pair,
+so the map stays acquirable from other healthy hosts, and the same host earns a fresh attempt the moment it
+cycles to a different map.
+
+Neither cooldown is stamped on the outcomes governed by status or the live-gate:
+
+- **HTTP 404** — a classification result. Sets `status=udp_only` + `status_checked_at=now`; its re-probe
+  cadence is the 30-day recheck, **not** the 6h cooldown. Stamping here would hide the version from the
+  filler for 6h and block the UDP retry when a host appears.
+- **No live host** — nothing attempted; sets `status=unavailable`, touches nothing.
+- **Cycled host** (`name_mismatch` / `crc_mismatch` from UDP) — the host is healthy with a different map;
+  the live-gate + name check already handle it next pass. Neither the map nor the host is penalised.
 
 So a `udp_only`/`unavailable` version stays a filler candidate every pass and is UDP-grabbed the instant a
-live host appears, while a version whose *download* just failed waits 6h.
+healthy live host appears.
 
 ### D. On-demand routes
 
@@ -142,6 +154,44 @@ controller already does not touch `last_acquire_attempt_at`).
 - The `/admin` dashboard gains a status breakdown (counts per `acquisition_status`) so the backlog drain
   is observable.
 
+### F. Per-(host, map) UDP backoff
+
+Today a dead/flaky host is re-dialled for every map it has ever served, on every pass — the live-window
+gate doesn't catch it because the scrape's *connless* browser query still sees the host (fresh history
+rows) even when the reliable connect/download handshake is dead (live-observed: RUS2 / server 47 logged 6
+consecutive `connect_failed` across 5 different maps). So a download failure should impose a cooldown.
+
+The cooldown is keyed on **(host, map)**, not host alone. A host *changing maps* is itself evidence it is
+alive and cycling, so a fresh `(host, newMap)` combination earns a fresh attempt; only repeated failures of
+the *same* `(host, map)` back off. This trades a little extra effort on a chronically-dead host (one wasted
+connect per map it cycles through) for never permanently blacklisting a host that may be fine for other
+maps — the behaviour you asked for.
+
+State lives in a `server_map_backoffs` row keyed `(server_id, map_id)`:
+
+- `cooldown_until` — nullable timestamp; this `(host, map)` pair is skipped as a UDP candidate until then.
+- `failure_streak` — smallint; drives the escalating span.
+
+Behaviour (in `downloadFromHost`, which already receives `serverId` and resolves the map):
+
+- On a **host-health** UDP failure (`connect_failed` / `timeout` / `download_failed`): upsert the
+  `(server_id, map_id)` row, `failure_streak++`, `cooldown_until = now + span(streak)` where
+  `span = min(BASE << (streak-1), CAP)` — 30m → 1h → 2h → 4h … capped at 24h (`MAP_HOST_UDP_BACKOFF_*`).
+  Stamped **immediately on the first** failure (a `connect_failed` already means ~10 failed handshake
+  retries over the 5s connect window — strong evidence the pair is currently unreachable).
+- On **success**: clear the `(server_id, map_id)` row (streak 0, no cooldown).
+- On a **map-specific** failure (`name_mismatch` / `crc_mismatch` — the host cycled): nothing — that is
+  already a "different map" signal handled by the live-gate + name check.
+
+`downloadFromCandidates` filters out candidates whose `(server_id, map_id)` backoff `cooldown_until` is in
+the future. It stacks with the live-window gate (a candidate must be currently-on-this-map **and** not in
+backoff for it). Because a different map is a different key, a host that has moved on is naturally retried;
+no explicit "reset on map change" is needed. Expired rows are pruned periodically (cheap MassPrunable, or a
+sweep in the filler) so the table stays bounded.
+
+This is UDP-download-specific: it does **not** hide the host from the scrape or stats (the host still shows
+in the browser); it only stops wasting connect timeouts on a pair that just failed.
+
 ## Data flow (resolution per version)
 
 ```
@@ -154,32 +204,40 @@ resolve(version):
       200 + verified -> cache; status=cached; return
       404            -> status=udp_only; status_checked_at=now   (NO cooldown; fall through to UDP)
       transient/verify-fail -> stamp cooldown; return null        (retried after 6h)
-  live host serving it? (resolved in BULK for the run, see below):
+  healthy live host serving it? (live-gated AND no (host,map) backoff; resolved in BULK, see below):
     yes -> UDP download
-             success -> cache; status=cached; return
-             failure -> status=udp_only; stamp cooldown; return null
-    no  -> status=unavailable; status_checked_at=now; NO cooldown stamp; return null
+             success           -> cache; status=cached; clear (host,map) backoff; return
+             host-health fail   -> status=udp_only; bump (host,map) backoff (no map cooldown); return null
+             cycled (name/crc)  -> status=udp_only; penalise neither; return null
+    no  -> status=unavailable; status_checked_at=now; no cooldown of any kind; return null
 ```
 
 **Bulk live-host resolution.** Because `unavailable` versions deliberately never stamp the cooldown, they
 remain filler candidates every pass. To avoid a per-version "is a host serving this?" query across a large
 `unavailable` backlog each run, the filler resolves live-host presence **once per run** — a single indexed
-query over `server_histories` (within the live window) intersected with the uncached candidate set — and
-only does UDP work for versions in that set. Everything else needing only classification (`pending` with a
+query over `server_histories` (within the live window), left-joined against `server_map_backoffs` to drop
+pairs still in backoff, intersected with the uncached candidate set — and only does UDP work for versions
+that have at least one healthy live host. Everything else needing only classification (`pending` with a
 sha256, or a 30-day-due recheck) is handled by the HTTP path; the rest is skipped cheaply.
 
 ## Components touched
 
-- **Migration:** add `acquisition_status` (default `pending`) + `status_checked_at` to `map_versions`.
-  Existing rows default to `pending`; the filler reconciles them (cached-on-disk → `cached`) on first
-  touch — no heavy disk scan in the migration.
+- **Migration(s):** add `acquisition_status` (default `pending`) + `status_checked_at` to `map_versions`;
+  add a `server_map_backoffs` table — `(server_id, map_id, failure_streak, cooldown_until)`, unique
+  `(server_id, map_id)`, both FKs cascade-on-delete — for the per-(host, map) UDP backoff. Existing rows
+  default sensibly (`pending`, no backoff); the filler reconciles map versions (cached-on-disk → `cached`)
+  on first touch — no heavy disk scan in the migration.
 - **`app/Models/MapVersion.php`:** cast + helpers for the status; scope for "needs acquisition."
 - **`app/Service/MapFileStore.php`:** owns status resolution + cooldown-stamp decision; returns/sets status
   per outcome.
 - **`app/Service/DdnetHttpMapSource.php`:** honours the status/recheck gate (skip probe when known-missing
   and fresh); the 404 outcome feeds the store's `udp_only` transition.
-- **`app/Service/GameServerMapSource.php`:** already live-gated (commit 09aecc4); surfaces "no live host"
-  vs "real failure" so the store can pick `unavailable` vs `udp_only`.
+- **`app/Service/GameServerMapSource.php`:** already live-gated (commit 09aecc4); additionally filters
+  candidates by the `(server_id, map_id)` backoff, writes the backoff in its failure/success catch blocks
+  (host-health → bump, success → clear, cycled → leave), and surfaces "no live host" vs "real failure" so
+  the store can pick `unavailable` vs `udp_only`.
+- **`app/Models/ServerMapBackoff.php`:** the `(server_id, map_id)` backoff row + escalating-span helper;
+  `MassPrunable` to drop long-expired rows.
 - **`app/Service/MapArchiveFiller.php`:** evolved from `MapArchiveBackfiller` — unbounded count, time
   budget only, status writes, no `--http-only`.
 - **`app/Console/Commands/`:** `maps:archive-fill` (new/renamed); remove the old backfill command or alias
