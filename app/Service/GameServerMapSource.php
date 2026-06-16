@@ -318,6 +318,15 @@ final class GameServerMapSource implements MapSource
                     ->where('server_map_backoffs.map_id', $mapId)
                     ->where('server_map_backoffs.cooldown_until', '>', now());
             }))
+            // Drop password-protected hosts: the in-game download sends an empty password, which a
+            // 0.6/DDNet server validates before MAP_CHANGE, so the connect can only ever fail. Dialing
+            // such a host wastes a connect timeout to produce a guaranteed connect_failed (live-confirmed).
+            // The bitwise `flags & FLAG_PASSWORD` is portable across SQLite and MySQL.
+            ->whereNotExists(function ($sub) {
+                $sub->from('servers')
+                    ->whereColumn('servers.id', 'server_histories.server_id')
+                    ->whereRaw('(servers.flags & ?) != 0', [Server::FLAG_PASSWORD]);
+            })
             ->select('server_id')
             ->selectRaw('MAX(updated_at) as recent_at')
             ->groupBy('server_id')

@@ -3,6 +3,7 @@
 namespace App\Service;
 
 use App\Models\MapVersion;
+use App\Models\Server;
 use App\Models\ServerHistory;
 use Illuminate\Support\Collection;
 
@@ -157,6 +158,15 @@ final class MapArchiveFiller
                     ->whereColumn('server_map_backoffs.server_id', 'server_histories.server_id')
                     ->whereColumn('server_map_backoffs.map_id', 'server_histories.map_id')
                     ->where('server_map_backoffs.cooldown_until', '>', now());
+            })
+            // A password-protected host can never serve us its map over UDP (the download sends an empty
+            // password, which a 0.6/DDNet server rejects before MAP_CHANGE), so it must not count as a
+            // healthy live host — otherwise the filler would route the version to the UDP store in vain.
+            // Same portable `flags & FLAG_PASSWORD` gate GameServerMapSource applies when picking a host.
+            ->whereNotExists(function ($sub) {
+                $sub->from('servers')
+                    ->whereColumn('servers.id', 'server_histories.server_id')
+                    ->whereRaw('(servers.flags & ?) != 0', [Server::FLAG_PASSWORD]);
             })
             ->distinct()
             ->pluck('map_version_id');

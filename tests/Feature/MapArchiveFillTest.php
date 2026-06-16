@@ -125,6 +125,68 @@ class MapArchiveFillTest extends TestCase
         $this->assertSame(MapVersion::STATUS_CACHED, $version->fresh()->acquisition_status);
     }
 
+    public function test_no_udp_for_a_version_whose_only_live_host_is_password_protected(): void
+    {
+        // A crc-only version (no HTTP mirror) whose ONLY live host is password-protected: its download
+        // can never authenticate (empty password rejected before MAP_CHANGE), so the filler must not
+        // count it as udp-eligible and must never construct a UDP connection for it.
+        $map = Map::create(['name' => 'Locked']);
+        $version = MapVersion::create([
+            'map_id' => $map->id,
+            'crc' => 'deadbeef',
+            'first_seen_at' => now(),
+            'last_seen_at' => now(),
+        ]);
+        $this->liveHost($version, $map, Server::FLAG_PASSWORD);
+
+        $dialed = 0;
+        $fullStore = new MapFileStore(sources: [
+            new DdnetHttpMapSource(),
+            new GameServerMapSource(connectionFactory: function () use (&$dialed): ConnectionInterface {
+                $dialed++;
+                throw new \RuntimeException('a password-protected host must never dial UDP');
+            }),
+        ]);
+
+        Http::fake(['maps.ddnet.org/*' => Http::response('nope', 404)]);
+
+        $result = (new MapArchiveFiller(fullStore: $fullStore))->run(limit: 0, timeBudgetS: 3600);
+
+        $this->assertSame(0, $result['udpEligible'], 'a password-protected live host is not udp-eligible');
+        $this->assertSame(0, $dialed, 'a password-protected host is never dialed over UDP');
+    }
+
+    public function test_udp_eligible_for_a_version_with_an_open_live_host(): void
+    {
+        // The same shape as above but an OPEN host (flags=0): it IS a healthy live host, so the filler
+        // routes the version to the UDP-capable store and counts it as udp-eligible.
+        $map = Map::create(['name' => 'Open']);
+        $version = MapVersion::create([
+            'map_id' => $map->id,
+            'crc' => 'feedface',
+            'first_seen_at' => now(),
+            'last_seen_at' => now(),
+        ]);
+        $this->liveHost($version, $map, 0);
+
+        Http::fake(['maps.ddnet.org/*' => Http::response('nope', 404)]);
+
+        $result = (new MapArchiveFiller())->run(limit: 0, timeBudgetS: 3600);
+
+        $this->assertGreaterThanOrEqual(1, $result['udpEligible'], 'an open live host makes the version udp-eligible');
+    }
+
+    /** A vanilla-06 host with a live history row for the version, with the given servers.flags bitfield. */
+    private function liveHost(MapVersion $version, Map $map, int $flags): Server
+    {
+        $server = Server::factory()->create(['flavor' => 'vanilla_06', 'flags' => $flags]);
+        $mod = Mod::firstOrCreate(['name' => 'DM']);
+        $hist = ServerHistory::create(['weekday' => 1, 'hour' => 12, 'continuous' => true, 'server_id' => $server->id, 'map_id' => $map->id, 'map_version_id' => $version->id, 'mod_id' => $mod->id, 'minutes' => 10]);
+        DB::table('server_histories')->where('id', $hist->id)->update(['updated_at' => now()]);
+
+        return $server;
+    }
+
     public function test_no_udp_for_a_version_without_a_live_host(): void
     {
         // A crc-only version (no HTTP mirror) with NO server_histories row: no live host, so the filler must
