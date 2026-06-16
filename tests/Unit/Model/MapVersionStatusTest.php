@@ -1,6 +1,6 @@
 <?php
 
-namespace Tests\Unit\Models;
+namespace Tests\Unit\Model;
 
 use App\Models\Map;
 use App\Models\MapVersion;
