@@ -28,9 +28,14 @@ enum MapAvailability: string
         }
 
         // With a current version, the badge mirrors that version's lifecycle so the list and detail pages
-        // agree. Legacy maps with no version rows fall through to Unavailable (a cached legacy file was
-        // already caught above).
-        return $current !== null ? self::forVersion($current, $store) : self::Unavailable;
+        // agree. A legacy map with no version row is still acquirable on demand when it carries a key or a
+        // recorded host (a cached legacy file was already caught above), so it reads Queued, not a dead
+        // Unavailable; a truly keyless, host-less map is Unavailable.
+        if ($current !== null) {
+            return self::forVersion($current, $store);
+        }
+
+        return $map->hasDownloadableFile() ? self::Queued : self::Unavailable;
     }
 
     /** Resolve a single version's availability: disk first, then its persisted acquisition lifecycle. */

@@ -68,4 +68,24 @@ class MapAvailabilityStatusTest extends TestCase
 
         $this->assertSame(MapAvailability::Cached, MapAvailability::forVersion($version, $store));
     }
+
+    public function test_legacy_keyed_map_without_a_version_is_queued_not_unavailable(): void
+    {
+        Storage::fake('local');
+
+        // A pre-version-tracking map: it carries a content key but has no map_versions row. It is still
+        // acquirable on demand, so the whole-map badge must read Queued, not a dead Unavailable.
+        $map = Map::create(['name' => 'legacy', 'sha256' => str_repeat('a', 64)]);
+
+        $this->assertSame(MapAvailability::Queued, MapAvailability::for($map, new MapFileStore()));
+    }
+
+    public function test_keyless_hostless_map_without_a_version_is_unavailable(): void
+    {
+        Storage::fake('local');
+
+        $map = Map::create(['name' => 'ghost']); // no key, no host, no version
+
+        $this->assertSame(MapAvailability::Unavailable, MapAvailability::for($map, new MapFileStore()));
+    }
 }
