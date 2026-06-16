@@ -73,8 +73,13 @@ final class MapArchiveFiller
             if ($version === null) {
                 continue;
             }
-            // The inline path or a concurrent run may have cached it since we listed candidates.
+            // A concurrent run, the on-demand path, or a pre-overhaul file may already hold the bytes. Reconcile
+            // the status so the backlog count + badge reflect reality and the version drops out of
+            // needingAcquisition() (otherwise a cached-but-status-pending row is re-listed and re-stat'd forever).
             if ($this->fullStore->isCachedVersion($version)) {
+                if ($version->getAttribute('acquisition_status') !== MapVersion::STATUS_CACHED) {
+                    $version->markStatus(MapVersion::STATUS_CACHED);
+                }
                 $skippedCached++;
                 continue;
             }

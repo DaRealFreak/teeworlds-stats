@@ -121,6 +121,8 @@ class MapArchiveFillTest extends TestCase
 
         $this->assertSame(1, $result['skippedCached']);
         $this->assertSame(0, $result['attempted']);
+        // the skip also reconciles the stale status so the version stops being re-listed every run
+        $this->assertSame(MapVersion::STATUS_CACHED, $version->fresh()->acquisition_status);
     }
 
     public function test_no_udp_for_a_version_without_a_live_host(): void
