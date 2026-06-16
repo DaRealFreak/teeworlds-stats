@@ -20,6 +20,20 @@ class ServerMergerTest extends TestCase
         return new DiscoveredServer($addresses, $name, 'm', 'g', '0.6.4', 64, 64, $clients, null, $flavor);
     }
 
+    public function test_combine_unions_flags_from_all_sources(): void
+    {
+        // A flag observed by ANY source is a real property of the server, so the merge ORs them: a DDNet
+        // server seen passworded over HTTP and time-scored over UDP keeps both, whichever source is primary.
+        $addr = [new DiscoveredAddress('192.0.2.7', 8303, 6)];
+        $http = new DiscoveredServer($addr, 'S', 'm', 'g', '0.6.4', 64, 64, [], null, 'ddnet', flags: 1);
+        $udp = new DiscoveredServer($addr, 'S', 'm', 'g', '0.6.4', 64, 64, [], null, 'ddnet', flags: 2);
+
+        $merged = (new ServerMerger())->merge([$http, $udp]);
+
+        $this->assertCount(1, $merged);
+        $this->assertSame(3, $merged[0]->flags);
+    }
+
     public function test_servers_without_a_shared_address_are_left_separate(): void
     {
         $a = $this->server([new DiscoveredAddress('192.0.2.1', 8303, 6)], [$this->client('x')]);

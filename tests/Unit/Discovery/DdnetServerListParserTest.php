@@ -12,6 +12,38 @@ class DdnetServerListParserTest extends TestCase
         return file_get_contents(__DIR__ . '/../../Fixtures/ddnet_servers.json');
     }
 
+    /** The DDNet master JSON carries password protection as an `info.passworded` bool — capture it as a flag. */
+    private function entry(bool $passworded): string
+    {
+        $info = [
+            'name' => 'Locked', 'map' => ['name' => 'dm1'], 'game_type' => 'DDraceNetwork',
+            'version' => '0.6.4, 19.1', 'max_clients' => 64, 'max_players' => 64, 'clients' => [],
+        ];
+        if ($passworded) {
+            $info['passworded'] = true;
+        }
+
+        return json_encode(['servers' => [[
+            'addresses' => ['tw-0.6+udp://192.0.2.5:8303'],
+            'location' => 'eu',
+            'info' => $info,
+        ]]]);
+    }
+
+    public function test_captures_the_passworded_flag(): void
+    {
+        $server = (new DdnetServerListParser())->parse($this->entry(passworded: true))[0];
+
+        $this->assertSame(1, $server->flags & 1, 'info.passworded must set SERVER_FLAG_PASSWORD');
+    }
+
+    public function test_open_server_has_no_password_flag(): void
+    {
+        $server = (new DdnetServerListParser())->parse($this->entry(passworded: false))[0];
+
+        $this->assertSame(0, $server->flags);
+    }
+
     public function test_skips_malformed_entries_and_parses_the_valid_servers(): void
     {
         $servers = (new DdnetServerListParser())->parse($this->fixture());

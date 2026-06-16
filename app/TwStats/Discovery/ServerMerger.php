@@ -90,7 +90,9 @@ final class ServerMerger
             mapSha256: $primary->mapSha256 ?? $secondary->mapSha256,
             mapSize: $primary->mapSize ?? $secondary->mapSize,
             mapCrc: $primary->mapCrc ?? $secondary->mapCrc,
-            flags: $primary->flags,
+            // a flag observed by ANY source is real (HTTP exposes passworded, UDP exposes the full bitfield),
+            // so union them rather than letting the primary's value mask a flag only the other source saw
+            flags: $primary->flags | $secondary->flags,
         );
     }
 

@@ -82,6 +82,12 @@ final class DdnetServerListParser
             : null;
         $mapSize = isset($mapInfo['size']) && is_int($mapInfo['size']) ? $mapInfo['size'] : null;
 
+        // Password protection is the one server flag the HTTP feed exposes (info.passworded). Map it onto
+        // the SERVER_FLAG_PASSWORD bit (ddnet protocol.h) so password servers — whose UDP download can never
+        // authenticate — are skipped as download candidates and flagged in the browser. DDNet servers come
+        // through this HTTP source, not the UDP info codecs, so without this they would carry no flags.
+        $flags = (($info['passworded'] ?? false) === true) ? 1 : 0;
+
         return new DiscoveredServer(
             addresses: $addresses,
             name: (string) $info['name'],
@@ -95,6 +101,7 @@ final class DdnetServerListParser
             flavor: FlavorClassifier::classify((string) $info['version']),
             mapSha256: $mapSha256,
             mapSize: $mapSize,
+            flags: $flags,
         );
     }
 
