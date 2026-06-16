@@ -232,6 +232,54 @@ class LiveServerBrowserTest extends TestCase
         $response->assertSee('data-connect="10.0.0.1:8303"', false); // the online server's join address
     }
 
+    public function test_browser_shows_flag_indicators_for_password_and_timescore_servers(): void
+    {
+        $map = Map::create(['name' => 'ctf5']);
+        $mod = Mod::create(['name' => 'ctf']);
+
+        // a password-protected, time-scored server should surface both indicators
+        $flagged = Server::create([
+            'name' => 'Locked Race Server', 'version' => '0.7.5', 'ip' => '10.0.6.1', 'port' => 8303,
+            'last_seen' => Carbon::now(), 'flags' => Server::FLAG_PASSWORD | Server::FLAG_TIMESCORE,
+        ]);
+        ServerHistory::create([
+            'server_id' => $flagged->id, 'map_id' => $map->id, 'mod_id' => $mod->id,
+            'weekday' => 1, 'hour' => 12, 'continuous' => 1, 'minutes' => 60,
+        ]);
+
+        // an open server (flags=0) must not show either indicator
+        $open = Server::create([
+            'name' => 'Open FFA Server', 'version' => '0.7.5', 'ip' => '10.0.6.2', 'port' => 8303,
+            'last_seen' => Carbon::now(), 'flags' => 0,
+        ]);
+        ServerHistory::create([
+            'server_id' => $open->id, 'map_id' => $map->id, 'mod_id' => $mod->id,
+            'weekday' => 1, 'hour' => 12, 'continuous' => 1, 'minutes' => 60,
+        ]);
+
+        $response = $this->get('/serverbrowser');
+
+        $response->assertStatus(200);
+        $response->assertSee('title="Password protected"', false);
+        $response->assertSee('fa fa-lock', false);
+        $response->assertSee('title="Time-based scores"', false);
+        $response->assertSee('fa fa-clock-o', false);
+        // exactly one of each indicator → only the flagged server renders them
+        $this->assertSame(1, substr_count($response->getContent(), 'title="Password protected"'));
+        $this->assertSame(1, substr_count($response->getContent(), 'title="Time-based scores"'));
+    }
+
+    public function test_browser_omits_flag_indicators_for_open_servers(): void
+    {
+        $this->seedBrowserFixture(); // all online servers have flags=0 (default)
+
+        $response = $this->get('/serverbrowser');
+
+        $response->assertStatus(200);
+        $response->assertDontSee('title="Password protected"', false);
+        $response->assertDontSee('title="Time-based scores"', false);
+    }
+
     public function test_browser_brackets_an_ipv6_connect_address(): void
     {
         $map = Map::create(['name' => 'ctf5']);

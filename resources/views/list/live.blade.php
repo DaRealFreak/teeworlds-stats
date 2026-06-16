@@ -115,7 +115,7 @@
                                         data-player-names="{{ $playerNames }}">
                                         <td>
                                             <a href="{{ url('server', [urlencode($serverEntry->id), urlencode($serverEntry->name)]) }}"
-                                               class="server-name d-block">{{ $serverEntry->name }}</a>
+                                               class="server-name d-block">{{ $serverEntry->name }}@if ($serverEntry->isPasswordProtected()) <i class="fa fa-lock text-muted" title="Password protected" aria-label="Password protected"></i>@endif @if ($serverEntry->usesTimeScore())<i class="fa fa-clock-o text-muted" title="Time-based scores" aria-label="Time-based scores"></i>@endif</a>
                                             <span class="server-connect small" role="button" tabindex="0"
                                                   data-connect="{{ $connectAddress }}"
                                                   aria-label="Copy {{ $connectAddress }} to clipboard"
