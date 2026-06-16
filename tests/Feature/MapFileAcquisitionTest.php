@@ -502,7 +502,8 @@ class MapFileAcquisitionTest extends TestCase
         $version = MapVersion::create(['map_id' => $map->id, 'crc' => $crcHex, 'first_seen_at' => now(), 'last_seen_at' => now()]);
         $mod = Mod::create(['name' => 'dm']);
 
-        // hostA is most-recent but has switched maps; hostB still serves 'multi'
+        // Both hosts are live (seen within the window); hostA is the most-recent snapshot but has raced
+        // into a different map by the time we dial, so we fall through to hostB, which still serves 'multi'.
         $hostA = Server::factory()->create(['flavor' => 'vanilla_06']);
         ServerAddress::factory()->create(['server_id' => $hostA->id, 'ip' => '10.0.0.1', 'port' => 8303, 'protocol' => 6, 'is_canonical' => true]);
         $histA = ServerHistory::create(['weekday' => 1, 'hour' => 12, 'continuous' => true, 'server_id' => $hostA->id, 'map_id' => $map->id, 'map_version_id' => $version->id, 'mod_id' => $mod->id, 'minutes' => 10]);
@@ -511,9 +512,10 @@ class MapFileAcquisitionTest extends TestCase
         ServerAddress::factory()->create(['server_id' => $hostB->id, 'ip' => '10.0.0.2', 'port' => 8303, 'protocol' => 6, 'is_canonical' => true]);
         $histB = ServerHistory::create(['weekday' => 1, 'hour' => 12, 'continuous' => true, 'server_id' => $hostB->id, 'map_id' => $map->id, 'map_version_id' => $version->id, 'mod_id' => $mod->id, 'minutes' => 10]);
 
-        // force deterministic ordering: hostA tried first (updated_at is guarded, so set via the query builder)
+        // force deterministic ordering: hostA tried first (updated_at is guarded, so set via the query
+        // builder). hostB is slightly older but still inside the live window, so it stays a candidate.
         DB::table('server_histories')->where('id', $histA->id)->update(['updated_at' => now()]);
-        DB::table('server_histories')->where('id', $histB->id)->update(['updated_at' => now()->subHour()]);
+        DB::table('server_histories')->where('id', $histB->id)->update(['updated_at' => now()->subMinutes(5)]);
 
         $connA = new FakeGameConnection();
         $connA->enqueue([$this->buildMapChange('OTHER', $crc, strlen($payload))]);

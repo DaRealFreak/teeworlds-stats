@@ -117,6 +117,38 @@ class MapAcquisitionRecordingTest extends TestCase
         ]);
     }
 
+    public function test_skips_a_host_whose_last_snapshot_is_outside_the_live_window(): void
+    {
+        // A host last seen serving this version over an hour ago — well outside the live window — has
+        // almost certainly cycled to another map (Gores rotate every few minutes). Dialing it would only
+        // yield a name/crc mismatch, so it must be filtered out of the candidate set entirely: recorded
+        // as no_hosts, never connected. The connection factory asserts it is never invoked.
+        $map = Map::create(['name' => 'Cycled']);
+        $version = MapVersion::create(['map_id' => $map->id, 'crc' => 'feedface']);
+        $server = Server::factory()->create(['flavor' => 'vanilla_06']);
+        ServerAddress::factory()->create(['server_id' => $server->id, 'ip' => '10.0.0.9', 'port' => 8303, 'protocol' => 6, 'is_canonical' => true]);
+        $mod = Mod::firstOrCreate(['name' => 'DM']);
+        $hist = ServerHistory::create(['weekday' => 1, 'hour' => 12, 'continuous' => true, 'server_id' => $server->id, 'map_id' => $map->id, 'map_version_id' => $version->id, 'mod_id' => $mod->id, 'minutes' => 10]);
+        DB::table('server_histories')->where('id', $hist->id)->update(['updated_at' => now()->subMinutes(60)]);
+
+        $dialed = 0;
+        $source = new GameServerMapSource(connectionFactory: function () use (&$dialed): ConnectionInterface {
+            $dialed++;
+            throw new \App\TwStats\Connection\ConnectionFailed('a stale-history host must never be dialed');
+        });
+        $result = $source->fetchVersion($version);
+
+        self::assertNull($result);
+        self::assertSame(0, $dialed, 'a host outside the live window must never be dialed');
+        $this->assertDatabaseHas('map_acquisition_attempts', [
+            'map_version_id' => $version->id, 'server_id' => null,
+            'source' => 'udp', 'outcome' => 'failure', 'reason' => 'no_hosts',
+        ]);
+        $this->assertDatabaseMissing('map_acquisition_attempts', [
+            'map_version_id' => $version->id, 'reason' => 'connect_failed',
+        ]);
+    }
+
     public function test_udp_fallback_after_a_blocked_http_mirror_is_recorded(): void
     {
         // A Cloudflare-fronted fast-download server: it advertises an HTTP mirror that 403s our

@@ -31,12 +31,13 @@ use Illuminate\Support\Facades\Http;
  * is needed in production. Tests inject a factory that returns a scripted FakeConnection,
  * avoiding any real UDP traffic.
  *
- * Host selection: we query server_histories for all hosts that recently served this map (or
- * specific version), ordered newest-first, deduplicated by (ip, port), capped at
+ * Host selection: we query server_histories for the hosts seen serving this map (or specific
+ * version) within the live window, ordered newest-first, deduplicated by server, capped at
  * MAP_UDP_MAX_HOSTS. Each host is dialled in turn via downloadFromHost() until one returns
- * verified bytes. Targeting hosts known to have served the exact identity avoids wasting
- * connects on hosts that have moved to a different map/version. downloadFromHost() is public so
- * inline acquisition (scraper) can target the exact host it just saw serving the version.
+ * verified bytes. The live-window gate keeps us from wasting a connect + download on a host that
+ * has since cycled to a different map (its history row would be stale) — that only ever produces a
+ * name/crc mismatch. downloadFromHost() is public so inline acquisition (scraper) can target the
+ * exact host it just saw serving the version.
  */
 final class GameServerMapSource implements MapSource
 {
@@ -291,10 +292,19 @@ final class GameServerMapSource implements MapSource
      * MAP_UDP_MAX_HOSTS, until one yields verified bytes. Grouping by server_id (history rows aggregate
      * per server/weekday/hour, so one server owns many rows) guarantees we surface up to N *different*
      * hosts rather than many rows of a single busy server — which is the whole point of the fallback.
+     *
+     * Only hosts whose (server, identity) history row was refreshed within the live window are kept: a
+     * row's map/version is fixed at creation and its updated_at is bumped every scrape the host is still
+     * on that map, so a host that has since cycled away leaves its row frozen in the past. Dialing such a
+     * host only ever yields a name/crc mismatch (it serves a different map now), so we exclude it up front
+     * rather than spend a connect + a download to reject it. A version no live host serves collapses to a
+     * single no_hosts signal instead of N mismatch rows. The window matches the backfiller's notion of
+     * "currently served" (MAP_BACKFILL_LIVE_WINDOW_MIN) so "live" means the same thing across the archive.
      */
     private function downloadFromCandidates(Builder $historyQuery, ?string $sha256, ?int $crc, string $name, ?int $mapVersionId): ?string
     {
         $serverIds = $historyQuery->getQuery()
+            ->where('updated_at', '>=', now()->subMinutes($this->liveWindowMinutes()))
             ->select('server_id')
             ->selectRaw('MAX(updated_at) as recent_at')
             ->groupBy('server_id')
@@ -363,6 +373,17 @@ final class GameServerMapSource implements MapSource
     private function maxHosts(): int
     {
         return (int) env('MAP_UDP_MAX_HOSTS', 5);
+    }
+
+    /**
+     * How recently a host's history row for an identity must have been refreshed to still count as
+     * "currently serving" it. Shares MAP_BACKFILL_LIVE_WINDOW_MIN (default: two scrape intervals, so a
+     * host seen on the previous scrape still qualifies) so candidate selection and the backfiller agree
+     * on what "live" means.
+     */
+    private function liveWindowMinutes(): int
+    {
+        return (int) env('MAP_BACKFILL_LIVE_WINDOW_MIN', max(1, (int) env('CRONTASK_INTERVAL', 10)) * 2);
     }
 
     /**
