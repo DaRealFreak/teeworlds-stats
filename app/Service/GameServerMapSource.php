@@ -69,6 +69,7 @@ final class GameServerMapSource implements MapSource
             $this->crcToInt32($map->getAttribute('crc')),
             (string) $map->getAttribute('name'),
             null,
+            (int) $map->getAttribute('id'),
         );
     }
 
@@ -85,6 +86,7 @@ final class GameServerMapSource implements MapSource
             $this->crcToInt32($version->getAttribute('crc')),
             (string) $version->map->getAttribute('name'),
             (int) $version->getAttribute('id'),
+            (int) $version->getAttribute('map_id'),
         );
     }
 
@@ -301,10 +303,21 @@ final class GameServerMapSource implements MapSource
      * single no_hosts signal instead of N mismatch rows. The window matches the backfiller's notion of
      * "currently served" (MAP_BACKFILL_LIVE_WINDOW_MIN) so "live" means the same thing across the archive.
      */
-    private function downloadFromCandidates(Builder $historyQuery, ?string $sha256, ?int $crc, string $name, ?int $mapVersionId): ?string
+    private function downloadFromCandidates(Builder $historyQuery, ?string $sha256, ?int $crc, string $name, ?int $mapVersionId, ?int $mapId = null): ?string
     {
         $serverIds = $historyQuery->getQuery()
             ->where('updated_at', '>=', now()->subMinutes($this->liveWindowMinutes()))
+            // Drop hosts currently parked for THIS map: a (host, map) pair that just failed a UDP
+            // download is in backoff, so dialing it again would only re-spend a connect timeout it just
+            // exhausted. Keying on the pair (not the host) means a host that cycles to a different map is
+            // a different key and is still tried — only the actually-failing pair backs off. Filtered
+            // before ->limit() so the cap still yields up to N *eligible* hosts.
+            ->when($mapId !== null, fn ($q) => $q->whereNotExists(function ($sub) use ($mapId) {
+                $sub->from('server_map_backoffs')
+                    ->whereColumn('server_map_backoffs.server_id', 'server_histories.server_id')
+                    ->where('server_map_backoffs.map_id', $mapId)
+                    ->where('server_map_backoffs.cooldown_until', '>', now());
+            }))
             ->select('server_id')
             ->selectRaw('MAX(updated_at) as recent_at')
             ->groupBy('server_id')
