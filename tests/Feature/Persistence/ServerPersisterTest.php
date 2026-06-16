@@ -14,9 +14,12 @@ class ServerPersisterTest extends TestCase
 {
     use RefreshDatabase;
 
-    private function server(array $addresses, string $name = 'GER10', string $flavor = 'ddnet'): DiscoveredServer
+    private function server(array $addresses, string $name = 'GER10', string $flavor = 'ddnet', int $flags = 0): DiscoveredServer
     {
-        return new DiscoveredServer($addresses, $name, 'Multeasymap', 'DDraceNetwork', '0.6.4, 19.1', 64, 64, [], 'eu', $flavor);
+        return new DiscoveredServer(
+            $addresses, $name, 'Multeasymap', 'DDraceNetwork', '0.6.4, 19.1', 64, 64, [], 'eu', $flavor,
+            flags: $flags,
+        );
     }
 
     public function test_creates_a_logical_server_with_its_addresses_flavor_and_canonical_pointer(): void
@@ -112,5 +115,17 @@ class ServerPersisterTest extends TestCase
 
         $this->assertSame(128, $server->fresh()->max_clients);
         $this->assertSame(64, $server->fresh()->max_players);
+    }
+
+    public function test_persists_the_server_flags_bitfield(): void
+    {
+        $server = (new ServerPersister())->persist(
+            $this->server([new DiscoveredAddress('192.0.2.30', 8303, 6)], flags: 3)
+        );
+
+        $fresh = $server->fresh();
+        $this->assertSame(3, $fresh->flags);
+        $this->assertTrue($fresh->isPasswordProtected());
+        $this->assertTrue($fresh->usesTimeScore());
     }
 }

@@ -15,6 +15,8 @@ final class SixInfoPacket
      * @param DiscoveredClient[] $clients
      * @param ?string $mapCrc normalized 8-hex string (e.g. 'deadbeef'), or null when the iext crc
      *                        field is absent (inf3 / iex+ continuations) or non-numeric
+     * @param int $flags SERVER_FLAG_PASSWORD (1) | SERVER_FLAG_TIMESCORE (2); only the header packet
+     *                   carries it, so iex+ continuations leave it at the default 0
      */
     public function __construct(
         public readonly bool $hasHeader,
@@ -26,6 +28,7 @@ final class SixInfoPacket
         public readonly ?int $maxClients,
         public readonly array $clients,
         public readonly ?string $mapCrc = null,
+        public readonly int $flags = 0,
     ) {
     }
 }

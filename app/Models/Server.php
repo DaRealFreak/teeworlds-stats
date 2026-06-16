@@ -45,12 +45,35 @@ class Server extends Model
 {
     use HasFactory;
 
+    // server-info flags bitfield (ddnet/src/engine/shared/protocol.h)
+    public const FLAG_PASSWORD = 1;   // SERVER_FLAG_PASSWORD = 1<<0
+    public const FLAG_TIMESCORE = 2;  // SERVER_FLAG_TIMESCORE = 1<<1 (DDNet/0.6 only)
+
     protected $guarded = ['id', 'created_at', 'updated_at'];
 
     protected $casts = [
         'max_clients' => 'integer',
         'max_players' => 'integer',
+        'flags' => 'integer',
     ];
+
+    /**
+     * A password-protected server. This matters for UDP map downloads: our client connects with an
+     * empty password, which the server validates before MAP_CHANGE, so the download fails — a later
+     * task skips these hosts as download candidates.
+     */
+    public function isPasswordProtected(): bool
+    {
+        return ((int) $this->getAttribute('flags') & self::FLAG_PASSWORD) !== 0;
+    }
+
+    /**
+     * Time-based scoring (race/DDNet): the scoreboard score is a time, not a frag count.
+     */
+    public function usesTimeScore(): bool
+    {
+        return ((int) $this->getAttribute('flags') & self::FLAG_TIMESCORE) !== 0;
+    }
 
     /**
      * check if the player was seen in the passed time span

@@ -142,6 +142,7 @@ final class Teeworlds06Source
                     location: null,
                     flavor: FlavorClassifier::classify($header->version),
                     mapCrc: $header->mapCrc,
+                    flags: $header->flags,
                 );
             }
         }

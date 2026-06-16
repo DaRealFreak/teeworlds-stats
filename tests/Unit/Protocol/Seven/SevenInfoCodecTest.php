@@ -10,7 +10,7 @@ use PHPUnit\Framework\TestCase;
 class SevenInfoCodecTest extends TestCase
 {
     /** build a valid inf3 0.7 payload (everything after the SERVERBROWSE_INFO token) */
-    private function payload(): string
+    private function payload(int $flags = 0): string
     {
         $int = fn (int $v) => VariableInt::pack($v);
         $str = fn (string $s) => $s . "\x00";
@@ -21,7 +21,7 @@ class SevenInfoCodecTest extends TestCase
             . $str('localhost')      // hostname
             . $str('ctf1')           // map
             . $str('CTF')            // gametype
-            . $int(0)                // flags
+            . $int($flags)           // flags
             . $int(1)                // skill level
             . $int(1)                // num players
             . $int(16)               // max players
@@ -45,6 +45,7 @@ class SevenInfoCodecTest extends TestCase
         $this->assertSame('vanilla_07', $server->flavor);
         $this->assertSame(16, $server->maxClients);
         $this->assertSame(16, $server->maxPlayers);
+        $this->assertSame(0, $server->flags);
         $this->assertSame([$address], $server->addresses);
 
         $this->assertCount(1, $server->clients);
@@ -57,6 +58,17 @@ class SevenInfoCodecTest extends TestCase
         $this->assertNull($client->afk);               // 0.7 carries no afk/skin
         $this->assertNull($client->skin);
         $this->assertNull($client->skinParts);
+    }
+
+    public function test_captures_the_password_flag(): void
+    {
+        // 0.7 only carries SERVER_FLAG_PASSWORD (bit 0); TIMESCORE is DDNet/0.6
+        $address = new DiscoveredAddress('192.0.2.50', 8303, 7);
+
+        $server = (new SevenInfoCodec())->parse($this->payload(flags: 1), $address);
+
+        $this->assertNotNull($server);
+        $this->assertSame(1, $server->flags);
     }
 
     public function test_returns_null_on_a_truncated_payload(): void

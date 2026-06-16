@@ -60,7 +60,7 @@ final class SixInfoCodec
             }
         }
         $gametype = array_shift($fields);
-        array_shift($fields);               // flags
+        $flags = (int) array_shift($fields); // SERVER_FLAG_PASSWORD (1) | SERVER_FLAG_TIMESCORE (2), ADD_INT decimal string
         array_shift($fields);               // numPlayers
         $maxPlayers = (int) array_shift($fields);
         array_shift($fields);               // numClients
@@ -80,6 +80,7 @@ final class SixInfoCodec
             maxClients: $maxClients,
             clients: $this->parseClients($fields, $extended),
             mapCrc: $mapCrc,
+            flags: $flags,
         );
     }
 

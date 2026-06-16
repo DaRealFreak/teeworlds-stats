@@ -90,6 +90,7 @@ final class ServerMerger
             mapSha256: $primary->mapSha256 ?? $secondary->mapSha256,
             mapSize: $primary->mapSize ?? $secondary->mapSize,
             mapCrc: $primary->mapCrc ?? $secondary->mapCrc,
+            flags: $primary->flags,
         );
     }
 

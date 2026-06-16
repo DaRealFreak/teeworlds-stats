@@ -41,6 +41,7 @@ class SixInfoCodecTest extends TestCase
         $this->assertSame('0.6.4', $packet->version);
         $this->assertSame(16, $packet->maxClients);
         $this->assertSame(16, $packet->maxPlayers);
+        $this->assertSame(0, $packet->flags);
         $this->assertCount(2, $packet->clients);
         $this->assertSame('alice', $packet->clients[0]->name);
         $this->assertSame('TeeClan', $packet->clients[0]->clan);
@@ -51,6 +52,29 @@ class SixInfoCodecTest extends TestCase
         // 0.6 UDP carries no afk/skin
         $this->assertNull($packet->clients[0]->afk);
         $this->assertNull($packet->clients[0]->skin);
+    }
+
+    public function test_parses_the_server_flags_bitfield(): void
+    {
+        // flags 3 = SERVER_FLAG_PASSWORD (1) | SERVER_FLAG_TIMESCORE (2): a password-protected,
+        // time-scored server. The codec previously discarded this field.
+        $payload = $this->payload([
+            '7777',                 // token
+            '0.6.4',                // version
+            'Locked Server',        // name
+            'dm1',                  // map
+            'dm',                   // gametype
+            '3',                    // flags (password | timescore)
+            '0',                    // numPlayers
+            '16',                   // maxPlayers
+            '0',                    // numClients
+            '16',                   // maxClients
+        ]);
+
+        $packet = (new SixInfoCodec())->parse($payload, SixConnless::INFO);
+
+        $this->assertNotNull($packet);
+        $this->assertSame(3, $packet->flags);
     }
 
     public function test_parses_an_extended_iext_header_with_reserved_fields(): void

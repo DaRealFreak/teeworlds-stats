@@ -25,7 +25,7 @@ final class SevenInfoCodec
         $unpacker->getString();          // hostname (0.7 only; not tracked)
         $map = $unpacker->getString();
         $gametype = $unpacker->getString();
-        $unpacker->getInt();             // flags
+        $flags = $unpacker->getInt();    // SERVER_FLAG_PASSWORD (1); 0.7 carries no TIMESCORE bit
         $unpacker->getInt();             // skill level (0.7 only)
         $numPlayers = $unpacker->getInt();
         $maxPlayers = $unpacker->getInt();
@@ -73,6 +73,7 @@ final class SevenInfoCodec
             clients: $clients,
             location: null,
             flavor: FlavorClassifier::classify($version),
+            flags: $flags,
         );
     }
 }
