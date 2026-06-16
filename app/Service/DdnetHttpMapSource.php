@@ -37,12 +37,42 @@ final class DdnetHttpMapSource implements MapSource
 
     public function fetchVersion(MapVersion $version): ?string
     {
+        // A version already classified as not-on-the-mirror and still inside the recheck window is not
+        // re-probed: returning null here skips both the HTTP round-trip and any telemetry, since no probe
+        // actually happened. Stale or pending versions fall through and probe as usual.
+        if ($this->isMirrorRecheckSuppressed($version)) {
+            return null;
+        }
+
         return $this->download(
             name: (string) $version->map->getAttribute('name'),
             sha256: $version->getAttribute('sha256'),
             size: $version->getAttribute('size'),
             mapVersionId: (int) $version->getAttribute('id'),
         );
+    }
+
+    /**
+     * Whether the 30-day mirror recheck should suppress an HTTP probe for this version: true only when it
+     * was already resolved as udp_only/unavailable (not on the mirror) and its status was checked more
+     * recently than MAP_MIRROR_RECHECK_DAYS ago. A stale check re-probes in case the version has since
+     * been published; the resulting 404 re-stamps the status via the acquisition-state listener.
+     */
+    private function isMirrorRecheckSuppressed(MapVersion $version): bool
+    {
+        $status = $version->getAttribute('acquisition_status');
+        if ($status !== MapVersion::STATUS_UDP_ONLY && $status !== MapVersion::STATUS_UNAVAILABLE) {
+            return false;
+        }
+
+        $checkedAt = $version->getAttribute('status_checked_at');
+        if ($checkedAt === null) {
+            return false;
+        }
+
+        $recheckDays = (int) env('MAP_MIRROR_RECHECK_DAYS', 30);
+
+        return $checkedAt->greaterThan(now()->subDays($recheckDays));
     }
 
     /**

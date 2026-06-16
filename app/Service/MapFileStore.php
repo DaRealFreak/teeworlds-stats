@@ -83,6 +83,13 @@ final class MapFileStore
 
         $relative = $this->relativePathForVersion($version);
         if ($relative !== null && $storage->exists($relative)) {
+            // A file already on disk has no success event to flip its status, so reconcile it here:
+            // this promotes pre-existing files and the migration's `pending` default to `cached`. The
+            // inequality keeps a repeat ensureVersion on an already-cached version from writing again.
+            if ($version->getAttribute('acquisition_status') !== MapVersion::STATUS_CACHED) {
+                $version->markStatus(MapVersion::STATUS_CACHED);
+            }
+
             return $relative;
         }
 
