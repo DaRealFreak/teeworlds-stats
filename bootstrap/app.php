@@ -30,17 +30,14 @@ return Application::configure(basePath: dirname(__DIR__))
                 Artisan::call('responsecache:clear');
             });
 
-        // Steadily drain the historical uncached-version backlog into the local mirror. --http-only:
-        // the every-10-min scrape already grabs currently-served maps over HTTP+UDP (InlineMapAcquirer),
-        // so this hourly job only needs to mop up the mirrored versions no server currently runs — no
-        // UDP dialling, so it never blocks on a slow host. runInBackground keeps it off the scrape's
-        // critical path; withoutOverlapping guards against a slow run stacking. The scrape's own
-        // responsecache:clear (every 10 min) refreshes the /maps availability badges afterwards.
-        $schedule->command('maps:archive-backfill --http-only')
-            ->hourly()
-            ->withoutOverlapping()
+        // The filler drains the uncached backlog unbounded, newest-first, as its own background process so it
+        // never blocks the scrape; withoutOverlapping lets one long run span scrape cycles, runInBackground keeps
+        // it off the scheduler's critical path. Its budget self-heals a crashed run on the next tick.
+        $schedule->command('maps:archive-fill')
+            ->everyTenMinutes()
+            ->withoutOverlapping(90)
             ->runInBackground()
-            ->appendOutputTo(storage_path('logs/map_backfill.log'));
+            ->appendOutputTo(storage_path('logs/map_fill.log'));
 
         $schedule->command('queue:prune-failed --hours=168')->weekly();
 

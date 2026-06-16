@@ -8,11 +8,12 @@ use Illuminate\Support\Collection;
 
 /**
  * Drains the whole uncached map-version backlog into the local mirror, unbounded by count and ordered
- * newest-first, parallel to the scrape. The status-aware successor to MapArchiveBackfiller + the bounded
- * InlineMapAcquirer: the first run or two classify the backlog (HTTP-mirrored versions cache, the rest flip
- * to udp_only/unavailable), then steady-state work shrinks to new maps plus any udp_only version that now
- * has a live host. The only run bound is the wall-clock budget; the schedule's withoutOverlapping resumes
- * the drain on the next tick.
+ * newest-first, parallel to the scrape. The single status-aware acquisition path: it replaces the former
+ * bounded inline acquire that ran synchronously inside the scrape and the former hourly HTTP-only backfill.
+ * The first run or two classify the backlog (HTTP-mirrored versions cache, the rest flip to
+ * udp_only/unavailable), then steady-state work shrinks to new maps plus any udp_only version that now has a
+ * live host. The only run bound is the wall-clock budget; the schedule's withoutOverlapping resumes the drain
+ * on the next tick.
  *
  * Two acquisition tiers chosen per version, so a run never wastes a UDP connect timeout on a host that has
  * long since rotated to a different map:
@@ -23,7 +24,7 @@ use Illuminate\Support\Collection;
  *    the only situation in which the UDP fallback can connect and pull the bytes, so it is the only situation
  *    in which we pay for it.
  *
- * Unlike MapArchiveBackfiller this does NOT pre-stamp last_acquire_attempt_at: the reactive
+ * It does NOT pre-stamp last_acquire_attempt_at: the reactive
  * ApplyMapAcquisitionState listener now stamps the per-map cooldown only on the reasons that warrant it (bad
  * mirror bytes), while a no-live-host outcome flips status to unavailable WITHOUT a cooldown so the version
  * stays a candidate the instant a host appears. Pre-stamping here would re-introduce the 6h park the overhaul
