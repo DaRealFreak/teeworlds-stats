@@ -3,6 +3,7 @@
 use App\Console\Commands\UpdateData;
 use App\Console\Commands\UpdateDailySummary;
 use App\Models\MapAcquisitionAttempt;
+use App\Models\ServerMapBackoff;
 use Illuminate\Console\Scheduling\Schedule;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
@@ -43,8 +44,9 @@ return Application::configure(basePath: dirname(__DIR__))
 
         $schedule->command('queue:prune-failed --hours=168')->weekly();
 
-        // Keep the acquisition telemetry bounded (the model prunes rows older than 30 days).
-        $schedule->command('model:prune', ['--model' => [MapAcquisitionAttempt::class]])->daily();
+        // Keep the acquisition telemetry and the per-(host, map) UDP backoffs bounded (each model
+        // prunes its own long-expired rows).
+        $schedule->command('model:prune', ['--model' => [MapAcquisitionAttempt::class, ServerMapBackoff::class]])->daily();
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         //
