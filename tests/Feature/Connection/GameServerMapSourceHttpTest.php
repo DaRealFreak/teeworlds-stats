@@ -19,6 +19,7 @@ use Tests\TestCase;
  */
 class GameServerMapSourceHttpTest extends TestCase
 {
+    use ScriptsMapDownloads;
     /** A connection whose receive() yields a single scripted MAP_DETAILS message, then nothing. */
     private function fakeConnection(string $mapDetails): ConnectionInterface
     {
@@ -71,57 +72,6 @@ class GameServerMapSourceHttpTest extends TestCase
         return new GameServerMapSource(connectionFactory: function () use ($conns, &$dial) {
             return $conns[$dial++] ?? throw new \App\TwStats\Connection\ConnectionFailed('no more scripted dials');
         });
-    }
-
-    /** A connection whose single receive() batch carries the given pre-built messages (e.g. a UDP transfer). */
-    private function connectionYielding(string ...$messages): ConnectionInterface
-    {
-        return new class($messages) implements ConnectionInterface {
-            public bool $disconnected = false;
-            /** @var array<int, string[]> */
-            private array $inbox;
-
-            /** @param string[] $batch */
-            public function __construct(array $batch)
-            {
-                $this->inbox = [$batch];
-            }
-
-            public function sendVital(string $message): void {}
-            public function flush(): void {}
-            public function receive(int $timeoutMs): array { return $this->inbox === [] ? [] : array_shift($this->inbox); }
-            public function disconnect(): void { $this->disconnected = true; }
-            public function isOnline(): bool { return !$this->disconnected; }
-        };
-    }
-
-    /** Normalise to signed int32 — the wire representation the server packs CRCs in. */
-    private function toInt32(int $v): int
-    {
-        $v &= 0xFFFFFFFF;
-        if ($v & 0x80000000) {
-            $v -= 0x100000000;
-        }
-
-        return $v;
-    }
-
-    private function mapChange(string $name, int $crc, int $size): string
-    {
-        return VariableInt::pack((2 << 1) | 1)          // NETMSG_MAP_CHANGE = 2
-            . $name . "\x00"
-            . VariableInt::pack($this->toInt32($crc))
-            . VariableInt::pack($size);
-    }
-
-    private function mapData(int $last, int $crc, int $chunk, string $data): string
-    {
-        return VariableInt::pack((3 << 1) | 1)          // NETMSG_MAP_DATA = 3
-            . VariableInt::pack($last)
-            . VariableInt::pack($this->toInt32($crc))
-            . VariableInt::pack($chunk)
-            . VariableInt::pack(strlen($data))
-            . $data;
     }
 
     public function test_falls_back_to_udp_when_the_advertised_http_mirror_is_blocked(): void
