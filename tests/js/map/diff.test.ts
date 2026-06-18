@@ -94,6 +94,19 @@ describe('diffPhysics', () => {
         const b = sceneOf(layer([1], 1, 1, 'game'), layer([9], 1, 1, 'tiles'));
         expect(diffPhysics(a, b).totals).toEqual({ added: 0, removed: 0, modified: 0 });
     });
+
+    it('skips cells for a physics layer whose dims differ even when the game layers align', () => {
+        // game layers align (1×1 both), but the tele layer is 1×1 vs 2×1 — the per-layer gate skips it.
+        const a = sceneOf(layer([1], 1, 1, 'game'), layer([26], 1, 1, 'tele', { number: [1] }));
+        const b = sceneOf(layer([1], 1, 1, 'game'), layer([26, 26], 2, 1, 'tele', { number: [1, 1] }));
+        const d = diffPhysics(a, b);
+        expect(d.aligned).toBe(true);
+        const tele = d.layers.find((l) => l.kind === 'tele')!;
+        expect(tele.inA).toBe(true);
+        expect(tele.inB).toBe(true);
+        expect(tele.added + tele.removed + tele.modified).toBe(0);
+        expect(d.cells.some((c) => c.kind === 'tele')).toBe(false);
+    });
 });
 
 describe('formatVerdict', () => {

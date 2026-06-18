@@ -96,6 +96,8 @@ export function diffPhysics(base: MapScene, target: MapScene): PhysicsDiff {
         const lb = findPhysics(target, kind);
         const entry: LayerDiff = { kind, inA: la !== null, inB: lb !== null, added: 0, removed: 0, modified: 0 };
 
+        // Per-layer dimension guard: even when game layers align, a malformed map could carry a physics layer
+        // sized differently; this sub-check prevents iterating the game-sized range into a shorter tiles[] array.
         if (aligned && la && lb && la.width === lb.width && la.height === lb.height) {
             const n = la.width * la.height;
             for (let i = 0; i < n; i++) {
