@@ -109,7 +109,7 @@ final class GameServerMapSource implements MapSource
             // minutes). Our map isn't here — a UDP fallback would only re-dial and download the wrong
             // map to reject it on a CRC/name check (up to a full timeout on a slow link). Record the
             // cycle and let the next candidate try, matching the pure-UDP name_mismatch signal.
-            if (trim($http->name) !== trim($expectedName)) {
+            if (!$this->nameMatches($http->name, $expectedName)) {
                 MapAcquisitionAttempted::dispatch($mapVersionId, $serverId, 'udp', 'failure', 'name_mismatch', null);
                 return null;
             }
@@ -196,9 +196,13 @@ final class GameServerMapSource implements MapSource
         );
 
         // Name-match gate: a host that has since switched maps answers with a different name;
-        // archiving its bytes here would mislabel them. Trim both sides (the stored name may come
-        // from the DDNet HTTP feed, the wire name off the UDP MAP_CHANGE).
-        if (trim($result->name) !== trim($expectedName)) {
+        // archiving its bytes here would mislabel them. Compared case-insensitively (and trimmed)
+        // because the stored name and the wire name routinely differ only in case: the browser-info /
+        // DDNet-feed map name we store can be lower-cased ("savannux") while the in-game MAP_CHANGE
+        // announces the real filename ("Savannux"). A case-sensitive gate rejected those byte-perfect
+        // downloads on every attempt — when an expected crc/sha is set the integrity check has already
+        // proven identity, so the name is only a cycled-host guard, not a content check.
+        if (!$this->nameMatches($result->name, $expectedName)) {
             MapAcquisitionAttempted::dispatch($mapVersionId, $serverId, $udpSource, 'failure', 'name_mismatch', null);
             return null;
         }
@@ -222,7 +226,7 @@ final class GameServerMapSource implements MapSource
     private function fetchAdvertisedUrl(MapAvailableViaHttp $http, ?string $expectedSha256, string $expectedName): ?string
     {
         // The host must still be advertising the map we asked for (it may have changed maps).
-        if (trim($http->name) !== trim($expectedName) || !$this->isFetchableUrl($http->url)) {
+        if (!$this->nameMatches($http->name, $expectedName) || !$this->isFetchableUrl($http->url)) {
             return null;
         }
 
@@ -376,6 +380,18 @@ final class GameServerMapSource implements MapSource
         }
 
         return ['ip' => (string) $address->ip, 'port' => (int) $address->port, 'flavor' => $flavor];
+    }
+
+    /**
+     * Whether a wire/advertised map name designates the map we asked for. Trimmed and compared
+     * case-insensitively: Teeworlds servers commonly report a browser-info / DDNet-feed map name that
+     * differs only in case from the in-game MAP_CHANGE filename (e.g. stored "savannux" vs wire
+     * "Savannux"), so an exact compare false-rejects byte-perfect downloads. strcasecmp folds ASCII
+     * case (map filenames are ASCII), avoiding locale-dependent folding.
+     */
+    private function nameMatches(string $wire, string $expected): bool
+    {
+        return strcasecmp(trim($wire), trim($expected)) === 0;
     }
 
     /** Convert an 8-hex crc string to a signed int32 for the download session, or null. */

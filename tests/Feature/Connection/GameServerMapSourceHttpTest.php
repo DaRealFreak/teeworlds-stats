@@ -270,4 +270,36 @@ class GameServerMapSourceHttpTest extends TestCase
         self::assertNull($result);
         Http::assertNothingSent();
     }
+
+    public function test_accepts_a_udp_map_whose_wire_name_differs_only_in_case(): void
+    {
+        // Live-observed (server 92.5.2.254:8303, GORES): the browser-info / DDNet-feed map name we store
+        // is lower-cased ("savannux") while the in-game MAP_CHANGE announces the real filename ("Savannux").
+        // The bytes are byte-perfect and the crc matches, so a case-only difference must NOT be rejected —
+        // a case-sensitive gate previously failed every attempt against such hosts (100% name_mismatch).
+        $payload = 'DATA' . str_repeat("\x00", 40);
+        $crc     = crc32($payload);
+        $udp     = $this->connectionYielding($this->mapChange('Savannux', $crc, strlen($payload)), $this->mapData(1, $crc, 0, $payload));
+
+        $result = $this->sourceDialling($udp)
+            ->downloadFromHost('9.9.9.9', 8303, 'vanilla_06', null, $this->toInt32($crc), 'savannux', 5000);
+
+        self::assertSame($payload, $result, 'a wire name that differs only in case must still match the expected map');
+    }
+
+    public function test_accepts_an_advertised_http_map_whose_name_differs_only_in_case(): void
+    {
+        // Same case-folding tolerance on the fast-download (MAP_DETAILS → HTTP) gate: the advertised name
+        // may differ in case from the stored one without meaning the host has cycled.
+        $bytes = 'DATA' . str_repeat("\x00", 512);
+        $sha   = hash('sha256', $bytes);
+        $url   = 'https://1.1.1.1/Savannux_' . $sha . '.map';
+
+        Http::fake([$url => Http::response($bytes, 200)]);
+
+        $conn   = $this->fakeConnection($this->mapDetails('Savannux', $sha, strlen($bytes), $url));
+        $result = $this->sourceReturning($conn)->downloadFromHost('9.9.9.9', 8303, 'ddnet', null, null, 'savannux', 5000);
+
+        self::assertSame($bytes, $result, 'an advertised name differing only in case must still be fetched');
+    }
 }
