@@ -185,8 +185,14 @@ can expose its parsed scene later — out of scope now.
   or *"Different dimensions 300×50 → 1024×80 — likely a different map."*
 - **Colour legend** mapping green/red/amber → added/removed/modified, with totals.
 - **Per-kind table:** kind, present-in-A, present-in-B, dims, added/removed/modified.
-- **File facts** (already available to the panel): size, `sha256`/`crc`, last seen,
-  server count — for both A and B.
+- The panel header names the two versions by their short content-keys
+  (`Comparing <A> → <B>`).
+
+**File facts are intentionally not duplicated in the panel.** Size, `sha256`/`crc`,
+last seen, and server count for every version already appear in the Versions table
+directly above the panel (the table the A/B selectors live in), so the breakdown panel
+stays focused on the diff itself rather than repeating that data. (Decision taken during
+implementation; recorded here so the spec matches the shipped panel.)
 
 ## Testing
 
