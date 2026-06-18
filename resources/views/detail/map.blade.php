@@ -60,6 +60,10 @@
                                     <th scope="col">Size</th>
                                     <th scope="col">Last seen</th>
                                     <th scope="col">Servers</th>
+                                    @if($canCompare)
+                                        <th scope="col" class="text-center">A</th>
+                                        <th scope="col" class="text-center">B</th>
+                                    @endif
                                     <th scope="col"></th>
                                 </tr>
                             </thead>
@@ -79,6 +83,11 @@
                                         <td>{{ $version->size ? number_format($version->size / 1024) . ' KB' : '—' }}</td>
                                         <td>{{ $version->last_seen_at?->diffForHumans() ?? '—' }}</td>
                                         <td>{{ $serverCounts[$version->id] ?? 0 }}</td>
+                                        @if($canCompare)
+                                            @php($pickable = $avail !== \App\Service\MapAvailability::Unavailable)
+                                            <td class="text-center"><input type="radio" name="cmpA" value="{{ $key }}" @disabled(!$pickable)></td>
+                                            <td class="text-center"><input type="radio" name="cmpB" value="{{ $key }}" @checked($isSelected) @disabled(!$pickable)></td>
+                                        @endif
                                         <td class="text-end">
                                             @unless($isSelected)
                                                 <a href="{{ route('searchMapByName', ['map_name' => $map->name, 'version' => $key]) }}" class="btn btn-sm btn-outline-secondary">View</a>
@@ -90,7 +99,16 @@
                             </tbody>
                         </table>
                     </div>
+                    @if($canCompare)
+                        <div class="mt-2">
+                            <button type="button" id="mapCompareBtn" class="btn btn-sm btn-primary" disabled>Compare A → B</button>
+                            <span class="text-muted small">Pick a base (A) and a target (B), then compare what changed.</span>
+                        </div>
+                    @endif
                 </div>
+            @endif
+            @if($canCompare)
+                <div class="block" id="mapCompareResult" hidden></div>
             @endif
         </div>
     </section>
@@ -99,6 +117,33 @@
 
 @section('scripts')
     @include('partials.play-stats-scripts')
+    @if($canCompare)
+    <script>
+        (function () {
+            var btn = document.getElementById('mapCompareBtn');
+            if (!btn) return;
+            var base = {!! json_encode(route('searchMapByName', ['map_name' => $map->name]), JSON_UNESCAPED_SLASHES) !!};
+            var selected = function (name) {
+                var found = null;
+                document.querySelectorAll('input[name="' + name + '"]').forEach(function (r) { if (r.checked) found = r.value; });
+                return found;
+            };
+            var sync = function () {
+                var a = selected('cmpA'), b = selected('cmpB');
+                btn.disabled = !(a && b && a !== b);
+            };
+            document.addEventListener('change', function (e) {
+                if (e.target && (e.target.name === 'cmpA' || e.target.name === 'cmpB')) sync();
+            });
+            btn.addEventListener('click', function () {
+                var a = selected('cmpA'), b = selected('cmpB');
+                if (!a || !b || a === b) return;
+                window.location.href = base + '?version=' + encodeURIComponent(b) + '&compare=' + encodeURIComponent(a);
+            });
+            sync();
+        })();
+    </script>
+    @endif
     @if($map->hasDownloadableFile())
     <script>
         document.addEventListener('DOMContentLoaded', function () {
@@ -272,6 +317,22 @@
                             legend.appendChild(entry.children ? buildGroup(entry) : buildLeaf(entry, 0));
                         });
                     }
+                }
+
+                // When the page was opened with a ?compare base, overlay the physics diff onto B.
+                var compareUrl = {!! $compare ? json_encode(route('mapFile', ['map_name' => $map->name, 'version' => $compare->contentKey()]), JSON_UNESCAPED_SLASHES) : 'null' !!};
+                var comparePanel = document.getElementById('mapCompareResult');
+                if (compareUrl && comparePanel && window.MapCompare) {
+                    window.MapCompare.run({
+                        baseUrl: compareUrl,
+                        targetUrl: {!! json_encode($selected ? route('mapFile', ['map_name' => $map->name, 'version' => $selected->contentKey()]) : route('mapFile', ['map_name' => $map->name]), JSON_UNESCAPED_SLASHES) !!},
+                        viewer: viewer,
+                        panelEl: comparePanel,
+                        labels: {
+                            base: {!! json_encode($compare ? \Illuminate\Support\Str::substr($compare->contentKey(), 0, 12) : '', JSON_UNESCAPED_SLASHES) !!},
+                            target: {!! json_encode($selected ? \Illuminate\Support\Str::substr($selected->contentKey(), 0, 12) : '', JSON_UNESCAPED_SLASHES) !!}
+                        }
+                    });
                 }
             });
         });

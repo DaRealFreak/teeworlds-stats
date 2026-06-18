@@ -46,4 +46,36 @@ class MapVersionCompareTest extends TestCase
             ->assertViewHas('compare', null)
             ->assertViewHas('canCompare', false);
     }
+
+    public function test_versions_panel_renders_compare_radios_and_disables_unavailable(): void
+    {
+        $map = Map::create(['name' => 'Linear', 'sha256' => str_repeat('a', 64)]);
+        MapVersion::factory()->for($map)->create(['sha256' => str_repeat('b', 64), 'crc' => null]);
+        MapVersion::factory()->for($map)->create(['sha256' => str_repeat('c', 64), 'crc' => null]);
+        $bad = MapVersion::factory()->for($map)->create([
+            'sha256' => str_repeat('d', 64),
+            'crc' => null,
+            'acquisition_status' => MapVersion::STATUS_UNAVAILABLE,
+        ]);
+
+        $html = $this->get('/map/Linear')->assertOk()->getContent();
+
+        $this->assertStringContainsString('name="cmpA"', $html);
+        $this->assertStringContainsString('name="cmpB"', $html);
+        $this->assertStringContainsString('id="mapCompareBtn"', $html);
+        $this->assertStringContainsString('id="mapCompareResult"', $html);
+        // the unavailable version's radio is disabled
+        $this->assertMatchesRegularExpression('/value="' . $bad->sha256 . '"[^>]*disabled/', $html);
+    }
+
+    public function test_compare_param_renders_base_file_url_for_the_overlay(): void
+    {
+        [, $base, $target] = $this->mapWithVersions();
+
+        $html = $this->get('/map/Linear?version=' . $target->sha256 . '&compare=' . $base->sha256)
+            ->assertOk()->getContent();
+
+        $this->assertStringContainsString('window.MapCompare.run', $html);
+        $this->assertStringContainsString('/map/Linear/file/' . $base->sha256, $html);
+    }
 }
