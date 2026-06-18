@@ -10,20 +10,26 @@
     <section class="section-content">
         <div class="container-fluid">
             {{-- Headline cards --}}
-            <div class="row">
+            {{-- Fixed equal grid so no single card can grow: 2-up (xs), 3-up (md), 5-up (lg) --}}
+            <div class="row row-cols-2 row-cols-md-3 row-cols-lg-5">
                 @php
+                    // Humanize the cache size: at 5-across a long "1534.6 MB" would otherwise
+                    // wrap inside its card and read out of step with the short counts beside it.
+                    $cacheMb = $overview['cachedBytes'] / 1048576;
+                    $cacheSize = $cacheMb >= 1024 ? round($cacheMb / 1024, 1) . ' GB' : round($cacheMb, 1) . ' MB';
                     $cards = [
                         ['label' => 'Cached map files', 'value' => number_format($overview['cachedFiles'])],
-                        ['label' => 'Cache size', 'value' => round($overview['cachedBytes'] / 1048576, 1) . ' MB'],
+                        ['label' => 'Cache size', 'value' => $cacheSize],
                         ['label' => 'Total versions', 'value' => number_format($overview['totalVersions'])],
                         ['label' => 'Never attempted', 'value' => number_format($overview['neverAttempted'])],
                         ['label' => 'Cooling down', 'value' => number_format($overview['coolingDown'])],
                     ];
                 @endphp
                 @foreach ($cards as $card)
-                    <div class="col-lg col-md-4 col-6">
-                        <div class="statistic-block block">
-                            <div class="progress-details d-flex align-items-end justify-content-between">
+                    <div class="col">
+                        {{-- Stacked + centered: the value gets the full card width (no wrap), so every card keeps the same size --}}
+                        <div class="statistic-block block text-center">
+                            <div class="progress-details">
                                 <div class="title"><strong>{{ $card['label'] }}</strong></div>
                                 <div class="number dashtext-1">{{ $card['value'] }}</div>
                             </div>
@@ -58,6 +64,50 @@
                             </table>
                         </div>
                     </div>
+
+                    {{-- Source breakdown: stacked under Version status in the same column --}}
+                    <div class="block">
+                        <div class="title"><strong class="d-block px-3 pt-3">By source (last {{ $days }} days)</strong></div>
+                        <div class="block-body table-responsive">
+                            <table class="table table-striped">
+                                <thead><tr><th>Source</th><th>Success</th><th>Failure</th></tr></thead>
+                                <tbody>
+                                @forelse ($sourceBreakdown as $source => $counts)
+                                    <tr><td>{{ $source }}</td><td>{{ $counts['success'] }}</td><td>{{ $counts['failure'] }}</td></tr>
+                                @empty
+                                    <tr><td colspan="3" class="text-muted">No attempts recorded yet.</td></tr>
+                                @endforelse
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="row">
+                {{-- Recent downloads: standalone full-width row --}}
+                <div class="col-12">
+                    <div class="block">
+                        <div class="title"><strong class="d-block px-3 pt-3">Recent downloads</strong></div>
+                        <div class="block-body table-responsive">
+                            {{-- Fixed layout + truncation: map names carry an unbreakable name_<sha256> token that otherwise blows out the column --}}
+                            <table class="table table-striped" style="table-layout: fixed;">
+                                <thead><tr><th style="width: 42%;">Map</th><th style="width: 20%;">Source</th><th style="width: 18%;">Size</th><th style="width: 20%;">When</th></tr></thead>
+                                <tbody>
+                                @forelse ($recentDownloads as $d)
+                                    <tr>
+                                        <td class="text-truncate" title="{{ $d->mapVersion?->map?->name }}">{{ $d->mapVersion?->map?->name ?? '—' }}</td>
+                                        <td class="text-truncate">{{ $d->source }}</td>
+                                        <td>{{ $d->bytes ? round($d->bytes / 1024) . ' KB' : '—' }}</td>
+                                        <td>{{ $d->created_at?->diffForHumans() }}</td>
+                                    </tr>
+                                @empty
+                                    <tr><td colspan="4" class="text-muted">No downloads recorded yet.</td></tr>
+                                @endforelse
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
                 </div>
             </div>
 
@@ -86,51 +136,6 @@
                     </div>
                 </div>
 
-                {{-- Source breakdown --}}
-                <div class="col-lg-6">
-                    <div class="block">
-                        <div class="title"><strong class="d-block px-3 pt-3">By source (last {{ $days }} days)</strong></div>
-                        <div class="block-body table-responsive">
-                            <table class="table table-striped">
-                                <thead><tr><th>Source</th><th>Success</th><th>Failure</th></tr></thead>
-                                <tbody>
-                                @forelse ($sourceBreakdown as $source => $counts)
-                                    <tr><td>{{ $source }}</td><td>{{ $counts['success'] }}</td><td>{{ $counts['failure'] }}</td></tr>
-                                @empty
-                                    <tr><td colspan="3" class="text-muted">No attempts recorded yet.</td></tr>
-                                @endforelse
-                                </tbody>
-                            </table>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <div class="row">
-                {{-- Recent downloads --}}
-                <div class="col-lg-6">
-                    <div class="block">
-                        <div class="title"><strong class="d-block px-3 pt-3">Recent downloads</strong></div>
-                        <div class="block-body table-responsive">
-                            <table class="table table-striped">
-                                <thead><tr><th>Map</th><th>Source</th><th>Size</th><th>When</th></tr></thead>
-                                <tbody>
-                                @forelse ($recentDownloads as $d)
-                                    <tr>
-                                        <td>{{ $d->mapVersion?->map?->name ?? '—' }}</td>
-                                        <td>{{ $d->source }}</td>
-                                        <td>{{ $d->bytes ? round($d->bytes / 1024) . ' KB' : '—' }}</td>
-                                        <td>{{ $d->created_at?->diffForHumans() }}</td>
-                                    </tr>
-                                @empty
-                                    <tr><td colspan="4" class="text-muted">No downloads recorded yet.</td></tr>
-                                @endforelse
-                                </tbody>
-                            </table>
-                        </div>
-                    </div>
-                </div>
-
                 {{-- Recent failures --}}
                 <div class="col-lg-6">
                     <div class="block">
@@ -139,15 +144,16 @@
                             <small class="d-block px-3 pb-2 text-muted">Mirror-only 404s are omitted — those maps aren't on maps.ddnet.org but are retried over UDP in the same pass.</small>
                         </div>
                         <div class="block-body table-responsive">
-                            <table class="table table-striped">
-                                <thead><tr><th>Map</th><th>Source</th><th>Reason</th><th>Server</th><th>When</th></tr></thead>
+                            {{-- Fixed layout + truncation: map names carry an unbreakable name_<sha256> token that otherwise blows out the column --}}
+                            <table class="table table-striped" style="table-layout: fixed;">
+                                <thead><tr><th style="width: 28%;">Map</th><th style="width: 15%;">Source</th><th style="width: 20%;">Reason</th><th style="width: 25%;">Server</th><th style="width: 12%;">When</th></tr></thead>
                                 <tbody>
                                 @forelse ($recentFailures as $f)
                                     <tr>
-                                        <td>{{ $f->mapVersion?->map?->name ?? '—' }}</td>
-                                        <td>{{ $f->source }}</td>
-                                        <td>{{ $f->reason }}</td>
-                                        <td>{{ $f->server?->name ?? '—' }}</td>
+                                        <td class="text-truncate" title="{{ $f->mapVersion?->map?->name }}">{{ $f->mapVersion?->map?->name ?? '—' }}</td>
+                                        <td class="text-truncate">{{ $f->source }}</td>
+                                        <td class="text-truncate" title="{{ $f->reason }}">{{ $f->reason }}</td>
+                                        <td class="text-truncate" title="{{ $f->server?->name }}">{{ $f->server?->name ?? '—' }}</td>
                                         <td>{{ $f->created_at?->diffForHumans() }}</td>
                                     </tr>
                                 @empty
