@@ -8,7 +8,6 @@ use App\Models\Map;
 use App\Models\MapVersion;
 use App\Models\Mod;
 use App\Models\Server;
-use App\Models\ServerAddress;
 use App\Models\ServerHistory;
 use App\Service\CapturedMapVersionRecorder;
 use App\Service\CurrentServerMapResolverInterface;

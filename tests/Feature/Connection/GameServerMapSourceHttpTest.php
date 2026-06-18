@@ -20,6 +20,7 @@ use Tests\TestCase;
 class GameServerMapSourceHttpTest extends TestCase
 {
     use ScriptsMapDownloads;
+
     /** A connection whose receive() yields a single scripted MAP_DETAILS message, then nothing. */
     private function fakeConnection(string $mapDetails): ConnectionInterface
     {

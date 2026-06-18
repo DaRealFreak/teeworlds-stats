@@ -148,7 +148,7 @@ class MapAcquisitionStateTest extends TestCase
         $version = MapVersion::create(['map_id' => $map->id, 'sha256' => str_repeat('a', 64)]);
         $server = Server::factory()->create(['flavor' => 'ddnet']);
 
-        \App\Events\MapAcquisitionAttempted::dispatch($version->id, $server->id, 'udp', 'failure', 'served_other_version', null);
+        MapAcquisitionAttempted::dispatch($version->id, $server->id, 'udp', 'failure', 'served_other_version', null);
 
         self::assertNotNull($version->fresh()->last_acquire_attempt_at, 'the requested version is throttled');
         self::assertSame(0, ServerMapBackoff::where('server_id', $server->id)->count(), 'a served-other host is healthy — no backoff');
@@ -160,7 +160,7 @@ class MapAcquisitionStateTest extends TestCase
         $version = MapVersion::create(['map_id' => $map->id, 'crc' => 'deadbeef']);
         $server = Server::factory()->create(['flavor' => 'vanilla_06']);
 
-        \App\Events\MapAcquisitionAttempted::dispatch($version->id, $server->id, 'udp', 'failure', 'crc_mismatch', null);
+        MapAcquisitionAttempted::dispatch($version->id, $server->id, 'udp', 'failure', 'crc_mismatch', null);
 
         self::assertNull($version->fresh()->last_acquire_attempt_at);
         self::assertSame(0, ServerMapBackoff::where('server_id', $server->id)->count());

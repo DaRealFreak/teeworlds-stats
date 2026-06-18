@@ -128,10 +128,7 @@ final class MapFileStore
 
     /**
      * Path (relative to $this->disk) where this map's .map file is or would be cached, or null when
-     * the map has no usable content key. The filename is <sanitized-name>_<sha256|crc>.map: the hash
-     * keeps uniqueness and is the path-traversal guard (it must be pure hex); the name is a
-     * best-effort, filesystem-safe prefix so the archive is browsable on disk. Lookup never parses
-     * the filename back — callers always hold the Map — so a lossy slug is harmless.
+     * the map has no usable content key. The naming and key logic is owned by MapCachePath::forIdentity.
      */
     public function relativePathFor(Map $map): ?string
     {

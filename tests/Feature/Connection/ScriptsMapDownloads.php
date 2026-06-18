@@ -42,7 +42,7 @@ trait ScriptsMapDownloads
             . $data;
     }
 
-    /** A connection whose single receive() batch carries the given pre-built messages. */
+    /** A connection whose single receive() batch carries the given pre-built messages (e.g. a UDP transfer). */
     protected function connectionYielding(string ...$messages): ConnectionInterface
     {
         return new class($messages) implements ConnectionInterface {
