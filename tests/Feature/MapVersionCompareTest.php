@@ -43,6 +43,7 @@ class MapVersionCompareTest extends TestCase
 
         $this->get('/map/Linear?compare=' . $bad->sha256)
             ->assertOk()
-            ->assertViewHas('compare', null);
+            ->assertViewHas('compare', null)
+            ->assertViewHas('canCompare', false);
     }
 }
