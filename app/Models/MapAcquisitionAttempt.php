@@ -11,7 +11,7 @@ use Illuminate\Database\Eloquent\MassPrunable;
  * event the acquisition sources fire. Drives the map-archive admin dashboard.
  *
  * Reason vocabulary (closed set): not_mirrored_404, timeout, connect_failed, name_mismatch, not_datafile,
- * sha_mismatch, no_hosts, http_error, download_failed.
+ * sha_mismatch, no_hosts, http_error, download_failed, crc_mismatch, served_other_version.
  */
 class MapAcquisitionAttempt extends Model
 {

@@ -141,4 +141,28 @@ class MapAcquisitionStateTest extends TestCase
         $version->refresh();
         self::assertSame(MapVersion::STATUS_CACHED, $version->acquisition_status);
     }
+
+    public function test_served_other_version_throttles_the_requested_version_without_a_backoff(): void
+    {
+        $map = Map::create(['name' => 'Multiworld']);
+        $version = MapVersion::create(['map_id' => $map->id, 'sha256' => str_repeat('a', 64)]);
+        $server = Server::factory()->create(['flavor' => 'ddnet']);
+
+        \App\Events\MapAcquisitionAttempted::dispatch($version->id, $server->id, 'udp', 'failure', 'served_other_version', null);
+
+        self::assertNotNull($version->fresh()->last_acquire_attempt_at, 'the requested version is throttled');
+        self::assertSame(0, ServerMapBackoff::where('server_id', $server->id)->count(), 'a served-other host is healthy — no backoff');
+    }
+
+    public function test_plain_crc_mismatch_still_penalises_nothing(): void
+    {
+        $map = Map::create(['name' => 'dm1']);
+        $version = MapVersion::create(['map_id' => $map->id, 'crc' => 'deadbeef']);
+        $server = Server::factory()->create(['flavor' => 'vanilla_06']);
+
+        \App\Events\MapAcquisitionAttempted::dispatch($version->id, $server->id, 'udp', 'failure', 'crc_mismatch', null);
+
+        self::assertNull($version->fresh()->last_acquire_attempt_at);
+        self::assertSame(0, ServerMapBackoff::where('server_id', $server->id)->count());
+    }
 }

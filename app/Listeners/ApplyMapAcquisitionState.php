@@ -72,6 +72,12 @@ class ApplyMapAcquisitionState
                     ServerMapBackoff::recordFailure($e->serverId, $mapId);
                 } elseif ($e->reason === 'no_hosts') {
                     $version?->markStatus(MapVersion::STATUS_UNAVAILABLE);
+                } elseif ($e->reason === 'served_other_version' && $version) {
+                    // The host served a different self-consistent map than this version (we captured it
+                    // under its own name). The host is healthy, so do NOT back off the (host, map) pair;
+                    // just cool this version down so the filler stops re-pulling the wrong bytes every
+                    // pass. Query-builder stamp so updated_at (the recheck recency signal) is untouched.
+                    MapVersion::whereKey($version->getKey())->toBase()->update(['last_acquire_attempt_at' => now()]);
                 }
                 // any other reason (name_mismatch / crc_mismatch / not_datafile) → the host cycled or the
                 // bytes are a different map; the live-gate handles it, so penalise nothing.
