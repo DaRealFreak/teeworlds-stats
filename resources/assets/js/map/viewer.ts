@@ -15,6 +15,7 @@ import { evalEnvelope } from './envelope';
 import { Overlay, buildAnnotations, pulseActive } from './overlay';
 import type { Annotation, PulseTarget } from './overlay';
 import { HIGHLIGHT_CATEGORIES, buildHighlightVertices } from './highlights';
+import type { DiffCell } from './diff';
 import { buildMapIndex } from './mapIndex';
 import type { LegendEntry } from './mapIndex';
 import { overlayLayerAlpha } from './overlayCompositing';
@@ -276,6 +277,7 @@ export class MapViewer {
     private teleLayer: TileLayer | null = null;
     private readonly highlightBatches = new Map<string, Float32Array>();
     private pulse: PulseTarget | null = null;
+    private diffCells: DiffCell[] = [];
     private zoomListener: ((fraction: number) => void) | null = null;
     private entitiesListener: ((opacity: number) => void) | null = null;
 
@@ -431,6 +433,12 @@ export class MapViewer {
     setEntitiesOpacity(opacity: number): void {
         this.entitiesOpacity = Math.max(0, Math.min(1, opacity));
         this.entitiesListener?.(this.entitiesOpacity);
+        this.requestRender();
+    }
+
+    /** Paint a set of changed physics cells over the map (version comparison); pass [] to clear. */
+    setDiffOverlay(cells: DiffCell[]): void {
+        this.diffCells = cells;
         this.requestRender();
     }
 
@@ -797,6 +805,7 @@ export class MapViewer {
             this.entitiesOpacity,
             this.pulse,
             timeMs,
+            this.diffCells,
         );
         if (this.pulse && !pulseActive(this.pulse, timeMs)) this.pulse = null;
     }

@@ -1,5 +1,6 @@
 import type { Camera } from './camera';
 import type { MapScene } from './types';
+import { DIFF_COLORS, type DiffCell } from './diff';
 
 /**
  * Vector/text annotations the WebGL tile pipeline can't draw, rendered on a transparent 2D
@@ -92,16 +93,36 @@ export class Overlay {
         entitiesOpacity: number,
         pulse: PulseTarget | null,
         nowMs: number,
+        diffCells: DiffCell[],
     ): void {
         const ctx = this.ctx;
         ctx.setTransform(1, 0, 0, 1, 0, 0);
         ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
         ctx.setTransform(this.dpr, 0, 0, this.dpr, 0, 0); // draw in CSS px, crisp on hi-DPI
 
+        if (diffCells.length > 0) this.drawDiffCells(camera, diffCells, parallaxX, parallaxY);
         if (entitiesOpacity > 0 && camera.zoom >= ARROW_MIN_ZOOM && annotations.length > 0) {
             this.drawAnnotations(camera, annotations, parallaxX, parallaxY);
         }
         if (pulse) this.drawPulse(camera, parallaxX, parallaxY, pulse, nowMs);
+    }
+
+    /** Colour-coded fills + outlines for changed physics cells (version comparison overlay). */
+    private drawDiffCells(camera: Camera, cells: DiffCell[], px: number, py: number): void {
+        const ctx = this.ctx;
+        ctx.lineWidth = Math.max(1, camera.zoom * 0.08);
+        for (const c of cells) {
+            const [x0, y0] = camera.worldToScreen(c.x, c.y, px, py);
+            const [x1, y1] = camera.worldToScreen(c.x + 1, c.y + 1, px, py);
+            if (x1 < 0 || y1 < 0 || x0 > this.cssW || y0 > this.cssH) continue; // cull offscreen
+            const color = DIFF_COLORS[c.category];
+            ctx.globalAlpha = 0.45;
+            ctx.fillStyle = color;
+            ctx.fillRect(x0, y0, x1 - x0, y1 - y0);
+            ctx.globalAlpha = 1;
+            ctx.strokeStyle = color;
+            ctx.strokeRect(x0, y0, x1 - x0, y1 - y0);
+        }
     }
 
     private drawAnnotations(camera: Camera, annotations: Annotation[], px: number, py: number): void {
