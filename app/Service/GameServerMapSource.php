@@ -53,10 +53,14 @@ final class GameServerMapSource implements MapSource
      * @param callable|null $connectionFactory fn(string $ip, int $port, string $flavor): ConnectionInterface
      *                                          Must return an ALREADY CONNECTED connection.
      * @param int|null $timeoutMs explicit overall deadline in ms; null reads MAP_UDP_TIMEOUT_S (seconds, default 120).
+     * @param CapturedMapVersionRecorder|null $capturer optional; lazily defaults to a real instance.
+     * @param CurrentServerMapResolverInterface|null $mapResolver optional; lazily defaults to a real instance.
      */
     public function __construct(
         private readonly mixed $connectionFactory = null,
         ?int $timeoutMs = null,
+        private readonly ?CapturedMapVersionRecorder $capturer = null,
+        private readonly ?CurrentServerMapResolverInterface $mapResolver = null,
     ) {
         $this->timeoutMs = $timeoutMs ?? ((int) env('MAP_UDP_TIMEOUT_S', 120)) * 1000;
     }
@@ -188,32 +192,49 @@ final class GameServerMapSource implements MapSource
         $factory = $this->connectionFactory ?? $this->defaultFactory();
         $conn    = ($factory)($ip, $port, $flavor);
 
+        // Self-consistency only: the session still verifies the bytes against the server-announced
+        // crc/size (a corrupt or mid-download-cycled transfer fails there), but the caller-expectation
+        // comparison happens HERE so a served-but-different self-consistent map can be captured under
+        // its true name instead of thrown away.
         $result = MapDownloadSessionFactory::for($conn, $flavor)->downloadWithIdentity(
-            expectedSha256: $expectedSha256,
-            expectedCrc: $expectedCrc,
+            expectedSha256: null,
+            expectedCrc: null,
             timeoutMs: $timeoutMs,
             ignoreAdvertisedHttp: $ignoreAdvertisedHttp,
         );
 
-        // Name-match gate: a host that has since switched maps answers with a different name;
-        // archiving its bytes here would mislabel them. Compared case-insensitively (and trimmed)
-        // because the stored name and the wire name routinely differ only in case: the browser-info /
-        // DDNet-feed map name we store can be lower-cased ("savannux") while the in-game MAP_CHANGE
-        // announces the real filename ("Savannux"). A case-sensitive gate rejected those byte-perfect
-        // downloads on every attempt — when an expected crc/sha is set the integrity check has already
-        // proven identity, so the name is only a cycled-host guard, not a content check.
-        if (!$this->nameMatches($result->name, $expectedName)) {
-            MapAcquisitionAttempted::dispatch($mapVersionId, $serverId, $udpSource, 'failure', 'name_mismatch', null);
-            return null;
-        }
         if (!$this->looksLikeMapDatafile($result->bytes)) {
             MapAcquisitionAttempted::dispatch($mapVersionId, $serverId, $udpSource, 'failure', 'not_datafile', null);
             return null;
         }
 
-        MapAcquisitionAttempted::dispatch($mapVersionId, $serverId, $udpSource, 'success', null, strlen($result->bytes));
+        $servedSha    = hash('sha256', $result->bytes);
+        $servedCrcHex = sprintf('%08x', crc32($result->bytes) & 0xFFFFFFFF);
 
-        return $result->bytes;
+        // Exactly the version we asked for → the normal happy path.
+        if ($this->matchesRequest($result->name, $servedSha, $servedCrcHex, $expectedName, $expectedSha256, $expectedCrc)) {
+            MapAcquisitionAttempted::dispatch($mapVersionId, $serverId, $udpSource, 'success', null, strlen($result->bytes));
+            return $result->bytes;
+        }
+
+        // A different, self-consistent map than requested. Capture it under its true wire name (the
+        // bytes are a real map regardless of why we got them), then decide whether the requested
+        // version is a confirmed phantom worth throttling.
+        $served = $this->capturer()->capture($result->name, $result->bytes, $servedCrcHex);
+        if ($served !== null) {
+            MapAcquisitionAttempted::dispatch($served->getKey(), $serverId, $udpSource, 'success', null, strlen($result->bytes));
+        }
+
+        MapAcquisitionAttempted::dispatch(
+            $mapVersionId,
+            $serverId,
+            $udpSource,
+            'failure',
+            $this->servedOtherReason($result->name, $expectedName, $serverId, $mapVersionId),
+            null,
+        );
+
+        return null;
     }
 
     /**
@@ -392,6 +413,74 @@ final class GameServerMapSource implements MapSource
     private function nameMatches(string $wire, string $expected): bool
     {
         return strcasecmp(trim($wire), trim($expected)) === 0;
+    }
+
+    /**
+     * Whether the served map is exactly the version we requested: the names must match (case-insensitive)
+     * and, when we hold a content key, the content must match it — sha256 if known, else crc. A keyless
+     * map fetch has only the name to go on.
+     */
+    private function matchesRequest(string $wireName, string $servedSha, string $servedCrcHex, string $expectedName, ?string $expectedSha256, ?int $expectedCrc): bool
+    {
+        if (!$this->nameMatches($wireName, $expectedName)) {
+            return false;
+        }
+        if ($expectedSha256 !== null) {
+            return hash_equals(strtolower($expectedSha256), $servedSha);
+        }
+        if ($expectedCrc !== null) {
+            return sprintf('%08x', $expectedCrc & 0xFFFFFFFF) === $servedCrcHex;
+        }
+
+        return true;
+    }
+
+    /**
+     * Classify a served-other outcome for the requested version. A confirmed phantom (the server still
+     * advertises the requested map in the current master state) earns the throttling reason; otherwise
+     * the host has merely moved on, so we keep the descriptive no-penalty reason.
+     */
+    private function servedOtherReason(string $wireName, string $expectedName, ?int $serverId, ?int $mapVersionId): string
+    {
+        $movedOn = $this->nameMatches($wireName, $expectedName) ? 'crc_mismatch' : 'name_mismatch';
+
+        if ($serverId === null || $mapVersionId === null) {
+            return $movedOn; // no server/version context (direct call) → never throttle
+        }
+
+        return $this->isPhantom($serverId, $expectedName, $mapVersionId) ? 'served_other_version' : $movedOn;
+    }
+
+    /**
+     * Whether the requested version is a phantom: the server STILL advertises the requested map in the
+     * current master state (live re-fetch via the correct channel), or — when that re-fetch is
+     * unavailable — its freshest ingested history row still references the requested version.
+     */
+    private function isPhantom(int $serverId, string $expectedName, int $mapVersionId): bool
+    {
+        $server = Server::with('addresses')->find($serverId);
+        if ($server !== null) {
+            $current = $this->mapResolver()->currentMapName($server);
+            if ($current !== null) {
+                return $this->nameMatches($current, $expectedName);
+            }
+        }
+
+        $freshest = ServerHistory::where('server_id', $serverId)
+            ->orderByDesc('updated_at')
+            ->value('map_version_id');
+
+        return $freshest !== null && (int) $freshest === $mapVersionId;
+    }
+
+    private function capturer(): CapturedMapVersionRecorder
+    {
+        return $this->capturer ?? new CapturedMapVersionRecorder();
+    }
+
+    private function mapResolver(): CurrentServerMapResolverInterface
+    {
+        return $this->mapResolver ?? new CurrentServerMapResolver();
     }
 
     /** Convert an 8-hex crc string to a signed int32 for the download session, or null. */

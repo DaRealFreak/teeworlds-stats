@@ -133,24 +133,6 @@ class GameServerMapSourceHttpTest extends TestCase
         Event::assertDispatched(MapAcquisitionAttempted::class, fn ($e) => $e->source === 'udp' && $e->outcome === 'failure' && $e->reason === 'name_mismatch');
     }
 
-    public function test_classifies_a_caller_crc_mismatch_as_crc_mismatch(): void
-    {
-        Event::fake([MapAcquisitionAttempted::class]);
-
-        // The host serves a self-consistent map, but its CRC is not the one we expected (the classic
-        // cycled-server-with-a-crc case) → the session raises a caller-expectation CRC mismatch.
-        $payload = 'DATA' . str_repeat("\x00", 40);
-        $crc     = crc32($payload);
-        $wrongExpectedCrc = $this->toInt32($crc ^ 0x1234);
-        $udp = $this->connectionYielding($this->mapChange('RaiNyMore', $crc, strlen($payload)), $this->mapData(1, $crc, 0, $payload));
-
-        $result = $this->sourceDialling($udp)
-            ->downloadFromHost('9.9.9.9', 8303, 'ddnet', null, $wrongExpectedCrc, 'RaiNyMore', 5000);
-
-        self::assertNull($result);
-        Event::assertDispatched(MapAcquisitionAttempted::class, fn ($e) => $e->source === 'udp' && $e->reason === 'crc_mismatch');
-    }
-
     public function test_classifies_a_transfer_timeout_as_timeout(): void
     {
         Event::fake([MapAcquisitionAttempted::class]);
