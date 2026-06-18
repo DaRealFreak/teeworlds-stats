@@ -285,6 +285,21 @@ class SearchController extends Controller
             fn ($v) => [$v->getAttribute('id') => MapAvailability::forVersion($v, $store)]
         );
 
-        return view('detail.map', compact('map', 'selected', 'serverCounts', 'availability', 'versionAvailability'));
+        // optional comparison base for the version diff overlay: ?compare=<sha256|crc>, must be pickable
+        $compare = null;
+        if ($request->filled('compare')) {
+            $key = $request->query('compare');
+            $compare = $map->versions->first(
+                fn ($v) => ($v->getAttribute('sha256') === $key || $v->getAttribute('crc') === $key)
+                    && MapAvailability::forVersion($v, $store) !== MapAvailability::Unavailable
+            );
+        }
+
+        // the compare UI is worthwhile only when the map has a file to render under the overlay and at
+        // least two versions are fetchable (anything but Unavailable can be produced by the file route)
+        $canCompare = $map->hasDownloadableFile()
+            && $versionAvailability->filter(fn ($a) => $a !== MapAvailability::Unavailable)->count() >= 2;
+
+        return view('detail.map', compact('map', 'selected', 'serverCounts', 'availability', 'versionAvailability', 'compare', 'canCompare'));
     }
 }

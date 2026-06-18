@@ -16,7 +16,9 @@ class MapVersionFactory extends Factory
     public function definition(): array
     {
         return [
-            'map_id' => Map::factory(),
+            // Map has no HasFactory — create a minimal row so the factory is self-contained when no
+            // parent is supplied via ->for($map); callers that pass ->for($map) override map_id directly.
+            'map_id' => Map::create(['name' => $this->faker->unique()->word()]),
             'crc' => dechex($this->faker->numberBetween(0x10000000, 0x7fffffff)),
             'size' => $this->faker->numberBetween(50_000, 800_000),
             'first_seen_at' => now(),
