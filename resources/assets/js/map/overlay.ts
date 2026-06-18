@@ -123,6 +123,7 @@ export class Overlay {
             ctx.strokeStyle = color;
             ctx.strokeRect(x0, y0, x1 - x0, y1 - y0);
         }
+        ctx.lineWidth = 1; // restore the canvas default so later overlay passes don't inherit the diff stroke width
     }
 
     private drawAnnotations(camera: Camera, annotations: Annotation[], px: number, py: number): void {
