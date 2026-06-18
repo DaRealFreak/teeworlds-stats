@@ -23,12 +23,20 @@ the playable layout*, shown visually on the map plus a structured breakdown.
 - **Dimension mismatch:** per-cell visual diff **only when the two `game` layers share
   the same width/height**. Otherwise: structural-only output ("dimensions changed
   A×B → C×D — likely a different map"). No best-offset alignment.
-- **Entry point:** Compare selectors **in the existing Versions panel** on the detail
-  page; the diff renders into the existing in-page viewer. `unavailable` versions
-  cannot be picked.
-- **Base render:** the viewer shows **version B (the target)**; changes are annotated
-  relative to **version A (the base)**.
-- **No shareable `?a=&b=` URL** (YAGNI) — selection lives in the panel only.
+- **Entry point:** Compare selectors (two radio columns, **A = base** / **B = target**)
+  **in the existing Versions panel**. `unavailable` versions cannot be picked.
+- **Launch via navigation:** `MapViewer` is built once at page-load around a single
+  fixed map and has no in-place map-swap or teardown. So Compare **navigates** to
+  `?version=<B>&compare=<A>`: the page reloads showing B through the existing
+  version-selection path, then the diff is computed and overlaid. This is the smallest,
+  lowest-risk option (decided during plan-writing, overriding the original
+  "same page, no reload" wording). The diff overlay still paints onto the existing
+  viewer's overlay canvas after the reload.
+- **Base render:** the reloaded page shows **version B (the target)** as `?version=`;
+  changes are annotated relative to **version A (the base)**, carried as `?compare=`.
+- **The comparison pair lives in the URL** (`?version=<B>&compare=<A>`) — a side effect
+  of the navigation approach, so a comparison is incidentally shareable / survives the
+  back button. (This overrides the earlier "no shareable URL" non-goal.)
 - **Two versions at a time** (A vs B). No N-way.
 - **No new DB columns, migrations, or persisted state.** Read-time client feature.
 
@@ -42,10 +50,12 @@ a version by `sha256` *or* `crc`.
 ```
 Versions panel (Blade)
   ─ pick A (base) + B (target) radios → "Compare" button
-        │ inline <script> reads the two content-keys + the mapFile route template
+        │ inline handler navigates to ?version=<B>&compare=<A>
         ▼
-  window.MapCompare.run({ baseKey, targetKey, fileRoute, viewer, panelEl })   (new TS)
-        │  fetch both /file/{key}  →  parseMap() ×2  →  MapScene ×2
+Page reloads: SearchController selects B (?version), resolves A (?compare),
+viewer inits on B; inline <script> sees the compare key and calls →
+  window.MapCompare.run({ baseUrl: A.file, targetUrl: B.file, viewer, panelEl, labels }) (new TS)
+        │  fetch both /file/{key}  →  parseMap() ×2  →  MapScene ×2 (base=A, target=B)
         ▼
   diffPhysics(base, target): PhysicsDiff        (new PURE module, unit-tested)
         │
@@ -129,31 +139,43 @@ Colours (semi-transparent fill + solid outline):
 
 Follows the existing inline-script seam: the detail view's inline `<script>` already
 calls `window.MapViewer.init(...)`. The orchestrator is exposed the same way
-(e.g. `window.MapCompare`) and is called from the inline script with the two selected
-content-keys, the `mapFile` route template, the live `MapViewer` instance, and the
-breakdown-panel element. It:
+(`window.MapCompare`). After the page has reloaded with `?version=<B>&compare=<A>` and
+the viewer has finished initialising on **B**, the inline script — seeing a compare key
+— calls `window.MapCompare.run({ baseUrl, targetUrl, viewer, panelEl, labels })`, where
+`baseUrl` is A's `mapFile` URL, `targetUrl` is B's `mapFile` URL (the same URL the
+viewer used). It:
 
-1. Fetches both versions' bytes via the `mapFile` route, `parseMap`s both into scenes.
+1. Fetches A's and B's bytes from their `mapFile` URLs, `parseMap`s both into scenes
+   (base = A, target = B).
 2. Runs `diffPhysics(base, target)`.
-3. If `aligned`: ensures the viewer is showing **target (B)**, then calls
-   `viewer.setDiffOverlay(diff.cells)`.
-4. Renders the structured breakdown panel from the diff result + file facts.
+3. If `aligned`: calls `viewer.setDiffOverlay(diff.cells)` (the viewer already renders B).
+4. Renders the structured breakdown panel from the diff result + `labels`.
 5. Surfaces a clear in-panel error if a fetch/parse fails.
 
 Note: B is parsed once by the orchestrator and again by `MapViewer` when it renders the
 base. Re-parsing a ~187 KB map is negligible; the large (~1 MB) version only ever hits
-the structural-only path, so it is not re-rendered. If this ever matters, `MapViewer`
+the structural-only path, so its overlay is empty. If this ever matters, `MapViewer`
 can expose its parsed scene later — out of scope now.
+
+### `app/Http/Controllers/SearchController.php` (extend `searchMapByName`)
+
+- Read a new `?compare=` query param (same shape as `?version=`: a `sha256`/`crc`
+  content-key) and resolve it to one of `$map->versions` whose file is available.
+- Pass the resolved base version (or `null`) to the view so the Blade can build A's
+  `mapFile` URL and short label. No new route.
 
 ### `resources/views/detail/map.blade.php` (extend)
 
 - Add two radio columns to the Versions table: **A (base)** and **B (target)**, one
   radio each per row. Rows whose version is `unavailable` (no cached file) render the
-  radios **disabled**.
-- Add a **Compare** button, enabled only once one A and one B are selected (and A ≠ B).
-- Add an initially-hidden **breakdown panel** container below the viewer, populated by
-  the orchestrator.
-- Inline `<script>`: on Compare, read the selected content-keys and invoke
+  radios **disabled**. Shown only when at least two versions have files.
+- Add a **Compare** button. A small inline handler reads the selected A/B keys and, when
+  both are set and differ, navigates to
+  `route('searchMapByName', [name]) + '?version=' + B + '&compare=' + A`.
+- Add an initially-hidden **breakdown panel** container (`#mapCompareResult`) below the
+  versions panel, populated by the orchestrator.
+- In the existing viewer inline `<script>`, after `MapViewer.init(...).then(viewer => …)`
+  resolves, if a `compare` base URL was rendered into the page, invoke
   `window.MapCompare.run(...)`.
 
 ## Breakdown panel contents
@@ -187,5 +209,8 @@ can expose its parsed scene later — out of scope now.
 - No diffing of design layers, quads, images, envelopes, or metadata.
 - No best-offset / fuzzy alignment.
 - No N-way comparison; two versions at a time.
-- No shareable comparison URL.
-- No new DB columns, migrations, routes, or server-side persistence.
+- No new DB columns, migrations, or routes. The only server-side change is reading a new
+  `?compare=` query param in the existing `searchMapByName` action and passing the
+  resolved base version to the view. No persistence.
+- No in-place viewer map-swap / teardown — Compare reloads the page (see "Launch via
+  navigation" above).
