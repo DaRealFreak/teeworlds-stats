@@ -50,3 +50,5 @@ import './serverbrowser';
 import './tee';
 import { MapViewer } from './map/viewer';
 window.MapViewer = MapViewer;
+import { MapCompare } from './map/compare';
+window.MapCompare = MapCompare;

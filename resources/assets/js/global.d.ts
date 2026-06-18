@@ -15,6 +15,8 @@ declare global {
         blade: <T>(value: T) => T;
         // Interactive map viewer — instantiated by map detail pages via window.MapViewer.init().
         MapViewer: typeof import('./map/viewer').MapViewer;
+        // Version comparison orchestrator — invoked by the map detail page when a ?compare= base is present.
+        MapCompare: typeof import('./map/compare').MapCompare;
     }
 }
 
