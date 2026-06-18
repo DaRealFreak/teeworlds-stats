@@ -135,10 +135,10 @@ final class MapFileStore
      */
     public function relativePathFor(Map $map): ?string
     {
-        return $this->pathForIdentity(
-            name: (string) $map->getAttribute('name'),
-            sha256: $map->getAttribute('sha256'),
-            crc: $map->getAttribute('crc'),
+        return MapCachePath::forIdentity(
+            (string) $map->getAttribute('name'),
+            $map->getAttribute('sha256'),
+            $map->getAttribute('crc'),
         );
     }
 
@@ -148,29 +148,11 @@ final class MapFileStore
      */
     public function relativePathForVersion(MapVersion $version): ?string
     {
-        return $this->pathForIdentity(
-            name: (string) $version->map->getAttribute('name'),
-            sha256: $version->getAttribute('sha256'),
-            crc: $version->getAttribute('crc'),
+        return MapCachePath::forIdentity(
+            (string) $version->map->getAttribute('name'),
+            $version->getAttribute('sha256'),
+            $version->getAttribute('crc'),
         );
-    }
-
-    /**
-     * Shared path-computation logic for both map-keyed and version-keyed callers.
-     * The key is sha256 if available, else crc. Returns null when no key exists or the key
-     * contains non-hex characters (path-traversal guard).
-     */
-    private function pathForIdentity(string $name, ?string $sha256, ?string $crc): ?string
-    {
-        $key = $sha256 ?? $crc;
-        if ($key === null || !ctype_xdigit($key)) {
-            return null;
-        }
-
-        $slug = $this->nameSlug($name);
-        $prefix = $slug === '' ? '' : $slug . '_';
-
-        return 'maps/' . $prefix . $key . '.map';
     }
 
     /**
@@ -217,16 +199,4 @@ final class MapFileStore
         }
     }
 
-    /**
-     * Filesystem-safe, human-readable slug for a (server-controlled) map name. The whitelist keeps
-     * out '/', '.' and whitespace, so the slug can never contain a path separator or '..'; the dash
-     * sits last in the class so 0-9-_ is not read as a range. Capped so name + hash stay well under
-     * the 255-byte filename limit.
-     */
-    private function nameSlug(string $name): string
-    {
-        $slug = preg_replace('/[^A-Za-z0-9_-]+/', '_', $name);
-
-        return rtrim(substr(trim($slug, '_'), 0, 64), '_');
-    }
 }
