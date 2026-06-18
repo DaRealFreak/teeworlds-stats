@@ -85,7 +85,7 @@
                                         <td>{{ $serverCounts[$version->id] ?? 0 }}</td>
                                         @if($canCompare)
                                             @php($pickable = $avail !== \App\Service\MapAvailability::Unavailable)
-                                            <td class="text-center"><input type="radio" name="cmpA" value="{{ $key }}" @disabled(!$pickable)></td>
+                                            <td class="text-center"><input type="radio" name="cmpA" value="{{ $key }}" @checked($compare && $compare->is($version)) @disabled(!$pickable)></td>
                                             <td class="text-center"><input type="radio" name="cmpB" value="{{ $key }}" @checked($isSelected) @disabled(!$pickable)></td>
                                         @endif
                                         <td class="text-end">

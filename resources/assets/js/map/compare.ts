@@ -36,7 +36,7 @@ function legend(diff: PhysicsDiff): HTMLElement {
 }
 
 function layerTable(diff: PhysicsDiff): HTMLElement {
-    const table = el('table', 'table table-sm mb-0') as HTMLTableElement;
+    const table = el('table', 'table table-sm mb-0');
     const thead = document.createElement('thead');
     thead.innerHTML = '<tr><th>Layer</th><th>In A</th><th>In B</th><th>Added</th><th>Removed</th><th>Modified</th></tr>';
     const tbody = document.createElement('tbody');

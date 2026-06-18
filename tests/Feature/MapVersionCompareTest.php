@@ -77,5 +77,6 @@ class MapVersionCompareTest extends TestCase
 
         $this->assertStringContainsString('window.MapCompare.run', $html);
         $this->assertStringContainsString('/map/Linear/file/' . $base->sha256, $html);
+        $this->assertMatchesRegularExpression('/name="cmpA" value="' . $base->sha256 . '"[^>]*checked/', $html);
     }
 }
