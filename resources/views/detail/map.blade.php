@@ -12,6 +12,7 @@
     <section class="section-content">
         <div class="container-fluid">
             @if($map->hasDownloadableFile())
+                <div class="alert mb-2" id="mapCompareNotice" role="status" hidden></div>
                 <div class="block map-viewer">
                     <div class="map-viewer__stage">
                         <canvas id="mapCanvas" class="map-viewer__canvas" width="960" height="540"></canvas>
@@ -60,35 +61,32 @@
                                     <th scope="col">Size</th>
                                     <th scope="col">Last seen</th>
                                     <th scope="col">Servers</th>
-                                    @if($canCompare)
-                                        <th scope="col" class="text-center">A</th>
-                                        <th scope="col" class="text-center">B</th>
-                                    @endif
                                     <th scope="col"></th>
                                 </tr>
                             </thead>
+                            @php($selectedPickable = $selected && ($versionAvailability[$selected->id] ?? null) !== \App\Service\MapAvailability::Unavailable)
                             <tbody>
                                 @foreach($map->versions as $version)
                                     @php($key = $version->contentKey())
                                     @php($isSelected = $selected && $selected->is($version))
                                     @php($isCurrent = $version->is($map->versions->first()))
                                     @php($avail = $versionAvailability[$version->id])
+                                    @php($pickable = $avail !== \App\Service\MapAvailability::Unavailable)
                                     <tr @class(['table-active' => $isSelected])>
                                         <td>
                                             <code>{{ \Illuminate\Support\Str::substr($key, 0, 12) }}</code>
                                             @if($isCurrent)<span class="badge bg-secondary">current</span>@endif
                                             @if($isSelected)<span class="badge bg-info">viewing</span>@endif
+                                            @if($compare && $compare->is($version))<span class="badge bg-warning text-dark">base</span>@endif
                                         </td>
                                         <td><span class="badge {{ $avail->badgeClass() }}">{{ $avail->label() }}</span></td>
                                         <td>{{ $version->size ? number_format($version->size / 1024) . ' KB' : '—' }}</td>
                                         <td>{{ $version->last_seen_at?->diffForHumans() ?? '—' }}</td>
                                         <td>{{ $serverCounts[$version->id] ?? 0 }}</td>
-                                        @if($canCompare)
-                                            @php($pickable = $avail !== \App\Service\MapAvailability::Unavailable)
-                                            <td class="text-center"><input type="radio" name="cmpA" value="{{ $key }}" @checked($compare && $compare->is($version)) @disabled(!$pickable)></td>
-                                            <td class="text-center"><input type="radio" name="cmpB" value="{{ $key }}" @checked($isSelected) @disabled(!$pickable)></td>
-                                        @endif
                                         <td class="text-end">
+                                            @if($canCompare && $pickable && !$isSelected && $selectedPickable)
+                                                <a href="{{ route('searchMapByName', ['map_name' => $map->name, 'version' => $key, 'compare' => $selected->contentKey()]) }}" class="btn btn-sm btn-outline-info">Compare</a>
+                                            @endif
                                             @unless($isSelected)
                                                 <a href="{{ route('searchMapByName', ['map_name' => $map->name, 'version' => $key]) }}" class="btn btn-sm btn-outline-secondary">View</a>
                                             @endunless
@@ -99,12 +97,6 @@
                             </tbody>
                         </table>
                     </div>
-                    @if($canCompare)
-                        <div class="mt-2">
-                            <button type="button" id="mapCompareBtn" class="btn btn-sm btn-primary" disabled>Compare A → B</button>
-                            <span class="text-muted small">Pick a base (A) and a target (B), then compare what changed.</span>
-                        </div>
-                    @endif
                 </div>
             @endif
             @if($canCompare)
@@ -117,33 +109,6 @@
 
 @section('scripts')
     @include('partials.play-stats-scripts')
-    @if($canCompare)
-    <script>
-        (function () {
-            var btn = document.getElementById('mapCompareBtn');
-            if (!btn) return;
-            var base = {!! json_encode(route('searchMapByName', ['map_name' => $map->name]), JSON_UNESCAPED_SLASHES) !!};
-            var selected = function (name) {
-                var found = null;
-                document.querySelectorAll('input[name="' + name + '"]').forEach(function (r) { if (r.checked) found = r.value; });
-                return found;
-            };
-            var sync = function () {
-                var a = selected('cmpA'), b = selected('cmpB');
-                btn.disabled = !(a && b && a !== b);
-            };
-            document.addEventListener('change', function (e) {
-                if (e.target && (e.target.name === 'cmpA' || e.target.name === 'cmpB')) sync();
-            });
-            btn.addEventListener('click', function () {
-                var a = selected('cmpA'), b = selected('cmpB');
-                if (!a || !b || a === b) return;
-                window.location.href = base + '?version=' + encodeURIComponent(b) + '&compare=' + encodeURIComponent(a);
-            });
-            sync();
-        })();
-    </script>
-    @endif
     @if($map->hasDownloadableFile())
     <script>
         document.addEventListener('DOMContentLoaded', function () {
@@ -328,6 +293,7 @@
                         targetUrl: {!! json_encode($selected ? route('mapFile', ['map_name' => $map->name, 'version' => $selected->contentKey()]) : route('mapFile', ['map_name' => $map->name]), JSON_UNESCAPED_SLASHES) !!},
                         viewer: viewer,
                         panelEl: comparePanel,
+                        noticeEl: document.getElementById('mapCompareNotice'),
                         labels: {
                             base: {!! json_encode($compare ? \Illuminate\Support\Str::substr($compare->contentKey(), 0, 12) : '', JSON_UNESCAPED_SLASHES) !!},
                             target: {!! json_encode($selected ? \Illuminate\Support\Str::substr($selected->contentKey(), 0, 12) : '', JSON_UNESCAPED_SLASHES) !!}
