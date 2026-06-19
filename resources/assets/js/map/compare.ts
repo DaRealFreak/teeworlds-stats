@@ -1,5 +1,5 @@
 import { loadMapScene } from './viewer';
-import { diffPhysics, formatVerdict, DIFF_COLORS, type PhysicsDiff, type DiffCategory } from './diff';
+import { diffPhysics, formatVerdict, overlayState, DIFF_COLORS, type PhysicsDiff, type DiffCategory } from './diff';
 import type { MapViewer } from './viewer';
 
 interface RunOptions {
@@ -7,6 +7,7 @@ interface RunOptions {
     targetUrl: string; // version B (target) .map file URL — the version the viewer renders
     viewer: MapViewer;
     panelEl: HTMLElement;
+    noticeEl?: HTMLElement | null; // viewer-area banner for the no-overlay cases; optional
     labels: { base: string; target: string }; // short content-keys for the panel header
 }
 
@@ -55,24 +56,46 @@ function renderPanel(panelEl: HTMLElement, diff: PhysicsDiff, labels: RunOptions
     const root = el('div', '');
     root.append(el('h2', 'h5', `Comparing ${labels.base} → ${labels.target}`));
     root.append(el('p', 'mb-2', formatVerdict(diff)));
-    if (diff.aligned && diff.totals.added + diff.totals.removed + diff.totals.modified > 0) {
+    if (overlayState(diff) === 'shown') {
         root.append(legend(diff));
     }
     root.append(layerTable(diff));
     panelEl.replaceChildren(root);
 }
 
+/** Populate the viewer-area notice for the cases where no overlay is drawn; hide it when cells show. */
+function applyNotice(noticeEl: HTMLElement, diff: PhysicsDiff): void {
+    noticeEl.classList.remove('alert-warning', 'alert-info');
+    const state = overlayState(diff);
+    if (state === 'shown') {
+        noticeEl.hidden = true;
+        noticeEl.textContent = '';
+        return;
+    }
+    if (state === 'misaligned') {
+        noticeEl.classList.add('alert-warning');
+        noticeEl.textContent =
+            "These versions have different dimensions, so the changes can't be shown on the map — they're likely different maps. See the breakdown below.";
+    } else {
+        noticeEl.classList.add('alert-info');
+        noticeEl.textContent = 'No physics-layer differences to highlight.';
+    }
+    noticeEl.hidden = false;
+}
+
 export class MapCompare {
     /** Fetch both versions, diff their physics layers, paint the overlay (when aligned), fill the panel. */
     static async run(opts: RunOptions): Promise<void> {
-        const { panelEl } = opts;
+        const { panelEl, noticeEl } = opts;
         panelEl.hidden = false;
+        if (noticeEl) noticeEl.hidden = true;
         panelEl.replaceChildren(el('p', 'mb-0', 'Comparing versions…'));
         try {
             const [base, target] = await Promise.all([loadMapScene(opts.baseUrl), loadMapScene(opts.targetUrl)]);
             const diff = diffPhysics(base, target);
             if (diff.aligned) opts.viewer.setDiffOverlay(diff.cells);
             renderPanel(panelEl, diff, opts.labels);
+            if (noticeEl) applyNotice(noticeEl, diff);
         } catch {
             panelEl.replaceChildren(el('p', 'mb-0 text-danger', 'Could not load one of the versions to compare.'));
         }

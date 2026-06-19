@@ -120,6 +120,19 @@ export function diffPhysics(base: MapScene, target: MapScene): PhysicsDiff {
     return { aligned, gameDims: { a: dims(gameA), b: dims(gameB) }, layers, totals, cells };
 }
 
+export type OverlayState = 'shown' | 'misaligned' | 'identical';
+
+/**
+ * What the map overlay can express for a diff: the changed cells are `shown`, or there are none to
+ * show because the maps are `misaligned` (different game dimensions, so cells can't be matched) or
+ * `identical` (aligned but no physics cell changed). The viewer notice keys off this.
+ */
+export function overlayState(diff: PhysicsDiff): OverlayState {
+    if (!diff.aligned) return 'misaligned';
+    if (diff.totals.added + diff.totals.removed + diff.totals.modified === 0) return 'identical';
+    return 'shown';
+}
+
 /** One-line human verdict for the panel header. */
 export function formatVerdict(diff: PhysicsDiff): string {
     if (!diff.aligned) {

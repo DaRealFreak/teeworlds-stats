@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { diffPhysics, formatVerdict } from '../../../resources/assets/js/map/diff';
+import { diffPhysics, formatVerdict, overlayState } from '../../../resources/assets/js/map/diff';
 import type { MapScene, TileLayer, Group, LayerKind } from '../../../resources/assets/js/map/types';
 
 // Build a tile layer; flags/number arrays are parallel to ids when supplied.
@@ -121,5 +121,20 @@ describe('formatVerdict', () => {
     it('reports a dimension mismatch as a likely different map', () => {
         const d = diffPhysics(sceneOf(layer([1, 1], 2, 1)), sceneOf(layer([1, 1, 1, 1], 2, 2)));
         expect(formatVerdict(d)).toBe('Different dimensions 2×1 → 2×2 — likely a different map.');
+    });
+});
+
+describe('overlayState', () => {
+    it('returns "shown" for an aligned diff with at least one changed cell', () => {
+        const d = diffPhysics(sceneOf(layer([1, 1, 0, 0], 2, 2)), sceneOf(layer([1, 2, 1, 0], 2, 2)));
+        expect(overlayState(d)).toBe('shown');
+    });
+    it('returns "identical" for an aligned diff with no changed cells', () => {
+        const d = diffPhysics(sceneOf(layer([1], 1, 1)), sceneOf(layer([1], 1, 1)));
+        expect(overlayState(d)).toBe('identical');
+    });
+    it('returns "misaligned" when the game dimensions differ', () => {
+        const d = diffPhysics(sceneOf(layer([1, 1], 2, 1)), sceneOf(layer([1, 1, 1, 1], 2, 2)));
+        expect(overlayState(d)).toBe('misaligned');
     });
 });
