@@ -77,15 +77,16 @@
                                             <code>{{ \Illuminate\Support\Str::substr($key, 0, 12) }}</code>
                                             @if($isCurrent)<span class="badge bg-secondary">current</span>@endif
                                             @if($isSelected)<span class="badge bg-info">viewing</span>@endif
-                                            @if($compare && $compare->is($version))<span class="badge bg-warning text-dark">base</span>@endif
+                                            @if($compare && $compare->is($version))<span class="badge bg-warning text-dark">comparing</span>@endif
                                         </td>
                                         <td><span class="badge {{ $avail->badgeClass() }}">{{ $avail->label() }}</span></td>
                                         <td>{{ $version->size ? number_format($version->size / 1024) . ' KB' : '—' }}</td>
                                         <td>{{ $version->last_seen_at?->diffForHumans() ?? '—' }}</td>
                                         <td>{{ $serverCounts[$version->id] ?? 0 }}</td>
                                         <td class="text-end">
-                                            @if($canCompare && $pickable && !$isSelected && $selectedPickable)
-                                                <a href="{{ route('searchMapByName', ['map_name' => $map->name, 'version' => $key, 'compare' => $selected->contentKey()]) }}" class="btn btn-sm btn-outline-info">Compare</a>
+                                            @if($canCompare && $pickable && !$isSelected && $selectedPickable && !($compare && $compare->is($version)))
+                                                {{-- Compare keeps the viewed version as ?version (the base/displayed) and sets this row as ?compare (the target) — it never switches what you're viewing. --}}
+                                                <a href="{{ route('searchMapByName', ['map_name' => $map->name, 'version' => $selected->contentKey(), 'compare' => $key]) }}" class="btn btn-sm btn-outline-info">Compare</a>
                                             @endif
                                             @unless($isSelected)
                                                 <a href="{{ route('searchMapByName', ['map_name' => $map->name, 'version' => $key]) }}" class="btn btn-sm btn-outline-secondary">View</a>
@@ -284,19 +285,20 @@
                     }
                 }
 
-                // When the page was opened with a ?compare base, overlay the physics diff onto B.
+                // With a ?compare target present, overlay its physics diff onto the version we're viewing:
+                // the displayed (?version) version is the base, the ?compare version is the target.
                 var compareUrl = {!! $compare ? json_encode(route('mapFile', ['map_name' => $map->name, 'version' => $compare->contentKey()]), JSON_UNESCAPED_SLASHES) : 'null' !!};
                 var comparePanel = document.getElementById('mapCompareResult');
                 if (compareUrl && comparePanel && window.MapCompare) {
                     window.MapCompare.run({
-                        baseUrl: compareUrl,
-                        targetUrl: {!! json_encode($selected ? route('mapFile', ['map_name' => $map->name, 'version' => $selected->contentKey()]) : route('mapFile', ['map_name' => $map->name]), JSON_UNESCAPED_SLASHES) !!},
+                        baseUrl: {!! json_encode($selected ? route('mapFile', ['map_name' => $map->name, 'version' => $selected->contentKey()]) : route('mapFile', ['map_name' => $map->name]), JSON_UNESCAPED_SLASHES) !!},
+                        targetUrl: compareUrl,
                         viewer: viewer,
                         panelEl: comparePanel,
                         noticeEl: document.getElementById('mapCompareNotice'),
                         labels: {
-                            base: {!! json_encode($compare ? \Illuminate\Support\Str::substr($compare->contentKey(), 0, 12) : '', JSON_UNESCAPED_SLASHES) !!},
-                            target: {!! json_encode($selected ? \Illuminate\Support\Str::substr($selected->contentKey(), 0, 12) : '', JSON_UNESCAPED_SLASHES) !!}
+                            base: {!! json_encode($selected ? \Illuminate\Support\Str::substr($selected->contentKey(), 0, 12) : '', JSON_UNESCAPED_SLASHES) !!},
+                            target: {!! json_encode($compare ? \Illuminate\Support\Str::substr($compare->contentKey(), 0, 12) : '', JSON_UNESCAPED_SLASHES) !!}
                         }
                     });
                 }

@@ -25,19 +25,21 @@ Two pieces of feedback on the shipped physics-diff feature:
   standalone "Compare A → B" button. Each fetchable version row — except the one being
   viewed — gets a **Compare** button in the actions cell, ordered **before** View and
   Download.
-- **The currently-viewed version is the base.** Clicking **Compare** on row *X* navigates
-  to `?version=<X>&compare=<currently-viewed version>`. So the version you were viewing
-  becomes the **base** (`?compare`), *X* becomes the displayed **target** (`?version`),
-  and the diff is overlaid on *X*. This reuses the existing diff direction unchanged
-  (`?compare` = base, `?version` = target); only the per-row link wiring is new.
-  - **green** = present in *X* but not the base (X added it)
-  - **red** = present in the base but not *X* (X removed it)
+- **Compare never switches the viewed map; the viewed version is the base.** Clicking
+  **Compare** on row *X* (while viewing *C*) navigates to `?version=<C>&compare=<X>`. *C*
+  stays displayed and is the **base** (`?version`); *X* is the comparison **target**
+  (`?compare`), overlaid onto *C* but not itself displayed. **View** is the action that
+  switches which map you're looking at — **Compare** only overlays. The diff is rendered
+  on the displayed base *C* with `diffPhysics(base = C = ?version, target = X = ?compare)`:
+  - **green** = present in *X* but not the viewed base *C* (X has it)
+  - **red** = present in the viewed base *C* but not *X* (X lacks it)
   - **amber** = changed
-- **The compare URL is shareable.** `?version=<X>&compare=<base>` fully encodes the
+- **The compare URL is shareable.** `?version=<C>&compare=<X>` fully encodes the
   comparison, so the page is bookmarkable / survives reload — no extra mechanism.
-- **`base` badge.** When a comparison is active (`?compare` resolved), the base row shows
-  a `base` badge, mirroring the existing `viewing` badge on the target row, so it's clear
-  which version the displayed map is being compared against.
+- **`comparing` badge.** When a comparison is active, the **target** row (`?compare`) shows
+  a `comparing` badge, so it's clear which version is being compared against the one you're
+  viewing. The viewed row keeps its `viewing` badge (it *is* the base). The target row's own
+  Compare button is suppressed (it's already the active target).
 - **Viewer-area notice for the no-overlay cases (both).** A banner directly above the map
   stage, set by `MapCompare` after it computes the diff:
   - **Different dimensions** (`!aligned`): ⚠ *"These versions have different dimensions,
@@ -57,13 +59,15 @@ Two pieces of feedback on the shipped physics-diff feature:
 - **Actions cell** (per `$version` row, `$key = contentKey`, `$isSelected` = the viewed
   version, `$pickable` = availability ≠ Unavailable): render, in order,
   1. **Compare** — shown when `$canCompare && $pickable && !$isSelected` *and* the viewed
-     version `$selected` is itself pickable. Links to
-     `route('searchMapByName', ['map_name' => $map->name, 'version' => $key, 'compare' => $selected->contentKey()])`.
+     version `$selected` is itself pickable *and* this row isn't already the active target
+     (`!($compare && $compare->is($version))`). Links to
+     `route('searchMapByName', ['map_name' => $map->name, 'version' => $selected->contentKey(), 'compare' => $key])`
+     — i.e. `?version` stays the **viewed** version, `?compare` is **this** row.
   2. **View** — existing, shown `@unless($isSelected)`.
   3. **Download** — existing, always.
-- **`base` badge:** in the Version cell, add `@if($compare && $compare->is($version))<span
-  class="badge bg-warning text-dark">base</span>@endif` alongside the existing
-  `current`/`viewing` badges.
+- **`comparing` badge:** in the Version cell, add `@if($compare && $compare->is($version))<span
+  class="badge bg-warning text-dark">comparing</span>@endif` alongside the existing
+  `current`/`viewing` badges (marks the `?compare` target row).
 - **Notice banner:** add `<div id="mapCompareNotice" class="alert" role="status" hidden></div>`
   immediately above the `map-viewer` block (inside `@if($map->hasDownloadableFile())`), so
   it sits at the top of the map area. Populated by `MapCompare`.
@@ -83,13 +87,16 @@ Two pieces of feedback on the shipped physics-diff feature:
 ### Blade inline script (the existing viewer `.then(viewer => …)` wiring)
 
 - Pass `noticeEl: document.getElementById('mapCompareNotice')` into the existing
-  `window.MapCompare.run({...})` call. No other change to the wiring.
+  `window.MapCompare.run({...})` call.
+- Set `baseUrl` to the **viewed** version's file (`$selected`) and `targetUrl` to the
+  `?compare` version's file, with `labels.base = $selected` and `labels.target = $compare`
+  — the displayed (viewed) version is the diff base; the `?compare` version is the target.
 
 ### Controller (`SearchController::searchMapByName`)
 
-- **Unchanged.** `$compare` (resolved base) and `$canCompare` are still produced and
-  passed; the removed precheck was Blade-only. The base/target query-param contract is
-  the same.
+- **Unchanged.** `$compare` (the resolved comparison target) and `$canCompare` are still
+  produced and passed; the removed precheck was Blade-only. The `?version`/`?compare`
+  resolution is the same — only the view's base/target *interpretation* of them changed.
 
 ## Testing
 
@@ -98,14 +105,15 @@ Rework `tests/Feature/MapVersionCompareTest.php` for the new UI:
 - **Remove / replace** the now-obsolete assertions that referenced `name="cmpA"`,
   `name="cmpB"`, `id="mapCompareBtn"`, the disabled-radio regex, and the A-radio
   `checked` regression assertion.
-- **Per-row Compare link:** on `/map/Linear` (viewing the default/newest version), assert
-  a non-viewed pickable row renders a Compare anchor whose href is
-  `/map/Linear?version=<row key>&compare=<viewed key>` (or assert both query params are
-  present pointing the right way). Assert the **viewed** row has **no** Compare link.
+- **Per-row Compare link:** viewing a known version, assert a non-viewed pickable row
+  renders a Compare anchor that keeps the viewed version as `?version` and sets the row as
+  `?compare` — `/map/Linear?version=<viewed key>&compare=<row key>`. Assert the **viewed**
+  version is never offered as a compare target (it's the base).
 - **No radios:** assert `name="cmpA"`/`name="cmpB"` are absent.
 - **Unavailable row:** assert it has no Compare link (not fetchable).
-- **`base` badge + notice element:** on a `?version=…&compare=…` request, assert the
-  `base` badge renders on the base row and `id="mapCompareNotice"` is present.
+- **`comparing` badge + notice element:** on a `?version=…&compare=…` request, assert the
+  `comparing` badge renders on the target (`?compare`) row, the old `base` badge is gone,
+  and `id="mapCompareNotice"` is present.
 - Keep the Task-4 controller view-data tests (`compare` resolves to a pickable version;
   unavailable → null; `canCompare` true/false) — those still hold.
 
