@@ -1,7 +1,15 @@
 # Map-version physics diff (map detail page)
 
 Date: 2026-06-19
-Status: Design approved, pending spec review
+Status: Implemented & merged.
+
+> **Superseded in part:** the launch UX described below (the A/B radio columns + standalone
+> "Compare A → B" button) and the no-overlay handling were revised by
+> [2026-06-19-map-version-diff-ux-refinements-design.md](2026-06-19-map-version-diff-ux-refinements-design.md):
+> the radios became a per-row **Compare** button (the currently-viewed version is the base,
+> the clicked row is the target), and a viewer-area notice now explains the cases where no
+> overlay is drawn. The diff engine, overlay rendering, and `?version`/`?compare` contract
+> below are unchanged.
 
 ## Problem
 
